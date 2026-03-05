@@ -1,9 +1,11 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import { authConfig } from "@/lib/auth.config";
 import { verifyPassword } from "@/lib/password";
 import { getDb } from "@/lib/db";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   providers: [
     Credentials({
       credentials: {
@@ -24,28 +26,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
-  pages: { signIn: "/login" },
-  callbacks: {
-    jwt: async ({ token, user }) => {
-      if (user) {
-        token.sub = user.id;
-        token.email = user.email;
-        token.name = user.name ?? undefined;
-        token.role = user.role;
-      }
-      return token;
-    },
-    session: async ({ session, token }) => {
-      if (session.user) {
-        session.user.id = token.sub!;
-        session.user.email = token.email as string;
-        session.user.name = (token.name as string) ?? null;
-        session.user.role = token.role ?? "USER";
-      }
-      return session;
-    },
-  },
 });
 
 /** Use in server actions: returns user or null so caller can return ActionResult. */
