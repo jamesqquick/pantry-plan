@@ -1,0 +1,11 @@
+[
+  {
+    "name": "Saturday bake",
+    "notes": "Chocolate chip cookies (2 batches), sugar cookies (1 batch), cupcakes (1 batch).",
+    "items": [
+      { "recipeIndex": 0, "batches": 2 },
+      { "recipeIndex": 1, "batches": 1 },
+      { "recipeIndex": 2, "batches": 1 }
+    ]
+  }
+]

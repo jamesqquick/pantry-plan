@@ -1,0 +1,205 @@
+[
+  {
+    "title": "Classic Chocolate Chip Cookies",
+    "servings": 24,
+    "prepTimeMinutes": 15,
+    "cookTimeMinutes": 12,
+    "totalTimeMinutes": 45,
+    "instructions": [
+      "Preheat oven to 375°F. Line baking sheets with parchment.",
+      "Whisk flour, baking soda, and salt in a bowl.",
+      "Beat butter and both sugars until fluffy. Beat in eggs and vanilla.",
+      "Stir in flour mixture, then chocolate chips.",
+      "Drop rounded tablespoons 2 inches apart. Bake 9–11 min until golden."
+    ],
+    "ingredients": [
+      { "ingredientNormalizedName": "all purpose flour", "quantity": 2.25, "unit": "CUP", "originalLine": "2 1/4 cups all-purpose flour" },
+      { "ingredientNormalizedName": "baking soda", "quantity": 1, "unit": "TSP", "originalLine": "1 tsp baking soda" },
+      { "ingredientNormalizedName": "salt", "quantity": 1, "unit": "TSP", "originalLine": "1 tsp fine sea salt" },
+      { "ingredientNormalizedName": "butter", "quantity": 1, "unit": "CUP", "originalLine": "1 cup butter, softened" },
+      { "ingredientNormalizedName": "sugar", "quantity": 0.75, "unit": "CUP", "originalLine": "3/4 cup granulated sugar" },
+      { "ingredientNormalizedName": "light brown sugar", "quantity": 0.75, "unit": "CUP", "originalLine": "3/4 cup packed light brown sugar" },
+      { "ingredientNormalizedName": "eggs", "quantity": 2, "unit": "COUNT", "originalLine": "2 large eggs" },
+      { "ingredientNormalizedName": "vanilla extract", "quantity": 2, "unit": "TSP", "originalLine": "2 tsp vanilla extract" },
+      { "ingredientNormalizedName": "semi sweet chocolate chips", "quantity": 2, "unit": "CUP", "originalLine": "2 cups semi-sweet chocolate chips" }
+    ],
+    "tagIndexes": [0, 2]
+  },
+  {
+    "title": "Simple Sugar Cookies",
+    "servings": 36,
+    "prepTimeMinutes": 20,
+    "cookTimeMinutes": 10,
+    "totalTimeMinutes": 60,
+    "instructions": [
+      "Preheat oven to 350°F. Line baking sheets with parchment.",
+      "Whisk flour, baking powder, and salt.",
+      "Beat butter and sugar until fluffy. Beat in egg and vanilla.",
+      "Stir in flour mixture. Roll into 1-inch balls, flatten with sugar.",
+      "Bake 8–10 min until edges are light golden."
+    ],
+    "ingredients": [
+      { "ingredientNormalizedName": "all purpose flour", "quantity": 2.75, "unit": "CUP", "originalLine": "2 3/4 cups all-purpose flour" },
+      { "ingredientNormalizedName": "baking powder", "quantity": 1, "unit": "TSP", "originalLine": "1 tsp baking powder" },
+      { "ingredientNormalizedName": "salt", "quantity": 0.5, "unit": "TSP", "originalLine": "1/2 tsp fine sea salt" },
+      { "ingredientNormalizedName": "butter", "quantity": 1, "unit": "CUP", "originalLine": "1 cup butter, softened" },
+      { "ingredientNormalizedName": "sugar", "quantity": 1.5, "unit": "CUP", "originalLine": "1 1/2 cups granulated sugar" },
+      { "ingredientNormalizedName": "eggs", "quantity": 1, "unit": "COUNT", "originalLine": "1 large egg" },
+      { "ingredientNormalizedName": "vanilla extract", "quantity": 1, "unit": "TSP", "originalLine": "1 tsp vanilla extract" }
+    ],
+    "tagIndexes": [0, 1]
+  },
+  {
+    "title": "Vanilla Cupcakes",
+    "servings": 12,
+    "prepTimeMinutes": 15,
+    "cookTimeMinutes": 18,
+    "totalTimeMinutes": 40,
+    "instructions": [
+      "Preheat oven to 350°F. Line a 12-cup muffin pan.",
+      "Whisk flour, baking powder, and salt.",
+      "Beat butter and sugar until fluffy. Beat in eggs one at a time, then vanilla.",
+      "Alternately add flour mixture and milk in two additions.",
+      "Divide batter among cups. Bake 18–20 min until a toothpick comes out clean."
+    ],
+    "ingredients": [
+      { "ingredientNormalizedName": "all purpose flour", "quantity": 1.5, "unit": "CUP", "originalLine": "1 1/2 cups all-purpose flour" },
+      { "ingredientNormalizedName": "baking powder", "quantity": 1.5, "unit": "TSP", "originalLine": "1 1/2 tsp baking powder" },
+      { "ingredientNormalizedName": "salt", "quantity": 0.5, "unit": "TSP", "originalLine": "1/2 tsp fine sea salt" },
+      { "ingredientNormalizedName": "butter", "quantity": 0.5, "unit": "CUP", "originalLine": "1/2 cup butter, softened" },
+      { "ingredientNormalizedName": "sugar", "quantity": 0.75, "unit": "CUP", "originalLine": "3/4 cup granulated sugar" },
+      { "ingredientNormalizedName": "eggs", "quantity": 2, "unit": "COUNT", "originalLine": "2 large eggs" },
+      { "ingredientNormalizedName": "vanilla extract", "quantity": 1, "unit": "TSP", "originalLine": "1 tsp vanilla extract" },
+      { "ingredientNormalizedName": "whole milk", "quantity": 0.5, "unit": "CUP", "originalLine": "1/2 cup whole milk" }
+    ],
+    "tagIndexes": [2]
+  },
+  {
+    "title": "Brown Sugar Vanilla Cupcake Base",
+    "servings": 12,
+    "prepTimeMinutes": 16,
+    "cookTimeMinutes": 18,
+    "totalTimeMinutes": 40,
+    "instructions": [
+      "Heat oven to 350°F (175°C). Line pan.",
+      "Cream butter + both sugars 2–3 min until fluffy.",
+      "Add eggs one at a time.",
+      "Mix in vanilla + sour cream.",
+      "Whisk dry ingredients separately.",
+      "Add dry → milk → dry, mixing gently.",
+      "Fill liners about ⅔ full.",
+      "Bake 18–21 minutes until tops spring back."
+    ],
+    "ingredients": [
+      { "ingredientNormalizedName": "all purpose flour", "quantity": 1.5, "unit": "CUP", "originalLine": "180g (1½ cups) all-purpose flour" },
+      { "ingredientNormalizedName": "cornstarch", "quantity": 2, "unit": "TBSP", "originalLine": "20g (2 tbsp) cornstarch" },
+      { "ingredientNormalizedName": "baking powder", "quantity": 1.5, "unit": "TSP", "originalLine": "1½ tsp baking powder" },
+      { "ingredientNormalizedName": "salt", "quantity": 0.5, "unit": "TSP", "originalLine": "½ tsp salt" },
+      { "ingredientNormalizedName": "butter", "quantity": 0.5, "unit": "CUP", "originalLine": "113g (½ cup) unsalted butter, room temp" },
+      { "ingredientNormalizedName": "light brown sugar", "quantity": 0.75, "unit": "CUP", "originalLine": "150g (¾ cup) light brown sugar, packed" },
+      { "ingredientNormalizedName": "sugar", "quantity": 0.25, "unit": "CUP", "originalLine": "50g (¼ cup) granulated sugar" },
+      { "ingredientNormalizedName": "eggs", "quantity": 2, "unit": "COUNT", "originalLine": "2 large eggs, room temp" },
+      { "ingredientNormalizedName": "vanilla extract", "quantity": 2, "unit": "TSP", "originalLine": "2 tsp vanilla extract" },
+      { "ingredientNormalizedName": "whole milk", "quantity": 0.5, "unit": "CUP", "originalLine": "120g (½ cup) whole milk" },
+      { "ingredientNormalizedName": "sour cream", "quantity": 0.25, "unit": "CUP", "originalLine": "60g (¼ cup) sour cream" }
+    ],
+    "tagIndexes": [3]
+  },
+  {
+    "title": "Chocolate Cupcake",
+    "servings": 12,
+    "prepTimeMinutes": 20,
+    "cookTimeMinutes": 18,
+    "totalTimeMinutes": 40,
+    "instructions": [
+      "Preheat oven to 350°F.",
+      "Whisk dry ingredients in one bowl.",
+      "Whisk oil, egg, buttermilk, vanilla in another.",
+      "Combine wet + dry.",
+      "Slowly whisk in hot coffee (batter will be thin).",
+      "Fill liners ½–⅔ full.",
+      "Bake 18–22 min.",
+      "Cool completely."
+    ],
+    "ingredients": [
+      { "ingredientNormalizedName": "all purpose flour", "quantity": 1, "unit": "CUP", "originalLine": "120g all-purpose flour" },
+      { "ingredientNormalizedName": "cocoa powder", "quantity": 0.59, "unit": "CUP", "originalLine": "50g cocoa powder" },
+      { "ingredientNormalizedName": "sugar", "quantity": 0.75, "unit": "CUP", "originalLine": "150g granulated sugar" },
+      { "ingredientNormalizedName": "baking soda", "quantity": 0.5, "unit": "TSP", "originalLine": "½ tsp baking soda" },
+      { "ingredientNormalizedName": "baking powder", "quantity": 0.25, "unit": "TSP", "originalLine": "¼ tsp baking powder" },
+      { "ingredientNormalizedName": "salt", "quantity": 0.5, "unit": "TSP", "originalLine": "½ tsp salt" },
+      { "ingredientNormalizedName": "vegetable oil", "quantity": 0.25, "unit": "CUP", "originalLine": "60g vegetable oil" },
+      { "ingredientNormalizedName": "eggs", "quantity": 1, "unit": "COUNT", "originalLine": "1 large egg" },
+      { "ingredientNormalizedName": "buttermilk", "quantity": 0.5, "unit": "CUP", "originalLine": "120g buttermilk" },
+      { "ingredientNormalizedName": "vanilla extract", "quantity": 1, "unit": "TSP", "originalLine": "1 tsp vanilla extract" },
+      { "ingredientNormalizedName": "strong brewed coffee", "quantity": 0.5, "unit": "CUP", "originalLine": "120g hot coffee (or hot water)" }
+    ],
+    "tagIndexes": [4]
+  },
+  {
+    "title": "NYC Style Chocolate Chip Cookie",
+    "servings": 10,
+    "prepTimeMinutes": 20,
+    "cookTimeMinutes": 13,
+    "totalTimeMinutes": 40,
+    "instructions": [
+      "Cream butter + sugars — Paddle attachment, medium speed, 2–3 minutes until just fluffy — not airy.",
+      "Add eggs one at a time — Mix until smooth after each addition. Add vanilla.",
+      "Combine dry ingredients in a separate bowl, then add to mixer in two additions on low speed.",
+      "Fold in chocolate by hand to avoid overmixing.",
+      "Portion dough — Scoop 140g dough balls. Tear and press together lightly for craggy tops.",
+      "Chill — Minimum 2 hours, ideally 4+ hours or overnight. Dough should feel firm throughout.",
+      "Bake — 400°F / 205°C, 13–14 minutes. Edges golden, centers still soft.",
+      "Cool on tray 10–15 minutes before moving."
+    ],
+    "ingredients": [
+      { "ingredientNormalizedName": "butter", "quantity": 1, "unit": "CUP", "originalLine": "226g unsalted butter, cold but pliable, cubed" },
+      { "ingredientNormalizedName": "light brown sugar", "quantity": 0.95, "unit": "CUP", "originalLine": "200g brown sugar" },
+      { "ingredientNormalizedName": "sugar", "quantity": 0.5, "unit": "CUP", "originalLine": "100g granulated sugar" },
+      { "ingredientNormalizedName": "eggs", "quantity": 2, "unit": "COUNT", "originalLine": "2 large eggs" },
+      { "ingredientNormalizedName": "vanilla extract", "quantity": 1, "unit": "TBSP", "originalLine": "1 tbsp vanilla extract" },
+      { "ingredientNormalizedName": "all purpose flour", "quantity": 3.08, "unit": "CUP", "originalLine": "370g all-purpose flour" },
+      { "ingredientNormalizedName": "cornstarch", "quantity": 3, "unit": "TBSP", "originalLine": "25g cornstarch" },
+      { "ingredientNormalizedName": "baking soda", "quantity": 1, "unit": "TSP", "originalLine": "1 tsp baking soda" },
+      { "ingredientNormalizedName": "baking powder", "quantity": 0.75, "unit": "TSP", "originalLine": "¾ tsp baking powder" },
+      { "ingredientNormalizedName": "salt", "quantity": 1.5, "unit": "TSP", "originalLine": "1½ tsp kosher salt" },
+      { "ingredientNormalizedName": "semi sweet chocolate chips", "quantity": 1.76, "unit": "CUP", "originalLine": "300g chopped semi-sweet chocolate" },
+      { "ingredientNormalizedName": "dark chocolate chips", "quantity": 0.29, "unit": "CUP", "originalLine": "Optional: 50g extra chocolate chunks for topping" }
+    ],
+    "tagIndexes": []
+  },
+  {
+    "title": "Salted Chocolate Chip Cookies",
+    "servings": 24,
+    "prepTimeMinutes": 20,
+    "cookTimeMinutes": 12,
+    "totalTimeMinutes": 45,
+    "instructions": [
+      "Once your butter has cooled, add sugars and stir well.",
+      "Add eggs and vanilla extract and stir until dough is uniform.",
+      "In a separate, medium-sized bowl, whisk together flour, cornstarch, baking powder, baking soda and salt.",
+      "Gradually add the flour mixture to butter mixture, stirring until ingredients are completely combined.",
+      "Add chocolate and stir well so that chocolate is well distributed through the batter.",
+      "Cover cookie dough bowl with plastic wrap and chill in the refrigerator for at least 30 minutes.",
+      "About 15 minutes before dough has finished chilling, preheat oven to 350°F (175°C) and line cookie sheets with parchment paper.",
+      "Once dough has finished chilling, scoop by about 2 Tablespoon-sized portions. Gently roll the dough between your palms into a round ball, then place at least 2\" apart on prepared cookie sheet.",
+      "Bake at 350°F (175°C) for 10–12 minutes or until edges are just beginning to turn golden (cookies should still be quite soft and may appear slightly underbaked in center).",
+      "Let cookies cool about a minute, then sprinkle lightly with flaky sea salt. Allow to cool completely on baking sheet before removing."
+    ],
+    "ingredients": [
+      { "ingredientNormalizedName": "butter", "quantity": 1, "unit": "CUP", "originalLine": "1 cup unsalted butter (cut into Tablespoon-sized pieces)" },
+      { "ingredientNormalizedName": "light brown sugar", "quantity": 1, "unit": "CUP", "originalLine": "1 cup light or dark brown sugar" },
+      { "ingredientNormalizedName": "sugar", "quantity": 0.667, "unit": "CUP", "originalLine": "⅔ cup white sugar" },
+      { "ingredientNormalizedName": "eggs", "quantity": 2, "unit": "COUNT", "originalLine": "2 large eggs (room temperature)" },
+      { "ingredientNormalizedName": "vanilla extract", "quantity": 1.5, "unit": "TSP", "originalLine": "1 ½ tsp vanilla extract" },
+      { "ingredientNormalizedName": "all purpose flour", "quantity": 2.75, "unit": "CUP", "originalLine": "2 ¾ cups all-purpose flour" },
+      { "ingredientNormalizedName": "cornstarch", "quantity": 1, "unit": "TSP", "originalLine": "1 tsp cornstarch" },
+      { "ingredientNormalizedName": "baking powder", "quantity": 1, "unit": "TSP", "originalLine": "1 tsp baking powder" },
+      { "ingredientNormalizedName": "baking soda", "quantity": 1, "unit": "TSP", "originalLine": "1 tsp baking soda" },
+      { "ingredientNormalizedName": "salt", "quantity": 0.75, "unit": "TSP", "originalLine": "¾ tsp salt" },
+      { "ingredientNormalizedName": "semi sweet chocolate chips", "quantity": 10, "unit": "OZ", "originalLine": "10 oz semisweet chocolate" },
+      { "ingredientNormalizedName": "flaky sea salt", "quantity": 1, "unit": "PINCH", "originalLine": "1 pinch flaky sea salt for sprinkling" }
+    ],
+    "tagIndexes": []
+  }
+]

@@ -1,0 +1,7 @@
+name = "pantry-plan"
+compatibility_date = "2026-03-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "pantryplan_dev"
+database_id = "069462c9-ba9f-4cae-ba82-c26edd4b42f2"

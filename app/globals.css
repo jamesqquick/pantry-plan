@@ -1,0 +1,245 @@
+@import "tailwindcss";
+
+/* Class-based dark mode (shadcn pattern) — add class="dark" to html to toggle */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ==========================================================================
+   UI Token System — HSL (shadcn convention)
+   Potluck Pal–inspired: clean, airy, warm neutrals, cream + peach, soft radius.
+   ========================================================================== */
+
+:root {
+  --radius: 1.25rem;
+  /* Core — white background, warm text */
+  --background: 0 0% 100%;
+  --foreground: 25 18% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 25 18% 14%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 25 18% 14%;
+  /* Primary — #802E00 (deep rust/brown accent) */
+  --primary: 22 100% 25%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 35 25% 92%;
+  --secondary-foreground: 25 18% 14%;
+  --muted: 35 20% 93%;
+  --muted-foreground: 25 10% 48%;
+  /* Accent — #FDF6F6 (very light blush) */
+  --accent: 0 63% 98%;
+  --accent-foreground: 25 18% 14%;
+  --destructive: 9 45% 48%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 30 18% 88%;
+  --input: 30 18% 88%;
+  --ring: 22 100% 25%;
+  /* Extended — app-specific */
+  --panel: 35 30% 95%;
+  --panel-foreground: 25 18% 14%;
+  --divider: 30 15% 88%;
+  --success: 145 35% 38%;
+  --success-foreground: 0 0% 98%;
+  --warning: 38 85% 48%;
+  --warning-foreground: 0 0% 10%;
+  --info: 210 55% 45%;
+  --info-foreground: 0 0% 98%;
+  /* Charts (cooking-friendly) */
+  --chart-1: 22 100% 25%;
+  --chart-2: 14 48% 59%;
+  --chart-3: 35 25% 45%;
+  --chart-4: 9 40% 50%;
+  --chart-5: 75 18% 55%;
+  /* Sidebar */
+  --sidebar: 35 40% 96%;
+  --sidebar-foreground: 25 18% 14%;
+  --sidebar-primary: 22 100% 25%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 0 63% 98%;
+  --sidebar-accent-foreground: 25 18% 14%;
+  --sidebar-border: 30 18% 88%;
+  --sidebar-ring: 22 100% 25%;
+}
+
+.dark {
+  --background: 60 5% 12%;
+  --foreground: 50 8% 92%;
+  --card: 50 6% 16%;
+  --card-foreground: 50 8% 92%;
+  --popover: 50 6% 16%;
+  --popover-foreground: 50 8% 92%;
+  --primary: 22 85% 55%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 50 5% 22%;
+  --secondary-foreground: 50 8% 92%;
+  --muted: 50 5% 22%;
+  --muted-foreground: 50 5% 58%;
+  --accent: 50 5% 26%;
+  --accent-foreground: 50 8% 92%;
+  --destructive: 9 45% 45%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 50 5% 22%;
+  --input: 50 5% 22%;
+  --ring: 22 85% 55%;
+  --panel: 55 6% 18%;
+  --panel-foreground: 50 8% 92%;
+  --divider: 50 4% 28%;
+  --success: 145 30% 42%;
+  --success-foreground: 0 0% 98%;
+  --warning: 38 85% 50%;
+  --warning-foreground: 0 0% 10%;
+  --info: 210 55% 50%;
+  --info-foreground: 0 0% 98%;
+  --chart-1: 22 85% 55%;
+  --chart-2: 14 40% 55%;
+  --chart-3: 35 20% 52%;
+  --chart-4: 9 45% 45%;
+  --chart-5: 75 15% 50%;
+  --sidebar: 55 5% 15%;
+  --sidebar-foreground: 50 8% 92%;
+  --sidebar-primary: 22 85% 55%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 50 5% 22%;
+  --sidebar-accent-foreground: 50 8% 92%;
+  --sidebar-border: 50 5% 22%;
+  --sidebar-ring: 22 85% 55%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: 60 5% 12%;
+    --foreground: 50 8% 92%;
+    --card: 50 6% 16%;
+    --card-foreground: 50 8% 92%;
+    --popover: 50 6% 16%;
+    --popover-foreground: 50 8% 92%;
+    --primary: 22 85% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 50 5% 22%;
+    --secondary-foreground: 50 8% 92%;
+    --muted: 50 5% 22%;
+    --muted-foreground: 50 5% 58%;
+    --accent: 50 5% 26%;
+    --accent-foreground: 50 8% 92%;
+    --destructive: 9 45% 45%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 50 5% 22%;
+    --input: 50 5% 22%;
+    --ring: 22 85% 55%;
+    --panel: 55 6% 18%;
+    --panel-foreground: 50 8% 92%;
+    --divider: 50 4% 28%;
+    --success: 145 30% 42%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 85% 50%;
+    --warning-foreground: 0 0% 10%;
+    --info: 210 55% 50%;
+    --info-foreground: 0 0% 98%;
+    --chart-1: 22 85% 55%;
+    --chart-2: 14 40% 55%;
+    --chart-3: 35 20% 52%;
+    --chart-4: 9 45% 45%;
+    --chart-5: 75 15% 50%;
+    --sidebar: 55 5% 15%;
+    --sidebar-foreground: 50 8% 92%;
+    --sidebar-primary: 22 85% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 50 5% 22%;
+    --sidebar-accent-foreground: 50 8% 92%;
+    --sidebar-border: 50 5% 22%;
+    --sidebar-ring: 22 85% 55%;
+  }
+}
+
+/* Tailwind v4 @theme — semantic utilities from CSS vars (HSL) */
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-panel: hsl(var(--panel));
+  --color-panel-foreground: hsl(var(--panel-foreground));
+  --color-divider: hsl(var(--divider));
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --color-info: hsl(var(--info));
+  --color-info-foreground: hsl(var(--info-foreground));
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+  --radius-xs: 0.125rem;
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-input: 10px;
+}
+
+/* 10px radius for inputs and buttons (single source of truth) */
+.rounded-input {
+  border-radius: var(--radius-input);
+}
+
+body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Toast: slide up from bottom */
+@keyframes toast-slide-in {
+  from {
+    transform: translate(-50%, 100%);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+.animate-toast-in {
+  animation: toast-slide-in 1.2s ease-out both;
+}
+
+/* Enhancing ingredients: gentle cookie bounce on enhance page */
+@keyframes cookie-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-cookie-float {
+  animation: cookie-float 2.5s ease-in-out infinite;
+}

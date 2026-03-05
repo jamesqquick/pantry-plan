@@ -1,0 +1,221 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  role         UserRole @default(USER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  recipes      Recipe[]
+  orders       Order[]
+  ingredients  Ingredient[]
+  tags         Tag[]
+}
+
+enum IngredientUnit {
+  COUNT
+  TSP
+  TBSP
+  CUP
+  OZ
+  LB
+  G
+  KG
+  PINCH
+}
+
+enum CostBasisUnit {
+  GRAM
+  CUP
+  EACH
+}
+
+enum IngredientDisplayUnit {
+  AUTO
+  GRAM
+  CUP
+  EACH
+  TBSP
+  TSP
+}
+
+model IngredientCategory {
+  id        String                 @id @default(cuid())
+  name      String                 @unique
+  subcategories IngredientSubcategory[]
+
+  @@index([name])
+}
+
+model IngredientSubcategory {
+  id                    String            @id @default(cuid())
+  name                  String
+  ingredientCategoryId  String
+  ingredientCategory    IngredientCategory @relation(fields: [ingredientCategoryId], references: [id], onDelete: Cascade)
+
+  @@unique([ingredientCategoryId, name])
+  @@index([ingredientCategoryId])
+}
+
+model Ingredient {
+  id                        String                     @id @default(cuid())
+  userId                    String?
+  user                      User?                      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name                      String
+  normalizedName            String
+  category                  String?
+  subcategory               String                     @default("")
+  defaultUnit               IngredientUnit?
+  costBasisUnit             CostBasisUnit
+  estimatedCentsPerBasisUnit Float?
+  gramsPerCup               Decimal?
+  conversionConfidence      String                     @default("Medium")
+  costConfidence            String                     @default("Medium")
+  cupsPerEach               Float?
+  preferredDisplayUnit      IngredientDisplayUnit      @default(AUTO)
+  notes                     String?
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  recipeIngredients         RecipeIngredient[]
+  aliases                   IngredientAlias[]
+  @@unique([userId, normalizedName])
+  @@index([userId])
+  @@index([category])
+  @@index([category, subcategory])
+}
+
+model Recipe {
+  id               String             @id @default(cuid())
+  userId           String
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title            String
+  sourceUrl        String?
+  imageUrl         String?
+  servings         Int?
+  prepTimeMinutes  Int?
+  cookTimeMinutes  Int?
+  totalTimeMinutes Int?
+  notes            String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  orderItems       OrderItem[]
+  recipeIngredients RecipeIngredient[]
+  recipeInstructions RecipeInstruction[]
+  recipeTags       RecipeTag[]
+
+  @@index([userId])
+}
+
+model Tag {
+  id         String       @id @default(cuid())
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  createdAt  DateTime     @default(now())
+  recipeTags RecipeTag[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model RecipeTag {
+  id       String  @id @default(cuid())
+  recipeId String
+  recipe   Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  tagId    String
+  tag      Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([recipeId, tagId])
+  @@index([tagId])
+}
+
+model RecipeInstruction {
+  id        String   @id @default(cuid())
+  recipeId  String
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  sortOrder Int
+  text      String
+  @@index([recipeId, sortOrder])
+}
+
+model RecipeIngredient {
+  id                    String            @id @default(cuid())
+  recipeId              String
+  recipe                Recipe            @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredientId          String?
+  ingredient            Ingredient?       @relation(fields: [ingredientId], references: [id])
+  quantity              Float?            // single numeric quantity (display as fraction in UI)
+  rawQuantityText       String?           // original parsed quantity string from import
+  unit                  IngredientUnit?
+  /** Ingredient line without quantity/unit; editable. On import, set to parsed line minus qty/unit. */
+  displayText           String
+  rawText               String?
+  sortOrder             Int
+  originalQuantity      Float?
+  originalUnit          IngredientUnit?
+  weightGrams           Float?
+  conversionSource      String?
+  conversionConfidence  String?
+  conversionNotes       String?
+  /** Parse confidence 0–1; optional. */
+  parseConfidence       Float?
+  createdAt             DateTime                     @default(now())
+  updatedAt             DateTime                     @updatedAt
+
+  @@index([recipeId, sortOrder])
+  @@index([ingredientId])
+}
+
+model IngredientAlias {
+  id              String     @id @default(cuid())
+  ingredientId    String
+  ingredient      Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  aliasNormalized String
+  createdAt       DateTime   @default(now())
+
+  @@unique([aliasNormalized])
+  @@index([ingredientId])
+}
+
+model Order {
+  id         String      @id @default(cuid())
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String?
+  notes      String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  orderItems OrderItem[]
+
+  @@index([userId, updatedAt])
+}
+
+model OrderItem {
+  id       String  @id @default(cuid())
+  orderId  String
+  order    Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  recipeId String
+  recipe   Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  batches  Int     // >= 1
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orderId, recipeId])
+  @@index([orderId])
+}
+

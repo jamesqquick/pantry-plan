@@ -1,0 +1,382 @@
+---
+alwaysApply: true
+---
+
+This repository uses a server-first architecture built with:
+
+Next.js App Router
+
+Server Actions
+
+Zod for validation
+
+Tailwind CSS
+
+Prisma
+
+Auth.js (Credentials)
+
+Agents must follow these rules when creating or modifying code.
+
+1. Golden Rules (Always Follow)
+
+Default to Server Components.
+
+All mutations must use Server Actions.
+
+All untrusted input must be validated with Zod on the server.
+
+Never access the database or secrets from Client Components.
+
+Follow existing project patterns — do not invent new architecture.
+
+Make the smallest safe change necessary.
+
+Do not refactor unrelated files.
+
+2. Architecture Overview
+   Route Groups
+   app/(auth) → public auth pages
+   app/(app) → authenticated application
+
+Middleware protects (app) routes.
+
+Folder Responsibilities
+app/actions/
+
+Single source of truth for mutations.
+
+Agents MUST:
+
+Place new actions here
+
+Not create API routes unless explicitly required
+
+features/<feature>/
+
+Feature domain logic.
+
+Contains:
+
+Zod schemas
+
+feature types
+
+server-safe helpers
+
+Agents MUST colocate schemas with their feature.
+
+lib/
+
+Shared infrastructure.
+
+Examples:
+
+db.ts
+
+auth.ts
+
+action-helpers.ts
+
+parse/
+
+Agents MUST NOT add feature logic here.
+
+components/
+
+Reusable UI.
+
+Rules:
+
+UI components should be mostly presentational.
+
+Business logic belongs in Server Actions or features.
+
+3. Server vs Client Rules
+   Server Components (Default)
+
+Allowed:
+
+DB access
+
+secrets
+
+cookies
+
+auth()
+
+data fetching
+
+Client Components
+
+Allowed:
+
+local state
+
+event handlers
+
+form interactions
+
+Forbidden:
+
+importing prisma/db
+
+calling server-only utilities
+
+accessing env secrets
+
+Minimize "use client" usage.
+
+4. Server Action Standards
+
+All actions must:
+
+Authenticate user via requireUser()
+
+Authorize resource ownership
+
+Validate input using Zod safeParse
+
+Return standardized ActionResult
+
+Revalidate paths intentionally
+
+Standard Return Shape
+{ ok: true, data }
+
+or
+
+{ ok: false, error: { code, message, fieldErrors? } }
+
+Never throw errors for expected failures.
+
+5. Zod Validation Rules
+
+Every action boundary must validate input.
+
+Schemas must live in:
+
+features/<domain>/<domain>.schemas.ts
+
+Agents must:
+
+use safeParse
+
+convert errors via zodToFieldErrors
+
+infer types from schemas
+
+Never manually trust FormData or JSON input.
+
+6. Auth Rules
+
+Auth uses Auth.js credentials provider.
+
+Agents must:
+
+use requireUser() in actions
+
+enforce ownership checks:
+
+recipe.userId === user.id
+
+Never trust IDs from the client.
+
+7. Database Rules (Prisma)
+
+Allowed locations for DB usage:
+
+Server Components
+
+Server Actions
+
+lib/\* server utilities
+
+Forbidden:
+
+Client Components
+
+form components
+
+All queries must be scoped to the authenticated user when applicable.
+
+8. Recipe Parsing Security Rules
+
+User-provided URLs are untrusted.
+
+Agents must:
+
+only allow http/https URLs
+
+block localhost/private networks
+
+fetch HTML via lib/parse/fetch-html.ts
+
+normalize data via parse pipeline
+
+Parsing output is NOT trusted input.
+It must be validated again when saving.
+
+9. Tailwind CSS Rules
+
+Use Tailwind exclusively.
+
+Agents must:
+
+use cn() helper for class merging
+
+avoid inline styles unless required
+
+preserve accessibility:
+
+labels
+
+focus styles
+
+semantic elements
+
+Do not introduce new styling systems.
+
+10. Caching and Revalidation
+
+Agents must explicitly revalidate when data changes:
+
+revalidatePath("/recipes")
+
+revalidatePath(\/recipes/${id}`)`
+
+Never rely on implicit refresh behavior.
+
+11. Error Handling
+
+Expected failures:
+
+Return structured ActionResult errors.
+
+Unexpected failures:
+
+Log server-side and return INTERNAL_ERROR.
+
+Never expose stack traces to the client.
+
+12. Middleware and Route Protection
+
+Authenticated routes live under:
+
+app/(app)
+
+Agents must NOT bypass middleware auth checks.
+
+13. Performance Rules
+
+Prefer:
+
+Server Components
+
+minimal client JS
+
+small forms
+
+Avoid:
+
+global state libraries unless requested
+
+heavy client dependencies
+
+14. Dependency Rules
+
+Agents may add dependencies ONLY if:
+
+no native Next.js solution exists
+
+justified in the change summary
+
+Never introduce alternative validation libraries or styling systems.
+
+15. Logging Rules
+
+Allowed:
+
+console.error("actionName", err)
+
+Forbidden:
+
+logging passwords
+
+logging tokens
+
+logging session cookies
+
+16. Definition of Done
+
+Before completing a feature:
+
+Zod validation added
+
+Auth enforced
+
+Ownership enforced
+
+ActionResult returned
+
+Tailwind styles consistent
+
+Revalidation added
+
+No server code in client files
+
+Seed script has been updated
+
+17. Agent Operating Procedure (Required)
+
+When implementing a feature:
+
+Locate existing schema patterns.
+
+Create or update Zod schema.
+
+Add Server Action in app/actions.
+
+Use Server Component for data fetching.
+
+Create minimal Client form if needed.
+
+Add revalidation.
+
+Provide verification steps.
+
+18. Security Principles
+
+Never trust:
+
+URLs
+
+IDs
+
+FormData
+
+parsed recipe content
+
+Always validate server-side.
+
+19. Code Style
+
+TypeScript strict mode
+
+No any unless justified
+
+Prefer small composable functions
+
+20. Component Size and Reuse
+
+Agents must:
+
+Keep all components to 200–300 lines of code; split larger components into smaller, focused pieces.
+
+Look for opportunities to reuse existing components whenever possible instead of duplicating UI or logic.
+
+21. If Unsure
+
+Agents must follow existing patterns instead of inventing new structure.
+
+Consistency is more important than optimization.
