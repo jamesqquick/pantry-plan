@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && npx opennextjs-cloudflare build",
+    "build": "next build",
+    "build:cf": "prisma generate && npx opennextjs-cloudflare build",
     "start": "next start",
     "lint": "eslint",
     "seed": "npx tsx prisma/seed.ts",
@@ -12,18 +13,20 @@
     "check-parse": "tsx scripts/check-parse.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "cf:dev": "npm run build && wrangler pages dev ..."
+    "cf:dev": "npm run build:cf && wrangler pages dev ..."
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.16.0",
+    "@prisma/adapter-better-sqlite3": "^7.4.2",
     "@prisma/adapter-d1": "^7.4.2",
-    "@prisma/client": "^6.19.2",
+    "@prisma/client": "^7.4.2",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^16.4.5",
     "lucide-react": "^0.575.0",
     "next": "16.1.6",
     "next-auth": "^5.0.0-beta.30",

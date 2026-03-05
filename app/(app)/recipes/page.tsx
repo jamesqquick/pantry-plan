@@ -80,7 +80,7 @@ async function RecipesListData({
   return <RecipeListContent initialRecipes={initialRecipes} />;
 }
 
-export default async function RecipesListPage({
+async function RecipesPageContent({
   searchParams,
 }: {
   searchParams: Promise<{ tagId?: string }>;
@@ -116,5 +116,17 @@ export default async function RecipesListPage({
         }
       />
     </div>
+  );
+}
+
+export default function RecipesListPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tagId?: string }>;
+}) {
+  return (
+    <Suspense fallback={<RecipeListGridSkeleton />}>
+      <RecipesPageContent searchParams={searchParams} />
+    </Suspense>
   );
 }

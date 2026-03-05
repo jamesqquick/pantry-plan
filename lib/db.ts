@@ -1,14 +1,19 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaD1 } from "@prisma/adapter-d1";
 import type { D1Database } from "@cloudflare/workers-types";
 import { cache } from "react";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
+const sqliteUrl =
+  process.env.DATABASE_URL ?? "file:./prisma/dev.db";
+
 /** Global client used in development (local SQLite) and as fallback when not on Cloudflare. */
 const globalDb =
   globalForPrisma.prisma ??
   new PrismaClient({
+    adapter: new PrismaBetterSqlite3({ url: sqliteUrl }),
     log:
       process.env.NODE_ENV === "development"
         ? ["query", "error", "warn"]
