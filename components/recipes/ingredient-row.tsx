@@ -12,7 +12,6 @@ type IngredientRowProps = {
   recipeId: string;
   isMapped: boolean;
   isLast?: boolean;
-  source?: "base" | "override" | "add";
   number?: number;
 };
 
@@ -21,21 +20,16 @@ export function IngredientRow({
   displayLine,
   mappedIngredientName,
   isLast = false,
-  source,
   number,
 }: IngredientRowProps) {
   const displayText = (displayLine?.trim() || originalLine.trim() || mappedIngredientName?.trim() || "—").trim() || "—";
   const showMapped = !displayLine && shouldShowMapped(originalLine, mappedIngredientName);
-  const sourceLabel = source === "override" ? "(variant)" : source === "add" ? "(added)" : null;
 
   const content = (
     <p className="text-base text-foreground">
         {displayText}
         {showMapped && (
           <span className="text-muted-foreground"> ({mappedIngredientName})</span>
-        )}
-        {sourceLabel && (
-          <span className="ml-1 text-xs text-muted-foreground">{sourceLabel}</span>
         )}
       </p>
   );
@@ -62,15 +56,7 @@ export function IngredientRow({
     <li
       className={`py-1.5 leading-snug ${!isLast ? "border-b border-border" : ""}`}
     >
-      <p className="text-base text-foreground">
-        {displayText}
-        {showMapped && (
-          <span className="text-muted-foreground"> ({mappedIngredientName})</span>
-        )}
-        {sourceLabel && (
-          <span className="ml-1 text-xs text-muted-foreground">{sourceLabel}</span>
-        )}
-      </p>
+      {content}
     </li>
   );
 }

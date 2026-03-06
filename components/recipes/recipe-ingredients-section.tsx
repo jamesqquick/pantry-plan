@@ -9,7 +9,7 @@ export function RecipeIngredientsSection({
   rawIngredients,
 }: {
   recipeId: string;
-  recipeIngredients: Array<RecipeIngredientForList & { source?: "base" | "override" | "add" }>;
+  recipeIngredients: RecipeIngredientForList[];
   rawIngredients: string[];
 }) {
   return (

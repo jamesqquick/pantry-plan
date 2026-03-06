@@ -11,7 +11,6 @@ import { DeleteRecipeButton } from "@/components/recipes/delete-recipe-button";
 import { DuplicateRecipeButton } from "@/components/recipes/duplicate-recipe-button";
 import { formatIngredientLine } from "@/lib/ingredientLineFormat";
 import { UNIT_LABELS } from "@/lib/ingredients/units";
-import type { EffectiveIngredientItem } from "@/lib/recipes/variants";
 
 type RecipeIngredientItem = {
   id: string;
@@ -43,22 +42,6 @@ type Recipe = {
   notes: string | null;
   recipeTags?: { tag: { id: string; name: string } }[];
   recipeIngredients?: RecipeIngredientItem[];
-  effectiveIngredients?:
-    | EffectiveIngredientItem[]
-    | Array<{
-        id: string;
-        effectiveId?: string;
-        displayText?: string;
-        quantity?: number | null;
-        unit?: IngredientUnit | null;
-        ingredient?: {
-          id: string;
-          name: string;
-          defaultUnit?: IngredientUnit | null;
-        } | null;
-        source?: "base" | "override" | "add";
-        [key: string]: unknown;
-      }>;
 };
 
 function needsAttention(ri: {
@@ -79,41 +62,28 @@ export function RecipeView({
   recipe: Recipe;
   cookingView?: boolean;
 }) {
-  const effective =
-    recipe.effectiveIngredients ?? recipe.recipeIngredients ?? [];
-  const ingredientsEnhanced = effective.some(
+  const ingredients = recipe.recipeIngredients ?? [];
+  const ingredientsEnhanced = ingredients.some(
     (ri) =>
       ri.ingredient != null || ri.quantity != null || ri.unit != null
   );
-  const needAttentionCount = effective.filter(needsAttention).length;
-  const structured = effective.map((ri) => {
-    const id =
-      typeof (ri as { effectiveId?: string }).effectiveId === "string"
-        ? (ri as { effectiveId: string }).effectiveId
-        : (ri as { id: string }).id;
+  const needAttentionCount = ingredients.filter(needsAttention).length;
+  const structured = ingredients.map((ri) => {
     const ingredient = ri.ingredient ?? undefined;
     const unitLabel = ri.unit != null ? UNIT_LABELS[ri.unit] : null;
-    const displayOriginalLine =
-      (ri as { displayOriginalLine?: string }).displayOriginalLine ??
-      (ri as { displayText?: string }).displayText ??
-      "";
     const displayLine = formatIngredientLine({
       quantity: ri.quantity ?? null,
       unit: unitLabel,
       nameNormalized: null,
-      ingredientName: displayOriginalLine || "—",
+      ingredientName: ri.displayText || "—",
     });
     return {
-      id,
-      displayText: displayOriginalLine,
+      id: ri.id,
+      displayText: ri.displayText,
       displayLine,
       ingredient: ingredient
         ? { id: ingredient.id, name: ingredient.name }
         : undefined,
-      source:
-        "source" in ri
-          ? (ri as { source: "base" | "override" | "add" }).source
-          : undefined,
     };
   });
   const instructions = recipe.recipeInstructions?.map((i) => i.text) ?? [];

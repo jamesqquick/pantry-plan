@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { getRecipeWithEffectiveIngredientsForUser } from "@/lib/queries/recipes";
+import { getRecipeWithIngredientsForUser } from "@/lib/queries/recipes";
 import { RecipeView } from "@/components/recipes/recipe-view";
 import { RecipeViewSkeleton } from "@/components/recipes/recipe-view-skeleton";
 import { CookingViewToggle } from "@/components/recipes/cooking-view-toggle";
@@ -18,7 +18,7 @@ async function RecipePageData({
   if (!session?.user?.id) return null;
   const { id } = await params;
   const { cooking } = await searchParams;
-  const recipe = await getRecipeWithEffectiveIngredientsForUser(id, session.user.id);
+  const recipe = await getRecipeWithIngredientsForUser(id, session.user.id);
   if (!recipe) notFound();
   const cookingView = cooking === "1";
   return (

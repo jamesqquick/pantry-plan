@@ -1,5 +1,4 @@
 import { getDb } from "@/lib/db";
-import type { EffectiveIngredientItem } from "@/lib/recipes/variants";
 
 const recipeIngredientInclude = {
   ingredient: {
@@ -44,17 +43,16 @@ export async function getRecipeForUser(recipeId: string, userId: string) {
   });
 }
 
-export type RecipeWithEffectiveIngredients = Awaited<
-  ReturnType<typeof getRecipeWithEffectiveIngredientsForUser>
+export type RecipeWithIngredients = Awaited<
+  ReturnType<typeof getRecipeWithIngredientsForUser>
 >;
 
-/** Recipe with effectiveIngredients (this recipe's ingredients). */
-export async function getRecipeWithEffectiveIngredientsForUser(
+export async function getRecipeWithIngredientsForUser(
   recipeId: string,
   userId: string
 ) {
   const db = getDb();
-  const recipe = await db.recipe.findFirst({
+  return db.recipe.findFirst({
     where: { id: recipeId, userId },
     include: {
       recipeIngredients: {
@@ -67,33 +65,42 @@ export async function getRecipeWithEffectiveIngredientsForUser(
       },
     },
   });
-  if (!recipe) return null;
-
-  const effectiveIngredients: EffectiveIngredientItem[] = recipe.recipeIngredients.map((ri) => ({
-    ...ri,
-    source: "base" as const,
-    provenance: "base" as const,
-    effectiveId: ri.id,
-    displayName: ri.ingredient?.name ?? null,
-    displayQuantity: ri.quantity,
-    displayUnit: ri.unit,
-    displayOriginalLine: ri.displayText,
-  }));
-
-  return {
-    ...recipe,
-    effectiveIngredients,
-  };
 }
 
-/** Fetch multiple recipes with effective ingredients (for order grocery list). */
-export async function getRecipesWithEffectiveIngredientsForUser(
+/** Fetch multiple recipes with ingredients (for order grocery list). */
+export async function getRecipesWithIngredientsForUser(
   recipeIds: string[],
   userId: string
 ) {
-  const results = await Promise.all(
-    recipeIds.map((id) => getRecipeWithEffectiveIngredientsForUser(id, userId))
-  );
-  return results.filter((r): r is NonNullable<typeof r> => r != null);
+  if (recipeIds.length === 0) return [];
+
+  const db = getDb();
+  const results = await db.recipe.findMany({
+    where: { id: { in: recipeIds }, userId },
+    include: {
+      recipeIngredients: {
+        orderBy: { sortOrder: "asc" },
+        include: { ingredient: { select: recipeIngredientInclude.ingredient.select } },
+      },
+      recipeInstructions: { orderBy: { sortOrder: "asc" } },
+      recipeTags: {
+        include: { tag: { select: { id: true, name: true } } },
+      },
+    },
+  });
+
+  // Convert Prisma Decimal fields to plain numbers for downstream consumers
+  return results.map((r) => ({
+    ...r,
+    recipeIngredients: r.recipeIngredients.map((ri) => ({
+      ...ri,
+      ingredient: ri.ingredient
+        ? {
+            ...ri.ingredient,
+            gramsPerCup: ri.ingredient.gramsPerCup != null ? Number(ri.ingredient.gramsPerCup) : null,
+          }
+        : null,
+    })),
+  }));
 }
 

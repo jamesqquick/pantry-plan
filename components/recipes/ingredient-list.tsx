@@ -7,7 +7,6 @@ export type RecipeIngredientForList = {
   ingredient?: { id: string; name: string };
   matchType?: string;
   confidence?: number;
-  source?: "base" | "override" | "add";
 };
 
 type RecipeIngredientListProps = {
@@ -32,7 +31,6 @@ export function RecipeIngredientList({
     matchType?: string;
     confidence?: number;
     isMapped: boolean;
-    source?: "base" | "override" | "add";
   }> = [
     ...recipeIngredients.map((ri) => ({
       key: ri.id,
@@ -42,7 +40,6 @@ export function RecipeIngredientList({
       matchType: ri.matchType,
       confidence: ri.confidence,
       isMapped: Boolean(ri.ingredient),
-      source: ri.source,
     })),
     ...unmappedLines.map((line, i) => ({
       key: `unmapped-${i}-${line.slice(0, 20)}`,
@@ -65,7 +62,6 @@ export function RecipeIngredientList({
           recipeId={recipeId}
           isMapped={row.isMapped}
           isLast={index === rows.length - 1}
-          source={row.source}
         />
       ))}
     </ol>

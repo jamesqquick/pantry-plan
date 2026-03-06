@@ -5,7 +5,6 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "build:cf": "prisma generate && npx opennextjs-cloudflare build",
     "start": "next start",
     "lint": "eslint",
     "seed": "npx tsx prisma/seed.ts",
@@ -15,6 +14,7 @@
     "check-parse": "tsx scripts/check-parse.ts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "cf:build": "prisma generate && npx opennextjs-cloudflare build",
     "cf:dev": "npx opennextjs-cloudflare preview",
     "cf:dev:full": "npm run build:cf && npm run cf:dev",
     "cf:deploy": "npm run build:cf && wrangler pages deploy .open-next/cloudflare --env production"

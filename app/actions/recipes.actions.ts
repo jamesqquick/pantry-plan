@@ -14,7 +14,7 @@ import {
   duplicateRecipeSchema,
 } from "@/features/recipes/recipes.schemas";
 import { setRecipeIngredientsSchema } from "@/features/recipes/recipe-ingredients.schemas";
-import { getRecipeWithEffectiveIngredientsForUser } from "@/lib/queries/recipes";
+import { getRecipeWithIngredientsForUser } from "@/lib/queries/recipes";
 
 export async function createRecipeAction(
   _prev: unknown,
@@ -292,7 +292,7 @@ export async function duplicateRecipeAction(
     };
   }
 
-  const source = await getRecipeWithEffectiveIngredientsForUser(
+  const source = await getRecipeWithIngredientsForUser(
     parsed.data.recipeId,
     user.id
   );
@@ -327,16 +327,16 @@ export async function duplicateRecipeAction(
     });
   }
 
-  const effective = source.effectiveIngredients ?? [];
-  if (effective.length > 0) {
+  const ingredients = source.recipeIngredients ?? [];
+  if (ingredients.length > 0) {
     await db.recipeIngredient.createMany({
-      data: effective.map((ei, index) => ({
+      data: ingredients.map((ri, index) => ({
         recipeId: copy.id,
-        ingredientId: ei.ingredientId,
-        quantity: ei.quantity,
-        unit: (ei.unit as IngredientUnit | null) ?? undefined,
-        displayText: ei.displayText,
-        sortOrder: ei.sortOrder ?? index,
+        ingredientId: ri.ingredientId,
+        quantity: ri.quantity,
+        unit: (ri.unit as IngredientUnit | null) ?? undefined,
+        displayText: ri.displayText,
+        sortOrder: ri.sortOrder ?? index,
       })),
     });
   }

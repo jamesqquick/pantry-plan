@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getOrderWithGroceryData } from "@/lib/queries/orders";
-import { getRecipesWithEffectiveIngredientsForUser } from "@/lib/queries/recipes";
+import { getRecipesWithIngredientsForUser } from "@/lib/queries/recipes";
 import { buildGroceryList } from "@/lib/grocery/aggregate";
 import { toDisplayUnits, formatCanonicalForKitchen } from "@/lib/grocery/display-units";
 import type { CanonicalUnit, CanonicalUnitLabel } from "@/lib/grocery/display-units";
@@ -36,34 +36,31 @@ async function OrderDetailPageData({
     batches: item.batches,
   }));
   const recipeIds = [...new Set(order.orderItems.map((i) => i.recipeId))];
-  const recipesWithEffective = await getRecipesWithEffectiveIngredientsForUser(
+  const recipesWithIngredients = await getRecipesWithIngredientsForUser(
     recipeIds,
     session.user.id
   );
-  const recipes = recipesWithEffective.map((r) => ({
+  const recipes = recipesWithIngredients.map((r) => ({
     id: r.id,
     title: r.title,
-    ingredients: r.effectiveIngredients.map((ri) => {
-      const ing = ri.ingredient as { id: string; name: string; costBasisUnit?: CostBasisUnit; estimatedCentsPerBasisUnit?: number | null; gramsPerCup?: number | null; cupsPerEach?: number | null; preferredDisplayUnit?: string | null } | null | undefined;
-      return {
-        id: ri.effectiveId ?? ri.id,
-        ingredientId: ri.ingredientId,
-        ingredient: ing
-          ? {
-              id: ing.id,
-              name: ing.name,
-              costBasisUnit: ing.costBasisUnit ?? "GRAM",
-              estimatedCentsPerBasisUnit: ing.estimatedCentsPerBasisUnit ?? null,
-              gramsPerCup: ing.gramsPerCup ?? null,
-              cupsPerEach: ing.cupsPerEach ?? null,
-              preferredDisplayUnit: ing.preferredDisplayUnit ?? "AUTO",
-            }
-          : null,
-        quantity: ri.quantity,
-        unit: ri.unit as IngredientUnit | null,
-        displayText: ri.displayText,
-      };
-    }),
+    ingredients: r.recipeIngredients.map((ri) => ({
+      id: ri.id,
+      ingredientId: ri.ingredientId,
+      ingredient: ri.ingredient
+        ? {
+            id: ri.ingredient.id,
+            name: ri.ingredient.name,
+            costBasisUnit: ri.ingredient.costBasisUnit ?? "GRAM",
+            estimatedCentsPerBasisUnit: ri.ingredient.estimatedCentsPerBasisUnit ?? null,
+            gramsPerCup: ri.ingredient.gramsPerCup ?? null,
+            cupsPerEach: ri.ingredient.cupsPerEach ?? null,
+            preferredDisplayUnit: ri.ingredient.preferredDisplayUnit ?? "AUTO",
+          }
+        : null,
+      quantity: ri.quantity,
+      unit: ri.unit as IngredientUnit | null,
+      displayText: ri.displayText,
+    })),
   }));
 
   const grocery =
