@@ -25,8 +25,8 @@ You are an AI coding agent working in a Next.js repository.
 ## Patterns
 
 - Use **ActionResult\<T\>** and **zodToFieldErrors()** from `lib/action-helpers.ts`.
-- Put all server actions in **app/actions/*.ts** and include `import "server-only";` at top of those files.
-- Put Zod schemas in **features/\<domain\>/*.schemas.ts**.
+- Put all server actions in **app/actions/\*.ts** and include `import "server-only";` at top of those files.
+- Put Zod schemas in **features/\<domain\>/\*.schemas.ts**.
 - Put parsing pipeline under **lib/parse/** (`fetch-html.ts`, `extract-jsonld.ts`, `normalize-recipe.ts`, `parse-recipe.ts`).
 - Use **middleware.ts** to protect `/(app)` routes and redirect unauthenticated users to `/login`.
 

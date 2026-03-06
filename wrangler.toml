@@ -1,7 +1,30 @@
 name = "pantry-plan"
 compatibility_date = "2026-03-01"
+compatibility_flags = ["nodejs_compat"]
 
+# Worker entry and assets for opennextjs-cloudflare preview (wrangler dev)
+main = ".open-next/worker.js"
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+# Default = dev (used by wrangler dev / wrangler pages dev with no --env)
 [[d1_databases]]
 binding = "DB"
 database_name = "pantryplan_dev"
 database_id = "069462c9-ba9f-4cae-ba82-c26edd4b42f2"
+
+# Explicit dev env (same as default): wrangler dev --env dev
+[env.dev]
+[[env.dev.d1_databases]]
+binding = "DB"
+database_name = "pantryplan_dev"
+database_id = "069462c9-ba9f-4cae-ba82-c26edd4b42f2"
+
+# Production: wrangler deploy --env production
+# Create a D1 database in the dashboard for production, then set database_id below.
+[env.production]
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "pantryplan"
+database_id = "5fd80d3a-314e-413e-82f0-17815015dde6" # Replace with your production D1 database ID

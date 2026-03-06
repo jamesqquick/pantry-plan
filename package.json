@@ -9,11 +9,15 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "npx tsx prisma/seed.ts",
+    "seed:d1:generate": "tsx scripts/generate-seed-d1.ts",
+    "seed:d1": "npx wrangler d1 execute DB --remote --file=./prisma/seed-d1.sql",
     "types": "prisma generate",
     "check-parse": "tsx scripts/check-parse.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "cf:dev": "npm run build:cf && wrangler pages dev ..."
+    "cf:dev": "npx opennextjs-cloudflare preview",
+    "cf:dev:full": "npm run build:cf && npm run cf:dev",
+    "cf:deploy": "npm run build:cf && wrangler pages deploy .open-next/cloudflare --env production"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

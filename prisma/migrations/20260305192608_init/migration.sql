@@ -4,29 +4,45 @@ CREATE TABLE "User" (
     "email" TEXT NOT NULL,
     "passwordHash" TEXT NOT NULL,
     "name" TEXT,
+    "role" TEXT NOT NULL DEFAULT 'USER',
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
 );
 
 -- CreateTable
+CREATE TABLE "IngredientCategory" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "IngredientSubcategory" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "ingredientCategoryId" TEXT NOT NULL,
+    CONSTRAINT "IngredientSubcategory_ingredientCategoryId_fkey" FOREIGN KEY ("ingredientCategoryId") REFERENCES "IngredientCategory" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
 CREATE TABLE "Ingredient" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "userId" TEXT NOT NULL,
+    "userId" TEXT,
     "name" TEXT NOT NULL,
     "normalizedName" TEXT NOT NULL,
     "category" TEXT,
+    "subcategory" TEXT NOT NULL DEFAULT '',
     "defaultUnit" TEXT,
     "costBasisUnit" TEXT NOT NULL,
     "estimatedCentsPerBasisUnit" REAL,
-    "gramsPerCup" REAL,
+    "gramsPerCup" DECIMAL,
+    "conversionConfidence" TEXT NOT NULL DEFAULT 'Medium',
+    "costConfidence" TEXT NOT NULL DEFAULT 'Medium',
     "cupsPerEach" REAL,
     "preferredDisplayUnit" TEXT NOT NULL DEFAULT 'AUTO',
-    "conversionNotes" TEXT,
-    "conversionConfidence" TEXT,
     "notes" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "Ingredient_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    CONSTRAINT "Ingredient_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -40,30 +56,49 @@ CREATE TABLE "Recipe" (
     "prepTimeMinutes" INTEGER,
     "cookTimeMinutes" INTEGER,
     "totalTimeMinutes" INTEGER,
-    "instructions" TEXT NOT NULL,
     "notes" TEXT,
-    "parentRecipeId" TEXT,
-    "variantName" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "Recipe_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "Recipe_parentRecipeId_fkey" FOREIGN KEY ("parentRecipeId") REFERENCES "Recipe" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    CONSTRAINT "Recipe_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "Tag" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Tag_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "RecipeTag" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "recipeId" TEXT NOT NULL,
+    "tagId" TEXT NOT NULL,
+    CONSTRAINT "RecipeTag_recipeId_fkey" FOREIGN KEY ("recipeId") REFERENCES "Recipe" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "RecipeTag_tagId_fkey" FOREIGN KEY ("tagId") REFERENCES "Tag" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "RecipeInstruction" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "recipeId" TEXT NOT NULL,
+    "sortOrder" INTEGER NOT NULL,
+    "text" TEXT NOT NULL,
+    CONSTRAINT "RecipeInstruction_recipeId_fkey" FOREIGN KEY ("recipeId") REFERENCES "Recipe" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
 CREATE TABLE "RecipeIngredient" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "recipeId" TEXT NOT NULL,
-    "ingredientId" TEXT NOT NULL,
+    "ingredientId" TEXT,
     "quantity" REAL,
-    "quantityWhole" INTEGER,
-    "quantityFraction" TEXT,
     "rawQuantityText" TEXT,
     "unit" TEXT,
-    "originalLine" TEXT NOT NULL,
+    "displayText" TEXT NOT NULL,
     "rawText" TEXT,
-    "nameNormalized" TEXT,
-    "normalizedKey" TEXT NOT NULL,
     "sortOrder" INTEGER NOT NULL,
     "originalQuantity" REAL,
     "originalUnit" TEXT,
@@ -72,24 +107,18 @@ CREATE TABLE "RecipeIngredient" (
     "conversionConfidence" TEXT,
     "conversionNotes" TEXT,
     "parseConfidence" REAL,
-    "parseNotes" TEXT,
-    "changeType" TEXT,
-    "baseRecipeIngredientId" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "RecipeIngredient_recipeId_fkey" FOREIGN KEY ("recipeId") REFERENCES "Recipe" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "RecipeIngredient_ingredientId_fkey" FOREIGN KEY ("ingredientId") REFERENCES "Ingredient" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "RecipeIngredient_baseRecipeIngredientId_fkey" FOREIGN KEY ("baseRecipeIngredientId") REFERENCES "RecipeIngredient" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    CONSTRAINT "RecipeIngredient_ingredientId_fkey" FOREIGN KEY ("ingredientId") REFERENCES "Ingredient" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateTable
 CREATE TABLE "IngredientAlias" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "userId" TEXT NOT NULL,
     "ingredientId" TEXT NOT NULL,
     "aliasNormalized" TEXT NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "IngredientAlias_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "IngredientAlias_ingredientId_fkey" FOREIGN KEY ("ingredientId") REFERENCES "Ingredient" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -120,7 +149,25 @@ CREATE TABLE "OrderItem" (
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
-CREATE INDEX "Ingredient_userId_name_idx" ON "Ingredient"("userId", "name");
+CREATE UNIQUE INDEX "IngredientCategory_name_key" ON "IngredientCategory"("name");
+
+-- CreateIndex
+CREATE INDEX "IngredientCategory_name_idx" ON "IngredientCategory"("name");
+
+-- CreateIndex
+CREATE INDEX "IngredientSubcategory_ingredientCategoryId_idx" ON "IngredientSubcategory"("ingredientCategoryId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "IngredientSubcategory_ingredientCategoryId_name_key" ON "IngredientSubcategory"("ingredientCategoryId", "name");
+
+-- CreateIndex
+CREATE INDEX "Ingredient_userId_idx" ON "Ingredient"("userId");
+
+-- CreateIndex
+CREATE INDEX "Ingredient_category_idx" ON "Ingredient"("category");
+
+-- CreateIndex
+CREATE INDEX "Ingredient_category_subcategory_idx" ON "Ingredient"("category", "subcategory");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Ingredient_userId_normalizedName_key" ON "Ingredient"("userId", "normalizedName");
@@ -129,25 +176,31 @@ CREATE UNIQUE INDEX "Ingredient_userId_normalizedName_key" ON "Ingredient"("user
 CREATE INDEX "Recipe_userId_idx" ON "Recipe"("userId");
 
 -- CreateIndex
+CREATE INDEX "Tag_userId_idx" ON "Tag"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Tag_userId_name_key" ON "Tag"("userId", "name");
+
+-- CreateIndex
+CREATE INDEX "RecipeTag_tagId_idx" ON "RecipeTag"("tagId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RecipeTag_recipeId_tagId_key" ON "RecipeTag"("recipeId", "tagId");
+
+-- CreateIndex
+CREATE INDEX "RecipeInstruction_recipeId_sortOrder_idx" ON "RecipeInstruction"("recipeId", "sortOrder");
+
+-- CreateIndex
 CREATE INDEX "RecipeIngredient_recipeId_sortOrder_idx" ON "RecipeIngredient"("recipeId", "sortOrder");
-
--- CreateIndex
-CREATE INDEX "RecipeIngredient_recipeId_changeType_idx" ON "RecipeIngredient"("recipeId", "changeType");
-
--- CreateIndex
-CREATE INDEX "RecipeIngredient_baseRecipeIngredientId_idx" ON "RecipeIngredient"("baseRecipeIngredientId");
 
 -- CreateIndex
 CREATE INDEX "RecipeIngredient_ingredientId_idx" ON "RecipeIngredient"("ingredientId");
 
 -- CreateIndex
-CREATE INDEX "RecipeIngredient_nameNormalized_idx" ON "RecipeIngredient"("nameNormalized");
+CREATE INDEX "IngredientAlias_ingredientId_idx" ON "IngredientAlias"("ingredientId");
 
 -- CreateIndex
-CREATE INDEX "IngredientAlias_userId_ingredientId_idx" ON "IngredientAlias"("userId", "ingredientId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "IngredientAlias_userId_aliasNormalized_key" ON "IngredientAlias"("userId", "aliasNormalized");
+CREATE UNIQUE INDEX "IngredientAlias_aliasNormalized_key" ON "IngredientAlias"("aliasNormalized");
 
 -- CreateIndex
 CREATE INDEX "Order_userId_updatedAt_idx" ON "Order"("userId", "updatedAt");

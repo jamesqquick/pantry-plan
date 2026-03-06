@@ -1,15 +1,13 @@
-import "dotenv/config";
-import { Prisma, PrismaClient } from "@prisma/client";
+/**
+ * Generates prisma/seed-d1.sql from the same data and logic as prisma/seed.ts.
+ * Run: npx tsx scripts/generate-seed-d1.ts
+ * Then apply to D1: npx wrangler d1 execute DB --remote --file=./prisma/seed-d1.sql
+ */
 import * as fs from "fs";
 import * as path from "path";
 import { hash } from "bcryptjs";
-import { getDb } from "../lib/db";
 import { normalizeIngredientName } from "../lib/ingredients/normalize";
-import {
-  getDisplayTextFromIngredientLine,
-} from "../lib/ingredients/parse-ingredient-line-structured";
-
-const prisma = getDb();
+import { getDisplayTextFromIngredientLine } from "../lib/ingredients/parse-ingredient-line-structured";
 
 const SEED_DATA_DIR = path.join(process.cwd(), "data", "seed");
 const INGREDIENTS_JSON_PATH = path.join(SEED_DATA_DIR, "ingredients.json");
@@ -27,6 +25,20 @@ function seedId(prefix: string, index: number): string {
   return `seed_${prefix}_${String(index).padStart(3, "0")}`;
 }
 
+function sqlEsc(s: string): string {
+  return s.replace(/'/g, "''");
+}
+
+function sqlStr(s: string | null | undefined): string {
+  if (s == null) return "NULL";
+  return `'${sqlEsc(s)}'`;
+}
+
+function sqlNum(n: number | null | undefined): string {
+  if (n == null) return "NULL";
+  return String(n);
+}
+
 function getPreferredDisplayUnit(
   name: string,
   _category: string,
@@ -36,9 +48,7 @@ function getPreferredDisplayUnit(
   const sub = subcategory.toLowerCase();
 
   if (sub === "eggs") return "EACH";
-
   if (sub === "salt" || sub === "spice" || sub === "herb (dried)") return "TSP";
-
   if (sub === "baking add-in") {
     if (
       /extract|essence|soda|powder|yeast|gelatin/.test(n) ||
@@ -48,13 +58,11 @@ function getPreferredDisplayUnit(
       return "TSP";
     return "CUP";
   }
-
   if (sub === "oil" || sub === "vinegar") return "TBSP";
   if (sub === "chocolate") {
     if (n.includes("cocoa")) return "TBSP";
     return "CUP";
   }
-
   if (
     n.includes("butter") ||
     n.includes("peanut butter") ||
@@ -63,7 +71,6 @@ function getPreferredDisplayUnit(
     n.includes("molasses")
   )
     return "TBSP";
-
   if (
     sub === "flour" ||
     sub === "sugar" ||
@@ -83,7 +90,6 @@ function getPreferredDisplayUnit(
     sub === "condiment/sauce"
   )
     return "CUP";
-
   return "AUTO";
 }
 
@@ -121,67 +127,39 @@ const SEED_ALIASES: { aliasNormalized: string; targetNormalizedName: string }[] 
 ];
 
 async function main() {
-  await prisma.$transaction([
-    prisma.orderItem.deleteMany({}),
-    prisma.order.deleteMany({}),
-    prisma.recipeInstruction.deleteMany({}),
-    prisma.recipeIngredient.deleteMany({}),
-    prisma.recipeTag.deleteMany({}),
-    prisma.recipe.deleteMany({}),
-    prisma.ingredient.deleteMany({}),
-    prisma.ingredientSubcategory.deleteMany({}),
-    prisma.ingredientCategory.deleteMany({}),
-    prisma.tag.deleteMany({}),
-    prisma.user.deleteMany({}),
-  ]);
-
   const demoPasswordHash = await hash(DEMO_PASSWORD, 10);
   const adminPasswordHash = await hash(ADMIN_PASSWORD, 10);
-  const user = await prisma.user.create({
-    data: {
-      id: SEED_USER_ID,
-      email: DEMO_EMAIL,
-      passwordHash: demoPasswordHash,
-      name: DEMO_NAME,
-      role: "USER",
-    },
-  });
-  await prisma.user.create({
-    data: {
-      id: seedId("user", 2),
-      email: ADMIN_EMAIL,
-      passwordHash: adminPasswordHash,
-      name: ADMIN_NAME,
-      role: "ADMIN",
-    },
-  });
-  console.log("Created demo user:", user.email, "(USER); admin user:", ADMIN_EMAIL, "(ADMIN).");
 
+  const now = "datetime('now')";
+  const lines: string[] = [];
+
+  // Users
+  lines.push(
+    `INSERT INTO "User" (id, email, passwordHash, name, role, createdAt, updatedAt) VALUES`,
+    `('${SEED_USER_ID}', '${sqlEsc(DEMO_EMAIL)}', '${sqlEsc(demoPasswordHash)}', '${sqlEsc(DEMO_NAME)}', 'USER', ${now}, ${now});`,
+    `INSERT INTO "User" (id, email, passwordHash, name, role, createdAt, updatedAt) VALUES`,
+    `('${seedId("user", 2)}', '${sqlEsc(ADMIN_EMAIL)}', '${sqlEsc(adminPasswordHash)}', '${sqlEsc(ADMIN_NAME)}', 'ADMIN', ${now}, ${now});`
+  );
+
+  // Tags
   const tagNames = ["Dessert", "Quick", "Favourite", "Holiday", "Breakfast"];
   const tagIds: string[] = [];
   for (let t = 0; t < tagNames.length; t++) {
-    const tag = await prisma.tag.create({
-      data: {
-        id: seedId("tag", t + 1),
-        userId: user.id,
-        name: tagNames[t]!,
-      },
-    });
-    tagIds.push(tag.id);
+    const id = seedId("tag", t + 1);
+    tagIds.push(id);
+    lines.push(
+      `INSERT INTO "Tag" (id, userId, name, createdAt) VALUES ('${id}', '${SEED_USER_ID}', '${sqlEsc(tagNames[t]!)}', ${now});`
+    );
   }
-  console.log("Seeded", tagIds.length, "tags for demo user.");
 
+  // Ingredients JSON -> categories, subcategories, ingredients
   const raw = JSON.parse(fs.readFileSync(INGREDIENTS_JSON_PATH, "utf-8"));
-  if (!Array.isArray(raw)) {
-    throw new Error("data/seed/ingredients.json must be a top-level array");
-  }
+  if (!Array.isArray(raw)) throw new Error("data/seed/ingredients.json must be a top-level array");
   const items: Record<string, unknown>[] = [];
   for (const item of raw) {
     if (Array.isArray(item)) {
       for (const sub of item) {
-        if (sub != null && typeof sub === "object" && !Array.isArray(sub)) {
-          items.push(sub as Record<string, unknown>);
-        }
+        if (sub != null && typeof sub === "object" && !Array.isArray(sub)) items.push(sub as Record<string, unknown>);
       }
     } else if (item != null && typeof item === "object") {
       items.push(item as Record<string, unknown>);
@@ -198,36 +176,48 @@ async function main() {
   const categoryIdByName: Record<string, string> = {};
   for (let c = 0; c < uniqueCategoryNames.length; c++) {
     const name = uniqueCategoryNames[c]!;
-    const cat = await prisma.ingredientCategory.create({
-      data: { id: seedId("cat", c + 1), name },
-    });
-    categoryIdByName[name] = cat.id;
+    const id = seedId("cat", c + 1);
+    categoryIdByName[name] = id;
+    lines.push(`INSERT INTO "IngredientCategory" (id, name) VALUES ('${id}', '${sqlEsc(name)}');`);
   }
-  const pairsSorted = [...categorySubcategoryPairs].map((p) => {
-    const [cat, sub] = p.split("\n");
-    return [cat!, sub!] as const;
-  }).sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]));
+
+  const pairsSorted = [...categorySubcategoryPairs]
+    .map((p) => {
+      const [cat, sub] = p.split("\n");
+      return [cat!, sub!] as const;
+    })
+    .sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]));
   for (let s = 0; s < pairsSorted.length; s++) {
     const [categoryName, subcategoryName] = pairsSorted[s]!;
-    await prisma.ingredientSubcategory.create({
-      data: {
-        id: seedId("subcat", s + 1),
-        name: subcategoryName,
-        ingredientCategoryId: categoryIdByName[categoryName]!,
-      },
-    });
+    const id = seedId("subcat", s + 1);
+    lines.push(
+      `INSERT INTO "IngredientSubcategory" (id, name, ingredientCategoryId) VALUES ('${id}', '${sqlEsc(subcategoryName)}', '${categoryIdByName[categoryName]!}');`
+    );
   }
-  console.log("Seeded", uniqueCategoryNames.length, "ingredient categories,", pairsSorted.length, "ingredient subcategories.");
 
   const normalizedSet = new Set<string>();
-  const mappedRows: Parameters<typeof prisma.ingredient.create>[0]["data"][] = [];
+  type IngredientRow = {
+    id: string;
+    name: string;
+    normalizedName: string;
+    category: string | null;
+    subcategory: string;
+    costBasisUnit: string;
+    preferredDisplayUnit: string;
+    estimatedCentsPerBasisUnit: number | null;
+    gramsPerCup: number | null;
+    conversionConfidence: string;
+    costConfidence: string;
+    notes: string | null;
+  };
+  const ingredientRows: IngredientRow[] = [];
   let insertIndex = 0;
   for (let i = 0; i < items.length; i++) {
     const row = items[i] as Record<string, unknown>;
     const name = typeof row.name === "string" ? row.name.trim() : "";
-    if (!name) throw new Error(`data/seed/ingredients.json[${i}]: name must be non-empty after trim`);
+    if (!name) throw new Error(`data/seed/ingredients.json[${i}]: name required`);
     const normalizedName = normalizeIngredientName(name);
-    if (normalizedSet.has(normalizedName)) continue; // skip duplicates; first occurrence wins
+    if (normalizedSet.has(normalizedName)) continue;
     normalizedSet.add(normalizedName);
 
     const category = typeof row.category === "string" ? row.category.trim() : "";
@@ -235,32 +225,15 @@ async function main() {
     const gramsPerCupRaw = row.grams_per_cup;
     const costBasisUnitRaw = row.cost_basis_unit;
     const estimatedCentsRaw = row.estimated_cents_per_basis_unit;
-    if (gramsPerCupRaw != null && (typeof gramsPerCupRaw !== "number" || gramsPerCupRaw < 0)) {
-      throw new Error(`data/seed/ingredients.json[${i}]: grams_per_cup must be null or a number >= 0`);
-    }
     const costBasisUnit =
       costBasisUnitRaw === "GRAM" || costBasisUnitRaw === "CUP" || costBasisUnitRaw === "EACH"
-        ? costBasisUnitRaw
+        ? (costBasisUnitRaw as string)
         : "GRAM";
-    if (
-      estimatedCentsRaw != null &&
-      (typeof estimatedCentsRaw !== "number" || estimatedCentsRaw < 0)
-    ) {
-      throw new Error(
-        `data/seed/ingredients.json[${i}]: estimated_cents_per_basis_unit must be null or a number >= 0`
-      );
-    }
-    const conversionConfidence = row.conversion_confidence;
-    const costConfidence = row.cost_confidence;
-    if (typeof conversionConfidence !== "string" || !CONFIDENCE_VALUES.includes(conversionConfidence as (typeof CONFIDENCE_VALUES)[number])) {
-      throw new Error(`data/seed/ingredients.json[${i}]: conversion_confidence must be one of High, Medium, Low`);
-    }
-    if (typeof costConfidence !== "string" || !CONFIDENCE_VALUES.includes(costConfidence as (typeof CONFIDENCE_VALUES)[number])) {
-      throw new Error(`data/seed/ingredients.json[${i}]: cost_confidence must be one of High, Medium, Low`);
-    }
+    const conversionConfidence = row.conversion_confidence as (typeof CONFIDENCE_VALUES)[number];
+    const costConfidence = row.cost_confidence as (typeof CONFIDENCE_VALUES)[number];
     const notes = typeof row.notes === "string" ? row.notes : null;
     insertIndex += 1;
-    mappedRows.push({
+    ingredientRows.push({
       id: seedId("ing", insertIndex),
       name,
       normalizedName,
@@ -269,27 +242,26 @@ async function main() {
       costBasisUnit,
       preferredDisplayUnit: getPreferredDisplayUnit(name, category, subcategory),
       estimatedCentsPerBasisUnit:
-        estimatedCentsRaw != null && typeof estimatedCentsRaw === "number"
-          ? estimatedCentsRaw
-          : null,
-      gramsPerCup: gramsPerCupRaw != null ? new Prisma.Decimal(gramsPerCupRaw) : null,
-      conversionConfidence: conversionConfidence as "High" | "Medium" | "Low",
-      costConfidence: costConfidence as "High" | "Medium" | "Low",
+        estimatedCentsRaw != null && typeof estimatedCentsRaw === "number" ? estimatedCentsRaw : null,
+      gramsPerCup: gramsPerCupRaw != null && typeof gramsPerCupRaw === "number" ? gramsPerCupRaw : null,
+      conversionConfidence: conversionConfidence ?? "Medium",
+      costConfidence: costConfidence ?? "Medium",
       notes,
     });
   }
-  await prisma.ingredient.deleteMany({});
-  for (let i = 0; i < mappedRows.length; i++) {
-    await prisma.ingredient.create({ data: mappedRows[i]! });
+
+  for (const ing of ingredientRows) {
+    lines.push(
+      `INSERT INTO "Ingredient" (id, name, normalizedName, category, subcategory, costBasisUnit, estimatedCentsPerBasisUnit, gramsPerCup, conversionConfidence, costConfidence, preferredDisplayUnit, notes, createdAt, updatedAt) VALUES (` +
+        `'${ing.id}', ${sqlStr(ing.name)}, ${sqlStr(ing.normalizedName)}, ${sqlStr(ing.category)}, ${sqlStr(ing.subcategory)}, ` +
+        `'${ing.costBasisUnit}', ${sqlNum(ing.estimatedCentsPerBasisUnit)}, ${sqlNum(ing.gramsPerCup)}, ` +
+        `${sqlStr(ing.conversionConfidence)}, ${sqlStr(ing.costConfidence)}, '${ing.preferredDisplayUnit}', ${sqlStr(ing.notes)}, ${now}, ${now});`
+    );
   }
-  console.log("Seeded", mappedRows.length, "ingredients from data/seed/ingredients.json.");
 
   const ingredientIdsByNormalizedName: Record<string, string> = {};
-  const ingredients = await prisma.ingredient.findMany({
-    select: { id: true, normalizedName: true },
-  });
-  for (const i of ingredients) {
-    ingredientIdsByNormalizedName[i.normalizedName] = i.id;
+  for (const ing of ingredientRows) {
+    ingredientIdsByNormalizedName[ing.normalizedName] = ing.id;
   }
   const fallbacks: [string, string][] = [
     ["eggs", "egg"],
@@ -304,17 +276,16 @@ async function main() {
     }
   }
 
+  let aliasIndex = 0;
   for (const { aliasNormalized, targetNormalizedName } of SEED_ALIASES) {
     const ingredientId = ingredientIdsByNormalizedName[targetNormalizedName];
     if (!ingredientId) continue;
     const norm = normalizeIngredientName(aliasNormalized);
-    await prisma.ingredientAlias.upsert({
-      where: { aliasNormalized: norm },
-      create: { ingredientId, aliasNormalized: norm },
-      update: { ingredientId },
-    });
+    aliasIndex += 1;
+    lines.push(
+      `INSERT INTO "IngredientAlias" (id, ingredientId, aliasNormalized, createdAt) VALUES ('${seedId("alias", aliasIndex)}', '${ingredientId}', '${sqlEsc(norm)}', ${now});`
+    );
   }
-  console.log("Seeded", SEED_ALIASES.length, "aliases.");
 
   const getIngId = (normalizedName: string): string => {
     const id = ingredientIdsByNormalizedName[normalizedName];
@@ -329,7 +300,12 @@ async function main() {
     cookTimeMinutes: number;
     totalTimeMinutes: number;
     instructions: string[];
-    ingredients: Array<{ ingredientNormalizedName: string; quantity: number; unit: string; originalLine: string }>;
+    ingredients: Array<{
+      ingredientNormalizedName: string;
+      quantity: number;
+      unit: string;
+      originalLine: string;
+    }>;
     tagIndexes?: number[];
   };
 
@@ -339,56 +315,52 @@ async function main() {
 
   const recipeIds: string[] = [];
   let riIndex = 0;
+  let instrIndex = 0;
+  let rtIndex = 0;
+
   for (let r = 0; r < recipesData.length; r++) {
     const rec = recipesData[r]!;
     const recipeId = seedId("recipe", r + 1);
     recipeIds.push(recipeId);
-    await prisma.recipe.create({
-      data: {
-        id: recipeId,
-        userId: user.id,
-        title: rec.title,
-        servings: rec.servings,
-        prepTimeMinutes: rec.prepTimeMinutes,
-        cookTimeMinutes: rec.cookTimeMinutes,
-        totalTimeMinutes: rec.totalTimeMinutes,
-      },
-    });
+
+    lines.push(
+      `INSERT INTO "Recipe" (id, userId, title, servings, prepTimeMinutes, cookTimeMinutes, totalTimeMinutes, createdAt, updatedAt) VALUES (` +
+        `'${recipeId}', '${SEED_USER_ID}', ${sqlStr(rec.title)}, ${rec.servings}, ${rec.prepTimeMinutes}, ${rec.cookTimeMinutes}, ${rec.totalTimeMinutes}, ${now}, ${now});`
+    );
+
     if (rec.instructions?.length) {
-      await prisma.recipeInstruction.createMany({
-        data: rec.instructions.map((text, sortOrder) => ({ recipeId, sortOrder, text })),
-      });
+      for (let so = 0; so < rec.instructions.length; so++) {
+        instrIndex += 1;
+        const text = rec.instructions[so]!;
+        lines.push(
+          `INSERT INTO "RecipeInstruction" (id, recipeId, sortOrder, text) VALUES ('${seedId("instr", instrIndex)}', '${recipeId}', ${so}, ${sqlStr(text)});`
+        );
+      }
     }
+
     for (let i = 0; i < (rec.ingredients ?? []).length; i++) {
       const row = rec.ingredients[i]!;
       const ingredientId = getIngId(row.ingredientNormalizedName);
       riIndex += 1;
-      await prisma.recipeIngredient.create({
-        data: {
-          id: seedId("ri", riIndex),
-          recipeId,
-          ingredientId,
-          quantity: row.quantity,
-          rawQuantityText: row.originalLine.match(/^[\d\s./½¼¾⅓⅔⅛⅜⅝⅞]+/)?.[0]?.trim() ?? null,
-          unit: row.unit as "CUP" | "TSP" | "TBSP" | "COUNT" | "OZ" | "PINCH",
-          displayText: getDisplayTextFromIngredientLine(row.originalLine),
-          rawText: row.originalLine,
-          originalQuantity: row.quantity,
-          originalUnit: row.unit as "CUP" | "TSP" | "TBSP" | "COUNT" | "OZ" | "PINCH",
-          sortOrder: i,
-        },
-      });
+      const rawQty = row.originalLine.match(/^[\d\s./½¼¾⅓⅔⅛⅜⅝⅞]+/)?.[0]?.trim() ?? null;
+      const displayText = getDisplayTextFromIngredientLine(row.originalLine);
+      const unit = row.unit as string;
+      lines.push(
+        `INSERT INTO "RecipeIngredient" (id, recipeId, ingredientId, quantity, rawQuantityText, unit, displayText, rawText, sortOrder, originalQuantity, originalUnit, createdAt, updatedAt) VALUES (` +
+          `'${seedId("ri", riIndex)}', '${recipeId}', '${ingredientId}', ${row.quantity}, ${sqlStr(rawQty)}, '${sqlEsc(unit)}', ${sqlStr(displayText)}, ${sqlStr(row.originalLine)}, ${i}, ${row.quantity}, '${sqlEsc(unit)}', ${now}, ${now});`
+      );
     }
+
     const tagIndexes = rec.tagIndexes ?? [];
     for (const ti of tagIndexes) {
       if (tagIds[ti] != null) {
-        await prisma.recipeTag.create({
-          data: { recipeId, tagId: tagIds[ti]! },
-        });
+        rtIndex += 1;
+        lines.push(
+          `INSERT INTO "RecipeTag" (id, recipeId, tagId) VALUES ('${seedId("rt", rtIndex)}', '${recipeId}', '${tagIds[ti]!}');`
+        );
       }
     }
   }
-  console.log("Seeded", recipeIds.length, "recipes with structured ingredients from data/seed/recipes.json.");
 
   type OrderItemSeed = { recipeIndex: number; batches: number };
   type OrderSeed = { name: string; notes?: string; items: OrderItemSeed[] };
@@ -401,38 +373,28 @@ async function main() {
   for (let o = 0; o < ordersData.length; o++) {
     const ord = ordersData[o]!;
     const orderId = o === 0 ? SEED_ORDER_ID : seedId("order", o + 1);
-    await prisma.order.create({
-      data: {
-        id: orderId,
-        userId: user.id,
-        name: ord.name ?? "Untitled order",
-        notes: ord.notes ?? null,
-      },
-    });
+    lines.push(
+      `INSERT INTO "Order" (id, userId, name, notes, createdAt, updatedAt) VALUES (` +
+        `'${orderId}', '${SEED_USER_ID}', ${sqlStr(ord.name ?? "Untitled order")}, ${sqlStr(ord.notes ?? null)}, ${now}, ${now});`
+    );
     for (const item of ord.items ?? []) {
       oiIndex += 1;
       const recipeId = recipeIds[item.recipeIndex];
-      if (!recipeId) throw new Error(`data/seed/orders.json order ${o + 1}: invalid recipeIndex ${item.recipeIndex}`);
-      await prisma.orderItem.create({
-        data: {
-          id: seedId("oi", oiIndex),
-          orderId,
-          recipeId,
-          batches: Math.max(1, item.batches),
-        },
-      });
+      if (!recipeId) throw new Error(`orders.json order ${o + 1}: invalid recipeIndex ${item.recipeIndex}`);
+      const batches = Math.max(1, item.batches);
+      lines.push(
+        `INSERT INTO "OrderItem" (id, orderId, recipeId, batches, createdAt, updatedAt) VALUES (` +
+          `'${seedId("oi", oiIndex)}', '${orderId}', '${recipeId}', ${batches}, ${now}, ${now});`
+      );
     }
   }
-  console.log("Seeded", ordersData.length, "order(s) from data/seed/orders.json.");
 
-  console.log("Seed completed successfully.");
+  const outPath = path.join(process.cwd(), "prisma", "seed-d1.sql");
+  fs.writeFileSync(outPath, lines.join("\n"), "utf-8");
+  console.log("Wrote", outPath);
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
