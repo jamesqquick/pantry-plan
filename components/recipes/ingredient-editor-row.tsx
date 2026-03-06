@@ -6,7 +6,7 @@ import { SmartQuantityInput } from "@/components/forms/smart-quantity-input";
 import { Button } from "@/components/ui/button";
 import { ImportIngredientPicker } from "@/components/recipes/import/import-ingredient-picker";
 import { INGREDIENT_UNITS, UNIT_LABELS } from "@/lib/ingredients/units";
-import type { IngredientUnit } from "@prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
 import { AppIcon, ICON_BUTTON_CLASS } from "@/components/ui/icons";
 import {
   Select,

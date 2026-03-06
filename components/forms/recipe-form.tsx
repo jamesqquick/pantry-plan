@@ -36,7 +36,7 @@ import {
   RecipeTagPicker,
   type TagOption,
 } from "@/components/recipes/recipe-tag-picker";
-import type { IngredientUnit } from "@prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
 import { formatQuantity, parseQuantityText } from "@/lib/quantity/quantity";
 import { formatIngredientLineFromStructured } from "@/lib/ingredientLineFormat";
 import { cn } from "@/lib/cn";

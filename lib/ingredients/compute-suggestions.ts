@@ -1,4 +1,4 @@
-import type { IngredientUnit } from "@prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
 import { getDb } from "@/lib/db";
 import { normalizeIngredientName } from "@/lib/ingredients/normalize";
 import { parseIngredientLineForImport } from "@/lib/ingredients/parse-line";

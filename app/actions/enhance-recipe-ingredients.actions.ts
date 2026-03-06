@@ -1,6 +1,6 @@
 "use server";
 
-import type { IngredientUnit } from "@prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
 import { getAuthenticatedUser } from "@/app/actions/_shared";

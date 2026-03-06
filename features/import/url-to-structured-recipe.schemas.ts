@@ -1,4 +1,4 @@
-import type { IngredientUnit } from "@prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
 import { z } from "zod";
 
 const llmUnitSchema = z.string().max(20).optional().nullable();

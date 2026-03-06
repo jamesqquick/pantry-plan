@@ -19,7 +19,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { IngredientEditorRow } from "@/components/recipes/ingredient-editor-row";
 import { formatQuantity, parseQuantityText } from "@/lib/quantity/quantity";
-import type { IngredientUnit } from "@prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
 
 type EnhanceRecipeClientProps = {
   recipeId: string;

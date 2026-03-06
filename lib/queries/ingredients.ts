@@ -1,4 +1,4 @@
-import type { CostBasisUnit } from "@prisma/client";
+import type { CostBasisUnit } from "@/generated/prisma/client";
 import { cacheTag } from "next/cache";
 import { getDb } from "@/lib/db";
 

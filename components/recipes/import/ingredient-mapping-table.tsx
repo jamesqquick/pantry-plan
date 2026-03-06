@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { AppIcon, ICON_BUTTON_CLASS } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
 import type { SuggestionItem } from "@/lib/ingredients/compute-suggestions";
-import type { IngredientUnit } from "@prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
 
 export type MappingRow = {
   id: string;

@@ -12,7 +12,7 @@ import type {
   CostBasisUnit,
   IngredientDisplayUnit,
   IngredientUnit,
-} from "@prisma/client";
+} from "@/generated/prisma/client";
 
 const COST_BASIS_LABELS: Record<CostBasisUnit, string> = {
   GRAM: "gram",

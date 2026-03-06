@@ -8,7 +8,7 @@ import {
 import type { ParsedIngredientLine } from "@/lib/ingredients/parse-line";
 import { UNIT_FROM_LABEL } from "@/lib/ingredients/units";
 import { formatQuantity } from "@/lib/quantity/quantity";
-import type { IngredientUnit } from "@prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
 import type { StructuredItemFromParse } from "@/features/import/url-to-structured-recipe.schemas";
 import type { MappingRow } from "./ingredient-mapping-table";
 

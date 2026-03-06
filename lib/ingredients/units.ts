@@ -1,4 +1,4 @@
-import { IngredientUnit } from "@prisma/client";
+import { IngredientUnit } from "@/generated/prisma/client";
 
 export type { IngredientUnit };
 

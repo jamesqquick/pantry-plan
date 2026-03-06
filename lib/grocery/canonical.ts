@@ -2,8 +2,8 @@
  * Canonical unit conversion for grocery aggregation (server-only pure helpers).
  * Volume is CUP-family only (TSP, TBSP, CUP). No ml/l.
  */
-import type { CostBasisUnit } from "@prisma/client";
-import type { IngredientUnit } from "@prisma/client";
+import type { CostBasisUnit } from "@/generated/prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
 
 const CUPS_PER_TSP = 1 / 48;
 const CUPS_PER_TBSP = 1 / 16;

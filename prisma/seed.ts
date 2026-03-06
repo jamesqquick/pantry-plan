@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@/generated/prisma/client";
 import * as fs from "fs";
 import * as path from "path";
 import { hash } from "bcryptjs";

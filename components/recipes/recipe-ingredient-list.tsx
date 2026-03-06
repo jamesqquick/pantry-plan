@@ -3,7 +3,7 @@
 import { formatIngredientLine } from "@/lib/ingredientLineFormat";
 import { UNIT_LABELS } from "@/lib/ingredients/units";
 import type { MeasurementMode } from "./measurement-toggle";
-import type { IngredientUnit } from "@prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
 
 type RecipeIngredientItem = {
   id: string;

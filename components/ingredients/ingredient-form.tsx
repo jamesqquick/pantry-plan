@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { INGREDIENT_UNITS, UNIT_LABELS } from "@/lib/ingredients/units";
-import type { CostBasisUnit, IngredientUnit } from "@prisma/client";
+import type { CostBasisUnit, IngredientUnit } from "@/generated/prisma/client";
 
 const COST_BASIS_OPTIONS: { value: CostBasisUnit; label: string; hint: string }[] = [
   { value: "GRAM", label: "Gram", hint: "Cost (cents per gram)" },

@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import type { UserRole } from "@/generated/prisma/client";
 import { authConfig } from "@/lib/auth.config";
 import { verifyPassword } from "@/lib/password";
 import { getDb } from "@/lib/db";
@@ -30,7 +31,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
 /** Use in server actions: returns user or null so caller can return ActionResult. */
 export async function requireUser(): Promise<
-  { id: string; email: string; name: string | null; role: import("@prisma/client").UserRole } | null
+  { id: string; email: string; name: string | null; role: UserRole } | null
 > {
   const session = await auth();
   if (!session?.user?.id) return null;

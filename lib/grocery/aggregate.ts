@@ -2,8 +2,8 @@
  * Grocery list aggregator: sum by mapped ingredient, convert to canonical basis (server-only).
  * Uses Prisma types only; no Prisma client.
  */
-import type { CostBasisUnit } from "@prisma/client";
-import type { IngredientUnit } from "@prisma/client";
+import type { CostBasisUnit } from "@/generated/prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
 import { convertToBasis, type BasisUnitLabel } from "./canonical";
 
 export type GroceryListResult = {

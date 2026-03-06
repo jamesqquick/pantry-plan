@@ -2,7 +2,7 @@
  * Recipe ingredient display types. Used when returning effective ingredients for a recipe.
  */
 
-import type { IngredientUnit } from "@prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
 
 export type BaseIngredientRow = {
   id: string;

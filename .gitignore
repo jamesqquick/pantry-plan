@@ -43,6 +43,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Prisma generated client (run prisma generate to recreate)
+generated/
+
 prisma/dev.db
 
 # Tesseract trained data (if ever re-added)

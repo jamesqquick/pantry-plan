@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import type { CostBasisUnit, IngredientUnit } from "@prisma/client";
+import type { CostBasisUnit, IngredientUnit } from "@/generated/prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";

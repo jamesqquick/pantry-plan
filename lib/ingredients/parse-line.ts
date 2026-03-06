@@ -1,4 +1,4 @@
-import type { IngredientUnit } from "@prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
 import { formatQuantity } from "@/lib/quantity/quantity";
 import { parseIngredientLine } from "./parse-ingredient-line";
 

@@ -2,7 +2,7 @@
 
 import type { ActionResult } from "@/lib/action-helpers";
 import { requireUser } from "@/lib/auth";
-import type { UserRole } from "@prisma/client";
+import type { UserRole } from "@/generated/prisma/client";
 
 export type AuthenticatedUser = { id: string; email: string; role: UserRole };
 

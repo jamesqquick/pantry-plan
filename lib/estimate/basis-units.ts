@@ -1,4 +1,4 @@
-import type { CostBasisUnit } from "@prisma/client";
+import type { CostBasisUnit } from "@/generated/prisma/client";
 import type { Unit } from "./units";
 
 const G_PER_OZ = 28.3495;

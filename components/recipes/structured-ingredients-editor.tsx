@@ -8,7 +8,7 @@ import { AppIcon, ICON_LABEL_GAP_CLASS } from "@/components/ui/icons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IngredientEditorRow } from "@/components/recipes/ingredient-editor-row";
 import { formatQuantity, parseQuantityText } from "@/lib/quantity/quantity";
-import type { IngredientUnit } from "@prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
 
 type CatalogItem = { id: string; name: string };
 

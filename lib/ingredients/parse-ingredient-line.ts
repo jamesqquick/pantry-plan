@@ -3,7 +3,7 @@
  * Client-safe (no Prisma DB/auth; IngredientUnit is type-only).
  */
 
-import type { IngredientUnit } from "@prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
 import { htmlToText } from "./html-to-text";
 import { normalizeFractionText } from "./fractions";
 import { parseQuantityPrefix } from "./parse-quantity";

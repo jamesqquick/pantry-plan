@@ -7,7 +7,7 @@ import {
   type StructuredItemFromParse,
   type UrlToStructuredRecipeResponse,
 } from "@/features/import/url-to-structured-recipe.schemas";
-import type { IngredientUnit } from "@prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
 
 export type LineWithCandidates = {
   lineIndex: number;

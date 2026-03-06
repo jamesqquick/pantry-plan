@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import type { IngredientUnit } from "@prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
 import { getDb } from "@/lib/db";
 import { getAuthenticatedUser } from "@/app/actions/_shared";
 import { zodToFieldErrors } from "@/lib/action-helpers";

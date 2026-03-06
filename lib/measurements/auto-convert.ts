@@ -1,4 +1,4 @@
-import type { IngredientUnit } from "@prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
 import { volumeToCups, weightToGrams } from "./conversions";
 import { isVolumeUnit, isWeightUnit } from "./units";
 

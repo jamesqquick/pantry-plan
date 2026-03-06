@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import type { IngredientUnit } from "@prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
 import { PageTitle } from "@/components/ui/page-title";
 import { AppIcon } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
