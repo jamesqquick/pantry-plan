@@ -8,6 +8,10 @@ main = ".open-next/worker.js"
 directory = ".open-next/assets"
 binding = "ASSETS"
 
+# Auth.js: trust request host (required on Cloudflare Workers; no auto-detect)
+[vars]
+AUTH_TRUST_HOST = "true"
+
 # Default = dev (used by wrangler dev / wrangler pages dev with no --env)
 [[d1_databases]]
 binding = "DB"
@@ -16,6 +20,8 @@ database_id = "069462c9-ba9f-4cae-ba82-c26edd4b42f2"
 
 # Explicit dev env (same as default): wrangler dev --env dev
 [env.dev]
+[env.dev.vars]
+AUTH_TRUST_HOST = "true"
 [[env.dev.d1_databases]]
 binding = "DB"
 database_name = "pantryplan_dev"
@@ -24,6 +30,8 @@ database_id = "069462c9-ba9f-4cae-ba82-c26edd4b42f2"
 # Production: wrangler deploy --env production
 # Create a D1 database in the dashboard for production, then set database_id below.
 [env.production]
+[env.production.vars]
+AUTH_TRUST_HOST = "true"
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "pantryplan"

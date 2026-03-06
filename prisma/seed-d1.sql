@@ -1,7 +1,7 @@
 INSERT INTO "User" (id, email, passwordHash, name, role, createdAt, updatedAt) VALUES
-('seed_user_001', 'demo@bytheboysbakery.com', '$2b$10$HERghuI1aBuYmOx3Vx3TVOAPP878TiaQspxSRffa4b2.Ftbmxz/J2', 'Demo User', 'USER', datetime('now'), datetime('now'));
+('seed_user_001', 'demo@bytheboysbakery.com', '$2b$10$eKFd87f9jnh7XBBx1Zz2CurKZ4gD0mAeaPCqjCwcM3EIRN2vSs1C.', 'Demo User', 'USER', datetime('now'), datetime('now'));
 INSERT INTO "User" (id, email, passwordHash, name, role, createdAt, updatedAt) VALUES
-('seed_user_002', 'admin@bytheboysbakery.com', '$2b$10$V5d0RIJ8g2A.bE7Mr8f0luP1OlPJTv6osgXc3ofG5oq8Sn6nK1KlG', 'Admin User', 'ADMIN', datetime('now'), datetime('now'));
+('seed_user_002', 'admin@bytheboysbakery.com', '$2b$10$7U1V0.d7t7Jwe9J0MpGUs.RJA063jMmEsPqsZy/5trhYTPnnAqclu', 'Admin User', 'ADMIN', datetime('now'), datetime('now'));
 INSERT INTO "Tag" (id, userId, name, createdAt) VALUES ('seed_tag_001', 'seed_user_001', 'Dessert', datetime('now'));
 INSERT INTO "Tag" (id, userId, name, createdAt) VALUES ('seed_tag_002', 'seed_user_001', 'Quick', datetime('now'));
 INSERT INTO "Tag" (id, userId, name, createdAt) VALUES ('seed_tag_003', 'seed_user_001', 'Favourite', datetime('now'));
