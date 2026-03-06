@@ -44,3 +44,6 @@ yarn-error.log*
 next-env.d.ts
 
 prisma/dev.db
+
+# Tesseract trained data (if ever re-added)
+*.traineddata
