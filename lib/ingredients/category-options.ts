@@ -32,14 +32,16 @@ export async function getIngredientCategoryOptions(): Promise<IngredientCategory
     subcategoriesByCategoryId.get(s.ingredientCategoryId)!.push({ id: s.id, name: s.name });
   }
 
-  const categoriesWithSubcategories = categories.map((c) => ({
+  type CategoryRow = (typeof categories)[number];
+  type SubcategoryRow = (typeof subcategories)[number];
+  const categoriesWithSubcategories = categories.map((c: CategoryRow) => ({
     name: c.name,
-    subcategories: (subcategoriesByCategoryId.get(c.id) ?? []).map((s) => s.name),
+    subcategories: (subcategoriesByCategoryId.get(c.id) ?? []).map((s: { name: string }) => s.name),
   }));
 
   return {
-    categories: categories.map((c) => ({ id: c.id, name: c.name })),
-    subcategories: subcategories.map((s) => ({
+    categories: categories.map((c: CategoryRow) => ({ id: c.id, name: c.name })),
+    subcategories: subcategories.map((s: SubcategoryRow) => ({
       id: s.id,
       name: s.name,
       ingredientCategoryId: s.ingredientCategoryId,

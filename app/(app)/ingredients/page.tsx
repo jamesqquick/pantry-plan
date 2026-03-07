@@ -5,7 +5,10 @@ import {
   listIngredientsForUser,
   countIngredientsForUser,
 } from "@/lib/queries/ingredients";
-import { getIngredientCategoryOptions } from "@/lib/ingredients/category-options";
+import {
+  getIngredientCategoryOptions,
+  type IngredientCategoryOption,
+} from "@/lib/ingredients/category-options";
 import { PageTitle } from "@/components/ui/page-title";
 import { IngredientList } from "@/components/ingredients/ingredient-list";
 import { IngredientListSkeleton } from "@/components/ingredients/ingredient-list-skeleton";
@@ -67,7 +70,7 @@ async function IngredientsPageData({
       ingredients={ingredientsPlain}
       search={search}
       category={category}
-      categories={categoryOptions.categories.map((c) => c.name)}
+      categories={categoryOptions.categories.map((c: IngredientCategoryOption) => c.name)}
       totalCount={totalCount}
       page={page}
       limit={limit}

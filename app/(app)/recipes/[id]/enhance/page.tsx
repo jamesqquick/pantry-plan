@@ -15,11 +15,14 @@ export default async function EnhanceRecipePage({
   const { id } = await params;
   const recipe = await getRecipeForUser(id, session.user.id);
   if (!recipe) notFound();
+  type RecipeIngredientRow = NonNullable<
+    Awaited<ReturnType<typeof getRecipeForUser>>
+  >["recipeIngredients"][number];
   const hasIngredients =
     recipe.recipeIngredients &&
     recipe.recipeIngredients.length > 0 &&
     recipe.recipeIngredients.some(
-      (ri) => (ri.rawText ?? ri.displayText ?? "").trim()
+      (ri: RecipeIngredientRow) => (ri.rawText ?? ri.displayText ?? "").trim()
     );
   if (!hasIngredients) notFound();
   return (

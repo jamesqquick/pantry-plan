@@ -20,7 +20,10 @@ async function EditOrderPageData({
     listRecipesForUser(session.user.id),
   ]);
   if (!order) notFound();
-  const initialItems = order.orderItems.map((item) => ({
+  type OrderItemRow = NonNullable<
+    Awaited<ReturnType<typeof getOrderForUser>>
+  >["orderItems"][number];
+  const initialItems = order.orderItems.map((item: OrderItemRow) => ({
     recipeId: item.recipeId,
     batches: item.batches,
   }));

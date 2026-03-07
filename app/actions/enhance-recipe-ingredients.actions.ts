@@ -1,6 +1,6 @@
 "use server";
 
-import type { IngredientUnit } from "@/generated/prisma/client";
+import type { IngredientUnit, Prisma } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
 import { getAuthenticatedUser } from "@/app/actions/_shared";
@@ -14,6 +14,7 @@ import {
   parseIngredientLineStructured,
   getDisplayTextFromIngredientLine,
 } from "@/lib/ingredients/parse-ingredient-line-structured";
+import { getRecipeForUser } from "@/lib/queries/recipes";
 import {
   computeIngredientSuggestions,
   type SuggestionItem,
@@ -67,7 +68,8 @@ export async function enhanceRecipeIngredientsAction(
   }
 
   const lines = recipe.recipeIngredients.map(
-    (ri) => (ri.rawText ?? ri.displayText ?? "").trim() || ri.displayText
+    (ri: { rawText: string | null; displayText: string }) =>
+      (ri.rawText ?? ri.displayText ?? "").trim() || ri.displayText
   );
   if (lines.length === 0) {
     return { ok: false, error: { code: "VALIDATION_ERROR", message: "Recipe has no ingredient lines." } };
@@ -154,7 +156,7 @@ export async function enhanceRecipeIngredientsAction(
 
   let data: { items: EnhancedRecipeIngredientResult[] };
   try {
-    data = await db.$transaction(async (tx) => {
+    data = await db.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.recipeIngredient.deleteMany({
         where: { recipeId: recipe.id },
       });

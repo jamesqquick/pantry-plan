@@ -90,9 +90,11 @@ export async function getRecipesWithIngredientsForUser(
   });
 
   // Convert Prisma Decimal fields to plain numbers for downstream consumers
-  return results.map((r) => ({
+  type RecipeRow = (typeof results)[number];
+  type RecipeIngredientRow = RecipeRow["recipeIngredients"][number];
+  return results.map((r: RecipeRow) => ({
     ...r,
-    recipeIngredients: r.recipeIngredients.map((ri) => ({
+    recipeIngredients: r.recipeIngredients.map((ri: RecipeIngredientRow) => ({
       ...ri,
       ingredient: ri.ingredient
         ? {

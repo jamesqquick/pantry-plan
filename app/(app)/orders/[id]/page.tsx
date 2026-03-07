@@ -31,19 +31,28 @@ async function OrderDetailPageData({
   const order = await getOrderWithGroceryData(id, session.user.id);
   if (!order) notFound();
 
-  const orderItems = order.orderItems.map((item) => ({
+  type OrderItemRow = NonNullable<
+    Awaited<ReturnType<typeof getOrderWithGroceryData>>
+  >["orderItems"][number];
+  const orderItems = order.orderItems.map((item: OrderItemRow) => ({
     recipeId: item.recipeId,
     batches: item.batches,
   }));
-  const recipeIds = [...new Set(order.orderItems.map((i) => i.recipeId))];
+  const recipeIds: string[] = [
+    ...new Set(order.orderItems.map((i: OrderItemRow) => i.recipeId)),
+  ];
   const recipesWithIngredients = await getRecipesWithIngredientsForUser(
     recipeIds,
     session.user.id
   );
-  const recipes = recipesWithIngredients.map((r) => ({
+  type RecipeWithIngredients = Awaited<
+    ReturnType<typeof getRecipesWithIngredientsForUser>
+  >[number];
+  type RecipeIngredientRow = RecipeWithIngredients["recipeIngredients"][number];
+  const recipes = recipesWithIngredients.map((r: RecipeWithIngredients) => ({
     id: r.id,
     title: r.title,
-    ingredients: r.recipeIngredients.map((ri) => ({
+    ingredients: r.recipeIngredients.map((ri: RecipeIngredientRow) => ({
       id: ri.id,
       ingredientId: ri.ingredientId,
       ingredient: ri.ingredient
@@ -111,7 +120,7 @@ async function OrderDetailPageData({
               </tr>
             </thead>
             <tbody>
-              {order.orderItems.map((item) => (
+              {order.orderItems.map((item: OrderItemRow) => (
                 <tr key={item.id}>
                   <td className="border border-border px-3 py-2">
                     {item.recipe?.title ?? "—"}

@@ -16,7 +16,8 @@ export async function getCachedIngredientSearch(
     search: query,
     take: PICKER_SEARCH_TAKE,
   });
-  return ingredients.map((i) => ({
+  type IngredientRow = Awaited<ReturnType<typeof listIngredientsForUser>>[number];
+  return ingredients.map((i: IngredientRow) => ({
     id: i.id,
     name: i.name,
     source: i.userId === null ? ("global" as const) : ("custom" as const),

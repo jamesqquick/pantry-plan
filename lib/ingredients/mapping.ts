@@ -66,11 +66,13 @@ export async function getCandidateList(params: {
     where: scopeGlobalAndUser(params.userId),
     select: { id: true, name: true, normalizedName: true, category: true },
   });
-  const withScores = ingredients.map((ing) => ({
+  type IngredientRow = (typeof ingredients)[number];
+  type WithScore = IngredientRow & { category: string | null; score: number };
+  const withScores = ingredients.map((ing: IngredientRow) => ({
     ...ing,
     category: ing.category ?? null,
     score: stringSimilarity(params.normalizedKey, ing.normalizedName),
   }));
-  withScores.sort((a, b) => b.score - a.score);
-  return withScores.filter((c) => c.score >= FUZZY_THRESHOLD_CANDIDATES).slice(0, limit);
+  withScores.sort((a: WithScore, b: WithScore) => b.score - a.score);
+  return withScores.filter((c: WithScore) => c.score >= FUZZY_THRESHOLD_CANDIDATES).slice(0, limit);
 }

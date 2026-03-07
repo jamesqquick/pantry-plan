@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { Prisma } from "@/generated/prisma/client";
 import { getDb } from "@/lib/db";
 import { getAuthenticatedUser } from "@/app/actions/_shared";
 import { zodToFieldErrors } from "@/lib/action-helpers";
@@ -39,7 +40,7 @@ export async function saveImportedRecipeWithMappingsAction(
   const db = getDb();
   let recipeId: string;
   try {
-    recipeId = await db.$transaction(async (tx) => {
+    recipeId = await db.$transaction(async (tx: Prisma.TransactionClient) => {
       const recipe = await tx.recipe.create({
         data: {
           userId: user.id,
@@ -189,11 +190,12 @@ export async function saveImportedRecipeWithMappingsAction(
           where: { userId: user.id },
           select: { id: true },
         });
-        const allowedTagIds = new Set(userTags.map((t) => t.id));
-        const validTagIds = tagIds.filter((id) => allowedTagIds.has(id));
+        type TagRow = (typeof userTags)[number];
+        const allowedTagIds = new Set(userTags.map((t: TagRow) => t.id));
+        const validTagIds = tagIds.filter((id: string) => allowedTagIds.has(id));
         if (validTagIds.length > 0) {
           await tx.recipeTag.createMany({
-            data: validTagIds.map((tagId) => ({ recipeId: recipe.id, tagId })),
+            data: validTagIds.map((tagId: string) => ({ recipeId: recipe.id, tagId })),
           });
         }
       }
@@ -236,7 +238,7 @@ export async function saveImportedRecipeTextOnlyAction(
   const { recipe: recipeData, ingredients } = parsed.data;
   const db = getDb();
 
-  const recipeId = await db.$transaction(async (tx) => {
+  const recipeId = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const recipe = await tx.recipe.create({
       data: {
         userId: user.id,
@@ -283,11 +285,12 @@ export async function saveImportedRecipeTextOnlyAction(
         where: { userId: user.id },
         select: { id: true },
       });
-      const allowedTagIds = new Set(userTags.map((t) => t.id));
-      const validTagIds = tagIds.filter((id) => allowedTagIds.has(id));
+      type TagRow = (typeof userTags)[number];
+      const allowedTagIds = new Set(userTags.map((t: TagRow) => t.id));
+      const validTagIds = tagIds.filter((id: string) => allowedTagIds.has(id));
       if (validTagIds.length > 0) {
         await tx.recipeTag.createMany({
-          data: validTagIds.map((tagId) => ({ recipeId: recipe.id, tagId })),
+          data: validTagIds.map((tagId: string) => ({ recipeId: recipe.id, tagId })),
         });
       }
     }

@@ -64,7 +64,9 @@ async function RecipesListData({
       },
     },
   });
-  const initialRecipes = recipes.map((r) => ({
+  type RecipeRow = (typeof recipes)[number];
+  type RecipeTagRow = RecipeRow["recipeTags"][number];
+  const initialRecipes = recipes.map((r: RecipeRow) => ({
     id: r.id,
     title: r.title,
     sourceUrl: r.sourceUrl,
@@ -75,7 +77,7 @@ async function RecipesListData({
     totalTimeMinutes: r.totalTimeMinutes,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
-    tags: r.recipeTags.map((rt) => rt.tag),
+    tags: r.recipeTags.map((rt: RecipeTagRow) => rt.tag),
   }));
   return <RecipeListContent initialRecipes={initialRecipes} />;
 }

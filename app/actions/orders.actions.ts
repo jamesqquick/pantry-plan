@@ -47,7 +47,8 @@ export async function createOrderAction(
     where: { id: { in: recipeIds }, userId: user.id },
     select: { id: true },
   });
-  const foundIds = new Set(recipes.map((r) => r.id));
+  type RecipeRow = (typeof recipes)[number];
+  const foundIds = new Set(recipes.map((r: RecipeRow) => r.id));
   for (const item of parsed.data.items) {
     if (!foundIds.has(item.recipeId)) {
       return { ok: false, error: { code: "FORBIDDEN", message: "One or more recipes not found or not yours." } };
@@ -113,12 +114,13 @@ export async function updateOrderAction(
     return { ok: false, error: { code: "FORBIDDEN", message: "Order not found." } };
   }
 
-  const recipeIds = parsed.data.items.map((i) => i.recipeId);
+  const recipeIds = parsed.data.items.map((i: { recipeId: string }) => i.recipeId);
   const recipes = await db.recipe.findMany({
     where: { id: { in: recipeIds }, userId: user.id },
     select: { id: true },
   });
-  const foundIds = new Set(recipes.map((r) => r.id));
+  type RecipeRow = (typeof recipes)[number];
+  const foundIds = new Set(recipes.map((r: RecipeRow) => r.id));
   for (const item of parsed.data.items) {
     if (!foundIds.has(item.recipeId)) {
       return { ok: false, error: { code: "FORBIDDEN", message: "One or more recipes not found or not yours." } };

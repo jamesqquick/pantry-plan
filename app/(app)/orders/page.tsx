@@ -23,10 +23,11 @@ async function OrdersListData() {
       </p>
     );
   }
+  type OrderRow = Awaited<ReturnType<typeof listOrdersForUser>>[number];
   return (
     <PrimaryList
       items={orders.map(
-        (order): PrimaryListItem => ({
+        (order: OrderRow): PrimaryListItem => ({
           id: order.id,
           primaryText: order.name?.trim() || "Untitled order",
           secondaryText: new Date(order.updatedAt).toLocaleDateString(),

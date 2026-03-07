@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { Prisma } from "@/generated/prisma/client";
 import { getDb } from "@/lib/db";
 import { getAuthenticatedUser } from "@/app/actions/_shared";
 import { zodToFieldErrors } from "@/lib/action-helpers";
@@ -43,7 +44,7 @@ export async function setRecipeIngredientsAction(
     return { ok: false, error: { code: "FORBIDDEN", message: "Recipe not found." } };
   }
 
-  await db.$transaction(async (tx) => {
+  await db.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.recipeIngredient.deleteMany({
       where: { recipeId: parsed.data.recipeId },
     });

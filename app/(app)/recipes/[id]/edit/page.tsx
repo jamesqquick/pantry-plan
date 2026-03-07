@@ -20,12 +20,16 @@ async function EditRecipePageData({
   ]);
 
   if (!recipe) notFound();
-  const ingredients = recipe.recipeIngredients.map((ri) => ri.displayText);
-  const instructions = (recipe.recipeInstructions ?? []).map((i) => i.text);
+  type RecipeRow = NonNullable<Awaited<ReturnType<typeof getRecipeForUser>>>;
+  type RecipeIngredientRow = RecipeRow["recipeIngredients"][number];
+  type RecipeInstructionRow = NonNullable<RecipeRow["recipeInstructions"]>[number];
+  type RecipeTagRow = NonNullable<RecipeRow["recipeTags"]>[number];
+  const ingredients = recipe.recipeIngredients.map((ri: RecipeIngredientRow) => ri.displayText);
+  const instructions = (recipe.recipeInstructions ?? []).map((i: RecipeInstructionRow) => i.text);
   const isEnhanced = recipe.recipeIngredients.some(
-    (ri) => ri.ingredientId != null || ri.quantity != null || ri.unit != null
+    (ri: RecipeIngredientRow) => ri.ingredientId != null || ri.quantity != null || ri.unit != null
   );
-  const structuredItems = recipe.recipeIngredients.map((ri) => ({
+  const structuredItems = recipe.recipeIngredients.map((ri: RecipeIngredientRow) => ({
     ingredientId: ri.ingredientId ?? "",
     ingredientName: ri.ingredient?.name ?? "",
     quantity: ri.quantity ?? undefined,
@@ -34,7 +38,7 @@ async function EditRecipePageData({
     rawText: ri.rawText ?? undefined,
     sortOrder: ri.sortOrder,
   }));
-  const initialTagIds = (recipe.recipeTags ?? []).map((rt) => rt.tag.id);
+  const initialTagIds = (recipe.recipeTags ?? []).map((rt: RecipeTagRow) => rt.tag.id);
   return (
     <div className="space-y-8">
       <Link
