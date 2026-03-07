@@ -1,13 +1,13 @@
 import "dotenv/config";
-import { Prisma, PrismaClient } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import * as fs from "fs";
 import * as path from "path";
 import { hash } from "bcryptjs";
 import { getDb } from "../lib/db";
 import { normalizeIngredientName } from "../lib/ingredients/normalize";
-import {
-  getDisplayTextFromIngredientLine,
-} from "../lib/ingredients/parse-ingredient-line-structured";
+import { getDisplayTextFromIngredientLine } from "../lib/ingredients/parse-ingredient-line-structured";
+
+console.log("[seed] Using Turso (TURSO_DATABASE_URL=%s, TURSO_AUTH_TOKEN=%s)", process.env.TURSO_DATABASE_URL ? "set" : "not set", process.env.TURSO_AUTH_TOKEN ? "set" : "not set");
 
 const prisma = getDb();
 
@@ -30,7 +30,7 @@ function seedId(prefix: string, index: number): string {
 function getPreferredDisplayUnit(
   name: string,
   _category: string,
-  subcategory: string
+  subcategory: string,
 ): "AUTO" | "GRAM" | "CUP" | "EACH" | "TBSP" | "TSP" {
   const n = name.toLowerCase();
   const sub = subcategory.toLowerCase();
@@ -90,25 +90,46 @@ function getPreferredDisplayUnit(
 const SEED_USER_ID = seedId("user", 1);
 const SEED_ORDER_ID = seedId("order", 1);
 
-const SEED_ALIASES: { aliasNormalized: string; targetNormalizedName: string }[] = [
-  { aliasNormalized: "all-purpose flour", targetNormalizedName: "all purpose flour" },
+const SEED_ALIASES: {
+  aliasNormalized: string;
+  targetNormalizedName: string;
+}[] = [
+  {
+    aliasNormalized: "all-purpose flour",
+    targetNormalizedName: "all purpose flour",
+  },
   { aliasNormalized: "ap flour", targetNormalizedName: "all purpose flour" },
-  { aliasNormalized: "confectioners sugar", targetNormalizedName: "powdered sugar" },
+  {
+    aliasNormalized: "confectioners sugar",
+    targetNormalizedName: "powdered sugar",
+  },
   { aliasNormalized: "icing sugar", targetNormalizedName: "powdered sugar" },
   { aliasNormalized: "granulated sugar", targetNormalizedName: "sugar" },
   { aliasNormalized: "sugar", targetNormalizedName: "sugar" },
   { aliasNormalized: "white sugar", targetNormalizedName: "sugar" },
   { aliasNormalized: "caster sugar", targetNormalizedName: "superfine sugar" },
-  { aliasNormalized: "bicarbonate of soda", targetNormalizedName: "baking soda" },
+  {
+    aliasNormalized: "bicarbonate of soda",
+    targetNormalizedName: "baking soda",
+  },
   { aliasNormalized: "bicarb soda", targetNormalizedName: "baking soda" },
   { aliasNormalized: "sea salt", targetNormalizedName: "fine sea salt" },
   { aliasNormalized: "salt", targetNormalizedName: "fine sea salt" },
   { aliasNormalized: "table salt", targetNormalizedName: "fine sea salt" },
   { aliasNormalized: "vanilla", targetNormalizedName: "vanilla extract" },
   { aliasNormalized: "brown sugar", targetNormalizedName: "light brown sugar" },
-  { aliasNormalized: "packed brown sugar", targetNormalizedName: "light brown sugar" },
-  { aliasNormalized: "semi sweet choc chips", targetNormalizedName: "semi sweet chocolate chips" },
-  { aliasNormalized: "chocolate chips", targetNormalizedName: "semi sweet chocolate chips" },
+  {
+    aliasNormalized: "packed brown sugar",
+    targetNormalizedName: "light brown sugar",
+  },
+  {
+    aliasNormalized: "semi sweet choc chips",
+    targetNormalizedName: "semi sweet chocolate chips",
+  },
+  {
+    aliasNormalized: "chocolate chips",
+    targetNormalizedName: "semi sweet chocolate chips",
+  },
   { aliasNormalized: "cocoa", targetNormalizedName: "cocoa powder" },
   { aliasNormalized: "butter", targetNormalizedName: "butter" },
   { aliasNormalized: "salted butter", targetNormalizedName: "butter" },
@@ -117,7 +138,10 @@ const SEED_ALIASES: { aliasNormalized: string; targetNormalizedName: string }[] 
   { aliasNormalized: "eggs", targetNormalizedName: "eggs" },
   { aliasNormalized: "egg", targetNormalizedName: "eggs" },
   { aliasNormalized: "large eggs", targetNormalizedName: "eggs" },
-  { aliasNormalized: "old fashioned oats", targetNormalizedName: "rolled oats" },
+  {
+    aliasNormalized: "old fashioned oats",
+    targetNormalizedName: "rolled oats",
+  },
 ];
 
 async function main() {
@@ -155,7 +179,13 @@ async function main() {
       role: "ADMIN",
     },
   });
-  console.log("Created demo user:", user.email, "(USER); admin user:", ADMIN_EMAIL, "(ADMIN).");
+  console.log(
+    "Created demo user:",
+    user.email,
+    "(USER); admin user:",
+    ADMIN_EMAIL,
+    "(ADMIN).",
+  );
 
   const tagNames = ["Dessert", "Quick", "Favourite", "Holiday", "Breakfast"];
   const tagIds: string[] = [];
@@ -191,10 +221,13 @@ async function main() {
   const categorySubcategoryPairs = new Set<string>();
   for (const row of items as Record<string, unknown>[]) {
     const cat = typeof row.category === "string" ? row.category.trim() : "";
-    const sub = typeof row.subcategory === "string" ? row.subcategory.trim() : "";
+    const sub =
+      typeof row.subcategory === "string" ? row.subcategory.trim() : "";
     if (cat && sub) categorySubcategoryPairs.add(`${cat}\n${sub}`);
   }
-  const uniqueCategoryNames = [...new Set([...categorySubcategoryPairs].map((p) => p.split("\n")[0]!))].sort();
+  const uniqueCategoryNames = [
+    ...new Set([...categorySubcategoryPairs].map((p) => p.split("\n")[0]!)),
+  ].sort();
   const categoryIdByName: Record<string, string> = {};
   for (let c = 0; c < uniqueCategoryNames.length; c++) {
     const name = uniqueCategoryNames[c]!;
@@ -203,10 +236,12 @@ async function main() {
     });
     categoryIdByName[name] = cat.id;
   }
-  const pairsSorted = [...categorySubcategoryPairs].map((p) => {
-    const [cat, sub] = p.split("\n");
-    return [cat!, sub!] as const;
-  }).sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]));
+  const pairsSorted = [...categorySubcategoryPairs]
+    .map((p) => {
+      const [cat, sub] = p.split("\n");
+      return [cat!, sub!] as const;
+    })
+    .sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]));
   for (let s = 0; s < pairsSorted.length; s++) {
     const [categoryName, subcategoryName] = pairsSorted[s]!;
     await prisma.ingredientSubcategory.create({
@@ -217,29 +252,48 @@ async function main() {
       },
     });
   }
-  console.log("Seeded", uniqueCategoryNames.length, "ingredient categories,", pairsSorted.length, "ingredient subcategories.");
+  console.log(
+    "Seeded",
+    uniqueCategoryNames.length,
+    "ingredient categories,",
+    pairsSorted.length,
+    "ingredient subcategories.",
+  );
 
   const normalizedSet = new Set<string>();
-  const mappedRows: Parameters<typeof prisma.ingredient.create>[0]["data"][] = [];
+  const mappedRows: Parameters<typeof prisma.ingredient.create>[0]["data"][] =
+    [];
   let insertIndex = 0;
   for (let i = 0; i < items.length; i++) {
     const row = items[i] as Record<string, unknown>;
     const name = typeof row.name === "string" ? row.name.trim() : "";
-    if (!name) throw new Error(`data/seed/ingredients.json[${i}]: name must be non-empty after trim`);
+    if (!name)
+      throw new Error(
+        `data/seed/ingredients.json[${i}]: name must be non-empty after trim`,
+      );
     const normalizedName = normalizeIngredientName(name);
     if (normalizedSet.has(normalizedName)) continue; // skip duplicates; first occurrence wins
     normalizedSet.add(normalizedName);
 
-    const category = typeof row.category === "string" ? row.category.trim() : "";
-    const subcategory = typeof row.subcategory === "string" ? row.subcategory.trim() : "";
+    const category =
+      typeof row.category === "string" ? row.category.trim() : "";
+    const subcategory =
+      typeof row.subcategory === "string" ? row.subcategory.trim() : "";
     const gramsPerCupRaw = row.grams_per_cup;
     const costBasisUnitRaw = row.cost_basis_unit;
     const estimatedCentsRaw = row.estimated_cents_per_basis_unit;
-    if (gramsPerCupRaw != null && (typeof gramsPerCupRaw !== "number" || gramsPerCupRaw < 0)) {
-      throw new Error(`data/seed/ingredients.json[${i}]: grams_per_cup must be null or a number >= 0`);
+    if (
+      gramsPerCupRaw != null &&
+      (typeof gramsPerCupRaw !== "number" || gramsPerCupRaw < 0)
+    ) {
+      throw new Error(
+        `data/seed/ingredients.json[${i}]: grams_per_cup must be null or a number >= 0`,
+      );
     }
     const costBasisUnit =
-      costBasisUnitRaw === "GRAM" || costBasisUnitRaw === "CUP" || costBasisUnitRaw === "EACH"
+      costBasisUnitRaw === "GRAM" ||
+      costBasisUnitRaw === "CUP" ||
+      costBasisUnitRaw === "EACH"
         ? costBasisUnitRaw
         : "GRAM";
     if (
@@ -247,16 +301,30 @@ async function main() {
       (typeof estimatedCentsRaw !== "number" || estimatedCentsRaw < 0)
     ) {
       throw new Error(
-        `data/seed/ingredients.json[${i}]: estimated_cents_per_basis_unit must be null or a number >= 0`
+        `data/seed/ingredients.json[${i}]: estimated_cents_per_basis_unit must be null or a number >= 0`,
       );
     }
     const conversionConfidence = row.conversion_confidence;
     const costConfidence = row.cost_confidence;
-    if (typeof conversionConfidence !== "string" || !CONFIDENCE_VALUES.includes(conversionConfidence as (typeof CONFIDENCE_VALUES)[number])) {
-      throw new Error(`data/seed/ingredients.json[${i}]: conversion_confidence must be one of High, Medium, Low`);
+    if (
+      typeof conversionConfidence !== "string" ||
+      !CONFIDENCE_VALUES.includes(
+        conversionConfidence as (typeof CONFIDENCE_VALUES)[number],
+      )
+    ) {
+      throw new Error(
+        `data/seed/ingredients.json[${i}]: conversion_confidence must be one of High, Medium, Low`,
+      );
     }
-    if (typeof costConfidence !== "string" || !CONFIDENCE_VALUES.includes(costConfidence as (typeof CONFIDENCE_VALUES)[number])) {
-      throw new Error(`data/seed/ingredients.json[${i}]: cost_confidence must be one of High, Medium, Low`);
+    if (
+      typeof costConfidence !== "string" ||
+      !CONFIDENCE_VALUES.includes(
+        costConfidence as (typeof CONFIDENCE_VALUES)[number],
+      )
+    ) {
+      throw new Error(
+        `data/seed/ingredients.json[${i}]: cost_confidence must be one of High, Medium, Low`,
+      );
     }
     const notes = typeof row.notes === "string" ? row.notes : null;
     insertIndex += 1;
@@ -267,12 +335,17 @@ async function main() {
       category: category || null,
       subcategory: subcategory || "",
       costBasisUnit,
-      preferredDisplayUnit: getPreferredDisplayUnit(name, category, subcategory),
+      preferredDisplayUnit: getPreferredDisplayUnit(
+        name,
+        category,
+        subcategory,
+      ),
       estimatedCentsPerBasisUnit:
         estimatedCentsRaw != null && typeof estimatedCentsRaw === "number"
           ? estimatedCentsRaw
           : null,
-      gramsPerCup: gramsPerCupRaw != null ? new Prisma.Decimal(gramsPerCupRaw) : null,
+      gramsPerCup:
+        gramsPerCupRaw != null ? new Prisma.Decimal(gramsPerCupRaw) : null,
       conversionConfidence: conversionConfidence as "High" | "Medium" | "Low",
       costConfidence: costConfidence as "High" | "Medium" | "Low",
       notes,
@@ -282,7 +355,11 @@ async function main() {
   for (let i = 0; i < mappedRows.length; i++) {
     await prisma.ingredient.create({ data: mappedRows[i]! });
   }
-  console.log("Seeded", mappedRows.length, "ingredients from data/seed/ingredients.json.");
+  console.log(
+    "Seeded",
+    mappedRows.length,
+    "ingredients from data/seed/ingredients.json.",
+  );
 
   const ingredientIdsByNormalizedName: Record<string, string> = {};
   const ingredients = await prisma.ingredient.findMany({
@@ -299,8 +376,12 @@ async function main() {
     ["strong brewed coffee", "instant espresso powder"],
   ];
   for (const [target, canonical] of fallbacks) {
-    if (!ingredientIdsByNormalizedName[target] && ingredientIdsByNormalizedName[canonical]) {
-      ingredientIdsByNormalizedName[target] = ingredientIdsByNormalizedName[canonical]!;
+    if (
+      !ingredientIdsByNormalizedName[target] &&
+      ingredientIdsByNormalizedName[canonical]
+    ) {
+      ingredientIdsByNormalizedName[target] =
+        ingredientIdsByNormalizedName[canonical]!;
     }
   }
 
@@ -329,13 +410,21 @@ async function main() {
     cookTimeMinutes: number;
     totalTimeMinutes: number;
     instructions: string[];
-    ingredients: Array<{ ingredientNormalizedName: string; quantity: number; unit: string; originalLine: string }>;
+    ingredients: Array<{
+      ingredientNormalizedName: string;
+      quantity: number;
+      unit: string;
+      originalLine: string;
+    }>;
     tagIndexes?: number[];
   };
 
   const recipesPath = path.join(SEED_DATA_DIR, "recipes.json");
-  const recipesData = JSON.parse(fs.readFileSync(recipesPath, "utf-8")) as RecipeSeed[];
-  if (!Array.isArray(recipesData)) throw new Error("data/seed/recipes.json must be a top-level array");
+  const recipesData = JSON.parse(
+    fs.readFileSync(recipesPath, "utf-8"),
+  ) as RecipeSeed[];
+  if (!Array.isArray(recipesData))
+    throw new Error("data/seed/recipes.json must be a top-level array");
 
   const recipeIds: string[] = [];
   let riIndex = 0;
@@ -356,7 +445,11 @@ async function main() {
     });
     if (rec.instructions?.length) {
       await prisma.recipeInstruction.createMany({
-        data: rec.instructions.map((text, sortOrder) => ({ recipeId, sortOrder, text })),
+        data: rec.instructions.map((text, sortOrder) => ({
+          recipeId,
+          sortOrder,
+          text,
+        })),
       });
     }
     for (let i = 0; i < (rec.ingredients ?? []).length; i++) {
@@ -369,12 +462,19 @@ async function main() {
           recipeId,
           ingredientId,
           quantity: row.quantity,
-          rawQuantityText: row.originalLine.match(/^[\d\s./½¼¾⅓⅔⅛⅜⅝⅞]+/)?.[0]?.trim() ?? null,
+          rawQuantityText:
+            row.originalLine.match(/^[\d\s./½¼¾⅓⅔⅛⅜⅝⅞]+/)?.[0]?.trim() ?? null,
           unit: row.unit as "CUP" | "TSP" | "TBSP" | "COUNT" | "OZ" | "PINCH",
           displayText: getDisplayTextFromIngredientLine(row.originalLine),
           rawText: row.originalLine,
           originalQuantity: row.quantity,
-          originalUnit: row.unit as "CUP" | "TSP" | "TBSP" | "COUNT" | "OZ" | "PINCH",
+          originalUnit: row.unit as
+            | "CUP"
+            | "TSP"
+            | "TBSP"
+            | "COUNT"
+            | "OZ"
+            | "PINCH",
           sortOrder: i,
         },
       });
@@ -388,14 +488,21 @@ async function main() {
       }
     }
   }
-  console.log("Seeded", recipeIds.length, "recipes with structured ingredients from data/seed/recipes.json.");
+  console.log(
+    "Seeded",
+    recipeIds.length,
+    "recipes with structured ingredients from data/seed/recipes.json.",
+  );
 
   type OrderItemSeed = { recipeIndex: number; batches: number };
   type OrderSeed = { name: string; notes?: string; items: OrderItemSeed[] };
 
   const ordersPath = path.join(SEED_DATA_DIR, "orders.json");
-  const ordersData = JSON.parse(fs.readFileSync(ordersPath, "utf-8")) as OrderSeed[];
-  if (!Array.isArray(ordersData)) throw new Error("data/seed/orders.json must be a top-level array");
+  const ordersData = JSON.parse(
+    fs.readFileSync(ordersPath, "utf-8"),
+  ) as OrderSeed[];
+  if (!Array.isArray(ordersData))
+    throw new Error("data/seed/orders.json must be a top-level array");
 
   let oiIndex = 0;
   for (let o = 0; o < ordersData.length; o++) {
@@ -412,7 +519,10 @@ async function main() {
     for (const item of ord.items ?? []) {
       oiIndex += 1;
       const recipeId = recipeIds[item.recipeIndex];
-      if (!recipeId) throw new Error(`data/seed/orders.json order ${o + 1}: invalid recipeIndex ${item.recipeIndex}`);
+      if (!recipeId)
+        throw new Error(
+          `data/seed/orders.json order ${o + 1}: invalid recipeIndex ${item.recipeIndex}`,
+        );
       await prisma.orderItem.create({
         data: {
           id: seedId("oi", oiIndex),
@@ -423,7 +533,11 @@ async function main() {
       });
     }
   }
-  console.log("Seeded", ordersData.length, "order(s) from data/seed/orders.json.");
+  console.log(
+    "Seeded",
+    ordersData.length,
+    "order(s) from data/seed/orders.json.",
+  );
 
   console.log("Seed completed successfully.");
 }

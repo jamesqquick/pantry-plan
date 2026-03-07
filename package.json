@@ -8,24 +8,17 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "npx tsx prisma/seed.ts",
-    "seed:d1:generate": "tsx scripts/generate-seed-d1.ts",
-    "seed:d1": "npx wrangler d1 execute DB --remote --file=./prisma/seed-d1.sql",
     "types": "prisma generate",
     "check-parse": "tsx scripts/check-parse.ts",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "cf:build": "prisma generate && npx opennextjs-cloudflare build",
-    "cf:dev": "npx opennextjs-cloudflare preview",
-    "cf:dev:full": "npm run build:cf && npm run cf:dev",
-    "cf:deploy": "npm run build:cf && wrangler pages deploy .open-next/cloudflare --env production"
+    "test:watch": "vitest"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@opennextjs/cloudflare": "^1.16.0",
-    "@prisma/adapter-better-sqlite3": "^7.4.2",
-    "@prisma/adapter-d1": "^7.4.2",
+    "@libsql/client": "^0.14.0",
+    "@prisma/adapter-libsql": "^7.4.2",
     "@prisma/client": "^7.4.2",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
@@ -54,7 +47,6 @@
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",
-    "vitest": "^4.0.18",
-    "wrangler": "^4.69.0"
+    "vitest": "^4.0.18"
   }
 }
