@@ -105,7 +105,7 @@ async function IngredientViewData({
             <div>
               <span className={labelClass}>Cost basis unit</span>
               <p className={valueClass}>
-                {COST_BASIS_LABELS[ingredient.costBasisUnit]}
+                {COST_BASIS_LABELS[ingredient.costBasisUnit as CostBasisUnit]}
               </p>
             </div>
             <div>
@@ -114,7 +114,7 @@ async function IngredientViewData({
               </span>
               <p className={valueClass}>
                 {ingredient.estimatedCentsPerBasisUnit != null
-                  ? `${ingredient.estimatedCentsPerBasisUnit}¢ per ${COST_BASIS_LABELS[ingredient.costBasisUnit]}`
+                  ? `${ingredient.estimatedCentsPerBasisUnit}¢ per ${COST_BASIS_LABELS[ingredient.costBasisUnit as CostBasisUnit]}`
                   : "—"}
               </p>
             </div>
