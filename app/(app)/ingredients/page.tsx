@@ -54,7 +54,8 @@ async function IngredientsPageData({
 
   const totalPages = Math.ceil(totalCount / limit) || 1;
 
-  const ingredientsPlain = ingredients.map((ing) => ({
+  type IngredientRow = Awaited<ReturnType<typeof listIngredientsForUser>>[number];
+  const ingredientsPlain = ingredients.map((ing: IngredientRow) => ({
     id: ing.id,
     name: ing.name,
     userId: ing.userId,
