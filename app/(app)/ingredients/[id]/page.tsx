@@ -146,7 +146,7 @@ async function IngredientViewData({
           <div>
             <span className={labelClass}>Preferred display unit</span>
             <p className={valueClass}>
-              {DISPLAY_UNIT_LABELS[ingredient.preferredDisplayUnit]}
+              {DISPLAY_UNIT_LABELS[ingredient.preferredDisplayUnit as IngredientDisplayUnit]}
             </p>
           </div>
         </CardContent>
