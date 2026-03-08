@@ -114,7 +114,7 @@ export async function createRecipeAction(
   }
   revalidatePath("/recipes");
   revalidatePath("/");
-  return { ok: true, data: { id: recipe.id } };
+  redirect(`/recipes/${recipe.id}`);
 }
 
 export async function updateRecipeAction(
@@ -237,7 +237,7 @@ export async function updateRecipeAction(
   revalidatePath(`/recipes/${parsed.data.id}`);
   revalidatePath(`/recipes/${parsed.data.id}/edit`, "page");
   revalidatePath("/");
-  return { ok: true, data: { id: parsed.data.id } };
+  redirect(`/recipes/${parsed.data.id}`);
 }
 
 export async function deleteRecipeAction(
