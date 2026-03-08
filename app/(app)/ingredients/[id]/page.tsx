@@ -8,6 +8,7 @@ import { PageTitle } from "@/components/ui/page-title";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UNIT_LABELS } from "@/lib/ingredients/units";
 import { DeleteIngredientButton } from "@/components/ingredients/delete-ingredient-button";
+import { IngredientViewSkeleton } from "@/components/ingredients/ingredient-view-skeleton";
 import type {
   CostBasisUnit,
   IngredientDisplayUnit,
@@ -157,21 +158,13 @@ async function IngredientViewData({
   );
 }
 
-function IngredientViewFallback() {
-  return (
-    <div className="flex min-h-[200px] items-center justify-center text-muted-foreground">
-      Loading ingredient…
-    </div>
-  );
-}
-
 export default function IngredientViewPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   return (
-    <Suspense fallback={<IngredientViewFallback />}>
+    <Suspense fallback={<IngredientViewSkeleton />}>
       <IngredientViewData params={params} />
     </Suspense>
   );
