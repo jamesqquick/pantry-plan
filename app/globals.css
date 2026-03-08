@@ -59,6 +59,7 @@
   --sidebar-ring: 22 100% 25%;
 }
 
+/* Dark: primary kept close to light (same hue 22, 100% sat) with lightness raised for contrast */
 .dark {
   --background: 60 5% 12%;
   --foreground: 50 8% 92%;
@@ -66,7 +67,7 @@
   --card-foreground: 50 8% 92%;
   --popover: 50 6% 16%;
   --popover-foreground: 50 8% 92%;
-  --primary: 22 85% 55%;
+  --primary: 22 100% 38%;
   --primary-foreground: 0 0% 100%;
   --secondary: 50 5% 22%;
   --secondary-foreground: 50 8% 92%;
@@ -78,7 +79,7 @@
   --destructive-foreground: 0 0% 98%;
   --border: 50 5% 22%;
   --input: 50 5% 22%;
-  --ring: 22 85% 55%;
+  --ring: 22 100% 38%;
   --panel: 55 6% 18%;
   --panel-foreground: 50 8% 92%;
   --divider: 50 4% 28%;
@@ -88,19 +89,19 @@
   --warning-foreground: 0 0% 10%;
   --info: 210 55% 50%;
   --info-foreground: 0 0% 98%;
-  --chart-1: 22 85% 55%;
+  --chart-1: 22 100% 38%;
   --chart-2: 14 40% 55%;
   --chart-3: 35 20% 52%;
   --chart-4: 9 45% 45%;
   --chart-5: 75 15% 50%;
   --sidebar: 55 5% 15%;
   --sidebar-foreground: 50 8% 92%;
-  --sidebar-primary: 22 85% 55%;
+  --sidebar-primary: 22 100% 38%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 50 5% 22%;
   --sidebar-accent-foreground: 50 8% 92%;
   --sidebar-border: 50 5% 22%;
-  --sidebar-ring: 22 85% 55%;
+  --sidebar-ring: 22 100% 38%;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -111,7 +112,7 @@
     --card-foreground: 50 8% 92%;
     --popover: 50 6% 16%;
     --popover-foreground: 50 8% 92%;
-    --primary: 22 85% 55%;
+    --primary: 22 100% 38%;
     --primary-foreground: 0 0% 100%;
     --secondary: 50 5% 22%;
     --secondary-foreground: 50 8% 92%;
@@ -123,7 +124,7 @@
     --destructive-foreground: 0 0% 98%;
     --border: 50 5% 22%;
     --input: 50 5% 22%;
-    --ring: 22 85% 55%;
+    --ring: 22 100% 38%;
     --panel: 55 6% 18%;
     --panel-foreground: 50 8% 92%;
     --divider: 50 4% 28%;
@@ -133,19 +134,19 @@
     --warning-foreground: 0 0% 10%;
     --info: 210 55% 50%;
     --info-foreground: 0 0% 98%;
-    --chart-1: 22 85% 55%;
+    --chart-1: 22 100% 38%;
     --chart-2: 14 40% 55%;
     --chart-3: 35 20% 52%;
     --chart-4: 9 45% 45%;
     --chart-5: 75 15% 50%;
     --sidebar: 55 5% 15%;
     --sidebar-foreground: 50 8% 92%;
-    --sidebar-primary: 22 85% 55%;
+    --sidebar-primary: 22 100% 38%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 50 5% 22%;
     --sidebar-accent-foreground: 50 8% 92%;
     --sidebar-border: 50 5% 22%;
-    --sidebar-ring: 22 85% 55%;
+    --sidebar-ring: 22 100% 38%;
   }
 }
 
@@ -229,8 +230,8 @@ body {
   animation: toast-slide-in 1.2s ease-out both;
 }
 
-/* Enhancing ingredients: gentle cookie bounce on enhance page */
-@keyframes cookie-float {
+/* Enhancing ingredients: gentle chef hat bounce on enhance page */
+@keyframes chef-float {
   0%,
   100% {
     transform: translateY(0);
@@ -240,6 +241,6 @@ body {
   }
 }
 
-.animate-cookie-float {
-  animation: cookie-float 2.5s ease-in-out infinite;
+.animate-chef-float {
+  animation: chef-float 2.5s ease-in-out infinite;
 }
