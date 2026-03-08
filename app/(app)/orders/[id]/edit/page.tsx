@@ -6,6 +6,7 @@ import { getOrderForUser } from "@/lib/queries/orders";
 import { listRecipesForUser } from "@/lib/queries/recipes";
 import { PageTitle } from "@/components/ui/page-title";
 import { OrderForm } from "@/components/orders/order-form";
+import { OrderEditSkeleton } from "@/components/orders/order-edit-skeleton";
 
 async function EditOrderPageData({
   params,
@@ -54,7 +55,7 @@ export default function EditOrderPage({
   params: Promise<{ id: string }>;
 }) {
   return (
-    <Suspense fallback={<div className="flex min-h-[200px] items-center justify-center text-muted-foreground">Loading…</div>}>
+    <Suspense fallback={<OrderEditSkeleton />}>
       <EditOrderPageData params={params} />
     </Suspense>
   );

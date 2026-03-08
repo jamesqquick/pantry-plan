@@ -2,6 +2,7 @@ import React, { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { LandingPage } from "@/components/landing/landing-page";
+import { LandingSkeleton } from "@/components/landing/landing-skeleton";
 
 export const metadata = {
   title: "Pantry Plan – Recipes, ingredients, and grocery lists in one place",
@@ -17,7 +18,7 @@ async function HomePageContent(): Promise<React.ReactNode> {
 
 export default function HomePage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-muted-foreground">Loading…</div>}>
+    <Suspense fallback={<LandingSkeleton />}>
       <HomePageContent />
     </Suspense>
   );

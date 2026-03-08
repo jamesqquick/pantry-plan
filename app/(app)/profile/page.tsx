@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db";
 import { PageTitle } from "@/components/ui/page-title";
 import { ProfileForm } from "@/components/forms/profile-form";
 import { ResetPasswordForm } from "@/components/forms/reset-password-form";
+import { ProfileSkeleton } from "@/components/profile-skeleton";
 
 async function ProfilePageData() {
   const session = await auth();
@@ -34,7 +35,7 @@ async function ProfilePageData() {
 
 export default function ProfilePage() {
   return (
-    <Suspense fallback={<div className="flex min-h-[200px] items-center justify-center text-muted-foreground">Loading…</div>}>
+    <Suspense fallback={<ProfileSkeleton />}>
       <ProfilePageData />
     </Suspense>
   );

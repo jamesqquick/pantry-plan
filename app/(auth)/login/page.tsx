@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/forms/login-form";
+import { AuthFormSkeleton } from "@/components/auth/auth-form-skeleton";
 
 async function LoginPageData({
   searchParams,
@@ -34,7 +35,7 @@ export default function LoginPage({
   searchParams: Promise<{ callbackUrl?: string; error?: string; registered?: string }>;
 }) {
   return (
-    <Suspense fallback={<div className="flex min-h-[200px] items-center justify-center text-muted-foreground">Loading…</div>}>
+    <Suspense fallback={<AuthFormSkeleton />}>
       <LoginPageData searchParams={searchParams} />
     </Suspense>
   );
