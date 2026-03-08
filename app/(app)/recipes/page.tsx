@@ -47,7 +47,7 @@ async function RecipesListData({
   };
   const recipes = await db.recipe.findMany({
     where,
-    orderBy: { updatedAt: "desc" },
+    orderBy: [{ lastViewedAt: "desc" }, { updatedAt: "desc" }],
     select: {
       id: true,
       title: true,
@@ -57,6 +57,7 @@ async function RecipesListData({
       prepTimeMinutes: true,
       cookTimeMinutes: true,
       totalTimeMinutes: true,
+      lastViewedAt: true,
       createdAt: true,
       updatedAt: true,
       recipeTags: {
@@ -75,6 +76,7 @@ async function RecipesListData({
     prepTimeMinutes: r.prepTimeMinutes,
     cookTimeMinutes: r.cookTimeMinutes,
     totalTimeMinutes: r.totalTimeMinutes,
+    lastViewedAt: r.lastViewedAt,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
     tags: r.recipeTags.map((rt: RecipeTagRow) => rt.tag),
