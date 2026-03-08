@@ -141,11 +141,7 @@ export function StructuredIngredientsEditor({
               catalog={catalog}
               ingredientId={row.ingredientId}
               onChangeIngredient={(id, name) => {
-                updateRow(index, {
-                  ingredientId: id,
-                  ingredientName: name,
-                  displayText: row.displayText || name,
-                });
+                updateRow(index, { ingredientId: id, ingredientName: name });
               }}
               placeholder="Search or type to create"
               onSelectNew={handleCreateIngredient}

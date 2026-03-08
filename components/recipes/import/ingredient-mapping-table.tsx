@@ -108,7 +108,6 @@ export function IngredientMappingTable({
                 outlinePicker={needsPickerOutline}
                 displayText={row.displayText}
                 onDisplayTextChange={(v) => updateRow(i, { displayText: v })}
-                isLineTextOverridden={false}
                 quantityText={row.quantityText}
                 onQuantityTextChange={(v) => updateRow(i, { quantityText: v })}
                 unit={row.unit}

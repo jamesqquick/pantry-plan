@@ -38,7 +38,6 @@ import {
 } from "@/components/recipes/recipe-tag-picker";
 import type { IngredientUnit } from "@/generated/prisma/client";
 import { formatQuantity, parseQuantityText } from "@/lib/quantity/quantity";
-import { formatIngredientLineFromStructured } from "@/lib/ingredientLineFormat";
 import { cn } from "@/lib/cn";
 
 type CreateProps = {
@@ -47,7 +46,6 @@ type CreateProps = {
   existingTags?: TagOption[];
   initialStructuredItems?: StructuredItem[];
   ingredientsCatalog?: { id: string; name: string }[];
-  preserveDisplayText?: boolean;
 };
 
 type StructuredItem = {
@@ -57,7 +55,6 @@ type StructuredItem = {
   unit?: IngredientUnit | null;
   displayText: string;
   rawText?: string | null;
-  isLineTextOverridden?: boolean;
   sortOrder: number;
 };
 
@@ -79,7 +76,6 @@ type EditProps = {
   initialStructuredItems?: StructuredItem[];
   ingredientsCatalog?: { id: string; name: string }[];
   ingredientsEnhanced?: boolean;
-  preserveDisplayText?: boolean;
   existingTags?: TagOption[];
   initialTagIds?: string[];
 };
@@ -91,7 +87,6 @@ const defaultInstruction = "";
 
 type MergedIngredientRow = {
   displayText: string;
-  isLineTextOverridden: boolean;
   ingredientId: string;
   ingredientName: string;
   quantityText: string;
@@ -102,7 +97,6 @@ type MergedIngredientRow = {
 function defaultMergedRow(displayText = ""): MergedIngredientRow {
   return {
     displayText,
-    isLineTextOverridden: false,
     ingredientId: "",
     ingredientName: "",
     quantityText: "",
@@ -216,10 +210,6 @@ export function RecipeForm(props: Props) {
       .slice()
       .sort((a, b) => a.sortOrder - b.sortOrder);
     const raw = initial.ingredients ?? [];
-    const preserveDisplayText =
-      (isEdit && (props as EditProps).preserveDisplayText) ||
-      (!isEdit && (props as CreateProps).preserveDisplayText) ||
-      false;
     const structuredToMerged = (
       s: StructuredItem,
       displayText: string,
@@ -232,8 +222,6 @@ export function RecipeForm(props: Props) {
       return {
         ...defaultMergedRow(displayText),
         displayText: displayText || s.displayText?.trim() || "",
-        isLineTextOverridden:
-          preserveDisplayText || (s.isLineTextOverridden ?? false),
         ingredientId: s.ingredientId ?? "",
         ingredientName: s.ingredientName ?? "",
         quantityText,
@@ -308,26 +296,7 @@ export function RecipeForm(props: Props) {
   const updateMergedIngredient = useCallback(
     (index: number, patch: Partial<MergedIngredientRow>) => {
       setMergedIngredients((prev) =>
-        prev.map((row, i) => {
-          if (i !== index) return row;
-          const next = { ...row, ...patch };
-          const qtyChanged = patch.quantityText !== undefined;
-          if (
-            !next.isLineTextOverridden &&
-            (qtyChanged ||
-              patch.unit !== undefined ||
-              patch.ingredientName !== undefined)
-          ) {
-            const qty = parseQuantityText(next.quantityText);
-            next.displayText = formatIngredientLineFromStructured({
-              quantity: qty ?? null,
-              unit: next.unit,
-              nameNormalized: null,
-              ingredientName: next.ingredientName || null,
-            });
-          }
-          return next;
-        }),
+        prev.map((row, i) => (i !== index ? row : { ...row, ...patch })),
       );
     },
     [],
@@ -360,7 +329,6 @@ export function RecipeForm(props: Props) {
           quantity: parseQuantityText(row.quantityText) ?? null,
           unit: row.unit ?? null,
           displayText: row.displayText.trim() || row.ingredientName || "—",
-          isLineTextOverridden: row.isLineTextOverridden,
           rawText: row.rawText?.trim() || null,
           sortOrder: i,
         }))
@@ -567,21 +535,6 @@ export function RecipeForm(props: Props) {
             </div>
           ) : hasStructured && mergedIngredients.length > 0 ? (
             <div className="space-y-5">
-              {(() => {
-                const needAttentionCount = mergedIngredients.filter(
-                  (r) => !r.quantityText?.trim() || !r.unit || !r.ingredientId,
-                ).length;
-                return needAttentionCount > 0 ? (
-                  <div className="rounded-input border border-amber-200/60 bg-amber-50/30 px-4 py-3 text-sm dark:border-amber-800/50 dark:bg-amber-950/20">
-                    <p className="text-foreground">
-                      {needAttentionCount} ingredient
-                      {needAttentionCount !== 1 ? "s" : ""} need attention. Cost
-                      and scaling results may be partially inaccurate. Complete
-                      the fields below.
-                    </p>
-                  </div>
-                ) : null;
-              })()}
               {mergedIngredients.map((row, index) => {
                 const needsQuantityOutline = !row.quantityText?.trim();
                 const needsUnitOutline = !row.unit;
@@ -606,12 +559,8 @@ export function RecipeForm(props: Props) {
                       outlinePicker={needsPickerOutline}
                       displayText={row.displayText}
                       onDisplayTextChange={(v) =>
-                        updateMergedIngredient(index, {
-                          displayText: v,
-                          isLineTextOverridden: true,
-                        })
+                        updateMergedIngredient(index, { displayText: v })
                       }
-                      isLineTextOverridden={row.isLineTextOverridden}
                       quantityText={row.quantityText}
                       onQuantityTextChange={(v) =>
                         updateMergedIngredient(index, { quantityText: v })

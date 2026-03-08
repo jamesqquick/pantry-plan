@@ -68,7 +68,6 @@ async function EditRecipePageData({
         initialStructuredItems={isEnhanced ? structuredItems : undefined}
         ingredientsCatalog={isEnhanced ? [] : undefined}
         ingredientsEnhanced={isEnhanced}
-        preserveDisplayText={!!recipe.sourceUrl}
         existingTags={allTags}
         initialTagIds={initialTagIds}
       />
