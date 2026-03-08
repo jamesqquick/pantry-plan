@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import {
   getRecipeWithIngredientsForUser,
+  recordRecipeView,
   serializeRecipeForClient,
 } from "@/lib/queries/recipes";
 import { RecipePageClient } from "@/components/recipes/recipe-page-client";
@@ -21,6 +22,7 @@ async function RecipePageData({
   const { cooking } = await searchParams;
   const recipe = await getRecipeWithIngredientsForUser(id, session.user.id);
   if (!recipe) notFound();
+  await recordRecipeView(id, session.user.id);
   const initialCookingView = cooking === "1";
   const recipeSerialized = serializeRecipeForClient(recipe);
   return (

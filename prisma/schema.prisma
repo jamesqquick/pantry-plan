@@ -111,6 +111,7 @@ model Recipe {
   cookTimeMinutes    Int?
   totalTimeMinutes   Int?
   notes              String?
+  lastViewedAt       DateTime?
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   orderItems         OrderItem[]
@@ -119,6 +120,7 @@ model Recipe {
   recipeTags         RecipeTag[]
 
   @@index([userId])
+  @@index([userId, lastViewedAt])
 }
 
 model Tag {
