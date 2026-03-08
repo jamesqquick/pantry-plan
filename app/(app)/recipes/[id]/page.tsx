@@ -1,11 +1,12 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { getRecipeWithIngredientsForUser } from "@/lib/queries/recipes";
-import { RecipeView } from "@/components/recipes/recipe-view";
+import {
+  getRecipeWithIngredientsForUser,
+  serializeRecipeForClient,
+} from "@/lib/queries/recipes";
+import { RecipePageClient } from "@/components/recipes/recipe-page-client";
 import { RecipeViewSkeleton } from "@/components/recipes/recipe-view-skeleton";
-import { CookingViewToggle } from "@/components/recipes/cooking-view-toggle";
 
 async function RecipePageData({
   params,
@@ -20,20 +21,13 @@ async function RecipePageData({
   const { cooking } = await searchParams;
   const recipe = await getRecipeWithIngredientsForUser(id, session.user.id);
   if (!recipe) notFound();
-  const cookingView = cooking === "1";
+  const initialCookingView = cooking === "1";
+  const recipeSerialized = serializeRecipeForClient(recipe);
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <Link
-          href="/recipes"
-          className="inline-block text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← My recipes
-        </Link>
-        <CookingViewToggle recipeId={recipe.id} isCookingView={cookingView} />
-      </div>
-      <RecipeView recipe={recipe} cookingView={cookingView} />
-    </div>
+    <RecipePageClient
+      recipe={recipeSerialized}
+      initialCookingView={initialCookingView}
+    />
   );
 }
 
