@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { RegisterForm } from "@/components/forms/register-form";
+import { AuthFormSkeleton } from "@/components/auth/auth-form-skeleton";
 
 async function RegisterPageData() {
   const session = await auth();
@@ -15,7 +16,7 @@ async function RegisterPageData() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-[200px] items-center justify-center text-muted-foreground">Loading…</div>}>
+    <Suspense fallback={<AuthFormSkeleton />}>
       <RegisterPageData />
     </Suspense>
   );

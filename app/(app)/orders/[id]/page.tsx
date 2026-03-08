@@ -12,6 +12,7 @@ import { type GroceryLine } from "@/lib/grocery/format";
 import { PageTitle } from "@/components/ui/page-title";
 import { GroceryActions } from "@/components/grocery/grocery-actions";
 import { GroceryListDisplay } from "@/components/orders/grocery-list-display";
+import { OrderDetailSkeleton } from "@/components/orders/order-detail-skeleton";
 
 function formatDollars(cents: number): string {
   return new Intl.NumberFormat("en-US", {
@@ -279,7 +280,7 @@ export default function OrderDetailPage({
   params: Promise<{ id: string }>;
 }) {
   return (
-    <Suspense fallback={<div className="flex min-h-[200px] items-center justify-center text-muted-foreground">Loading order…</div>}>
+    <Suspense fallback={<OrderDetailSkeleton />}>
       <OrderDetailPageData params={params} />
     </Suspense>
   );

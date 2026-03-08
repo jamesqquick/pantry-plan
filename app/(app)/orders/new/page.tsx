@@ -6,6 +6,7 @@ import { listRecipesForUser } from "@/lib/queries/recipes";
 import { Callout } from "@/components/ui/callout";
 import { PageTitle } from "@/components/ui/page-title";
 import { OrderForm } from "@/components/orders/order-form";
+import { NewOrderSkeleton } from "@/components/orders/new-order-skeleton";
 
 async function NewOrderPageData() {
   const session = await auth();
@@ -43,7 +44,7 @@ async function NewOrderPageData() {
 
 export default function NewOrderPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-[200px] items-center justify-center text-muted-foreground">Loading…</div>}>
+    <Suspense fallback={<NewOrderSkeleton />}>
       <NewOrderPageData />
     </Suspense>
   );
