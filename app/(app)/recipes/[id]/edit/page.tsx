@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { getRecipeForUser } from "@/lib/queries/recipes";
 import { listTagsForUser } from "@/lib/queries/tags";
 import { RecipeForm } from "@/components/forms/recipe-form";
+import { RecipeEditSkeleton } from "@/components/recipes/recipe-edit-skeleton";
 
 async function EditRecipePageData({
   params,
@@ -81,7 +82,7 @@ export default function EditRecipePage({
   params: Promise<{ id: string }>;
 }) {
   return (
-    <Suspense fallback={<div className="flex min-h-[200px] items-center justify-center text-muted-foreground">Loading…</div>}>
+    <Suspense fallback={<RecipeEditSkeleton />}>
       <EditRecipePageData params={params} />
     </Suspense>
   );
