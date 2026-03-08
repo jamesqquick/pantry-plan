@@ -200,6 +200,8 @@ form components
 
 All queries must be scoped to the authenticated user when applicable.
 
+To create Prisma migrations (Turso): use \`npm run migrate:dev -- --name <name>\`; do not run \`npx prisma migrate dev\` directly or suggest setting LOCAL_DATABASE_URL (the script sets PRISMA_DATABASE_URL for the CLI).
+
 8. Recipe Parsing Security Rules
 
 User-provided URLs are untrusted.
