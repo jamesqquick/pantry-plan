@@ -26,8 +26,6 @@ export type IngredientEditorRowProps = {
   /** Editable ingredient line without quantity/unit (shown on recipe). */
   displayText: string;
   onDisplayTextChange: (value: string) => void;
-  /** When true, do not auto-sync display text from structured fields. */
-  isLineTextOverridden?: boolean;
   /** Placeholder for the display text input. */
   displayTextPlaceholder?: string;
   /** Quantity as editable text (e.g. "1 1/2", "3/4"). */
@@ -72,7 +70,6 @@ export function IngredientEditorRow({
   mode,
   displayText,
   onDisplayTextChange,
-  isLineTextOverridden = false,
   displayTextPlaceholder = "e.g. all-purpose flour",
   quantityText,
   onQuantityTextChange,
@@ -101,7 +98,6 @@ export function IngredientEditorRow({
   outlinePicker = false,
 }: IngredientEditorRowProps) {
   void mode;
-  void isLineTextOverridden;
   const inputClass = compact ? "w-full text-sm" : "w-full";
   const borderWarningClass = "border-amber-400";
 

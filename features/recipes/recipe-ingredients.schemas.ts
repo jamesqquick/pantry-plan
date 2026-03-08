@@ -16,8 +16,6 @@ export const recipeIngredientItemSchema = z.object({
   unit: ingredientUnitSchema.nullable(),
   /** Ingredient line without quantity/unit; editable. */
   displayText: z.string().min(1, "Ingredient line is required"),
-  /** True when user has manually edited displayText. */
-  isLineTextOverridden: z.boolean().optional(),
   /** Full raw line (e.g. from import); optional. */
   rawText: z.string().optional().nullable(),
   sortOrder: z.coerce.number().int().min(0),

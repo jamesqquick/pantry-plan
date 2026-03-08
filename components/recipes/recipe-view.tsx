@@ -163,7 +163,8 @@ export function RecipeView({
       {needAttentionCount > 0 && (
         <div className="rounded-input border border-amber-200/60 bg-amber-50/30 px-4 py-3 text-sm dark:border-amber-800/50 dark:bg-amber-950/20">
           <p className="text-foreground">
-            ⚡ Enhance ingredient data to unlock scaling, cost tracking, and smart planning.{" "}
+            ⚡ {needAttentionCount} ingredient{needAttentionCount !== 1 ? "s" : ""} need
+            attention. Enhance ingredient data to unlock scaling, cost tracking, and smart planning.{" "}
             <Link
               href={`/recipes/${recipe.id}/edit`}
               className="font-medium text-primary hover:underline"
