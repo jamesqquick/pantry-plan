@@ -22,7 +22,10 @@ async function RecipePageData({
   const { cooking } = await searchParams;
   const recipe = await getRecipeWithIngredientsForUser(id, session.user.id);
   if (!recipe) notFound();
-  await recordRecipeView(id, session.user.id);
+  // Non-blocking: record view for "recently viewed" sort without delaying the response
+  void recordRecipeView(id, session.user.id).catch(() => {
+    // Ignore errors so view recording never blocks or surfaces to the user
+  });
   const initialCookingView = cooking === "1";
   const recipeSerialized = serializeRecipeForClient(recipe);
   return (
