@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import type { IngredientUnit } from "@/generated/prisma/client";
@@ -7,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Callout } from "@/components/ui/callout";
 import { NumberedList } from "@/components/ui/numbered-list";
+import { AnimatedSection } from "@/components/ui/animated-section";
 import { DeleteRecipeButton } from "@/components/recipes/delete-recipe-button";
 import { DuplicateRecipeButton } from "@/components/recipes/duplicate-recipe-button";
 import { formatIngredientLine } from "@/lib/ingredientLineFormat";
@@ -121,86 +124,68 @@ export function RecipeView({
       value: `${recipe.totalTimeMinutes} min`,
     });
 
-  if (cookingView) {
-    return (
-      <article className="space-y-6">
-        <h1 className="text-2xl font-semibold text-foreground">{recipe.title}</h1>
-        <Card>
-          <CardContent>
-            <section>
-              <h2 className="text-lg font-medium text-foreground border-b border-border pt-4 pb-4 mb-6">
-                Ingredients
-              </h2>
-              <NumberedList items={ingredientLines} />
-            </section>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <section>
-              <h2 className="text-lg font-medium text-foreground border-b border-border pt-4 pb-4 mb-6">
-                Instructions
-              </h2>
-              <NumberedList items={instructions} />
-            </section>
-          </CardContent>
-        </Card>
-      </article>
-    );
-  }
+  const showFullSections = !cookingView;
 
   return (
     <article className="space-y-6">
       {recipe.imageUrl && (
-        <div className="aspect-16/10 w-full max-h-[400px] overflow-hidden rounded-input bg-accent sm:mx-auto sm:max-w-2xl">
-          <img
-            src={recipe.imageUrl}
-            alt=""
-            className="h-full w-full object-contain object-center"
-          />
-        </div>
+        <AnimatedSection show={showFullSections}>
+          <div className="aspect-16/10 w-full max-h-[400px] overflow-hidden rounded-input bg-accent sm:mx-auto sm:max-w-2xl">
+            <img
+              src={recipe.imageUrl}
+              alt=""
+              className="h-full w-full object-contain object-center"
+            />
+          </div>
+        </AnimatedSection>
       )}
+
       {needAttentionCount > 0 && (
-        <div className="rounded-input border border-amber-200/60 bg-amber-50/30 px-4 py-3 text-sm dark:border-amber-800/50 dark:bg-amber-950/20">
-          <p className="text-foreground">
-            ⚡ {needAttentionCount} ingredient{needAttentionCount !== 1 ? "s" : ""} need
-            attention. Enhance ingredient data to unlock scaling, cost tracking, and smart planning.{" "}
-            <Link
-              href={`/recipes/${recipe.id}/edit`}
-              className="font-medium text-primary hover:underline"
-            >
-              Update recipe →
-            </Link>
-          </p>
-        </div>
+        <AnimatedSection show={showFullSections}>
+          <div className="rounded-input border border-amber-200/60 bg-amber-50/30 px-4 py-3 text-sm dark:border-amber-800/50 dark:bg-amber-950/20">
+            <p className="text-foreground">
+              ⚡ {needAttentionCount} ingredient{needAttentionCount !== 1 ? "s" : ""} need
+              attention. Enhance ingredient data to unlock scaling, cost tracking, and smart planning.{" "}
+              <Link
+                href={`/recipes/${recipe.id}/edit`}
+                className="font-medium text-primary hover:underline"
+              >
+                Update recipe →
+              </Link>
+            </p>
+          </div>
+        </AnimatedSection>
       )}
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <PageTitle>{recipe.title}</PageTitle>
-          {recipe.recipeTags && recipe.recipeTags.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {recipe.recipeTags.map((rt) => (
-                <span
-                  key={rt.tag.id}
-                  className="inline-flex items-center rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground"
+          <div className="space-y-2">
+            {recipe.recipeTags && recipe.recipeTags.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {recipe.recipeTags.map((rt) => (
+                  <span
+                    key={rt.tag.id}
+                    className="inline-flex items-center rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground"
+                  >
+                    {rt.tag.name}
+                  </span>
+                ))}
+              </div>
+            )}
+            {recipe.sourceUrl && (
+              <p className="mt-1 text-sm">
+                <a
+                  href={recipe.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground underline hover:text-foreground"
                 >
-                  {rt.tag.name}
-                </span>
-              ))}
-            </div>
-          )}
-          {recipe.sourceUrl && (
-            <p className="mt-1 text-sm">
-              <a
-                href={recipe.sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground underline hover:text-foreground"
-              >
-                Source
-              </a>
-            </p>
-          )}
+                  Source
+                </a>
+              </p>
+            )}
+          </div>
         </div>
         <div className="flex shrink-0 flex-nowrap items-center gap-2">
           <Link
@@ -214,104 +199,115 @@ export function RecipeView({
           <DeleteRecipeButton recipeId={recipe.id} />
         </div>
       </div>
-      {metaItems.length > 0 && (
-        <Card>
-          <CardContent>
-            <h2 className="text-lg font-medium text-foreground border-b border-border pt-4 pb-4 mb-6">
-              Recipe Metadata
-            </h2>
-            <ul
-              className="grid grid-cols-1 gap-x-6 gap-y-4 min-[480px]:grid-cols-2 md:grid-cols-4"
-              aria-label="Recipe details"
-            >
-              {metaItems.map((item) => (
-                <li
-                  key={`${item.icon}-${item.label}`}
-                  className="flex items-center gap-3"
-                >
-                  <span
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-input bg-muted text-foreground"
-                    aria-hidden
+
+      <AnimatedSection show={showFullSections && metaItems.length > 0}>
+        {metaItems.length > 0 && (
+          <Card>
+            <CardContent>
+              <h2 className="text-lg font-medium text-foreground border-b border-border pt-4 pb-4 mb-6">
+                Recipe Metadata
+              </h2>
+              <ul
+                className="grid grid-cols-1 gap-x-6 gap-y-4 min-[480px]:grid-cols-2 md:grid-cols-4"
+                aria-label="Recipe details"
+              >
+                {metaItems.map((item) => (
+                  <li
+                    key={`${item.icon}-${item.label}`}
+                    className="flex items-center gap-3"
                   >
-                    <AppIcon name={item.icon} size={20} aria-hidden />
-                  </span>
-                  <div className="flex min-w-0 flex-col justify-center">
-                    <span className="text-xs font-medium text-muted-foreground">
-                      {item.label}
+                    <span
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-input bg-muted text-foreground"
+                      aria-hidden
+                    >
+                      <AppIcon name={item.icon} size={20} aria-hidden />
                     </span>
-                    <span className="text-base font-semibold text-foreground">
-                      {item.value}
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
+                    <div className="flex min-w-0 flex-col justify-center">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {item.label}
+                      </span>
+                      <span className="text-base font-semibold text-foreground">
+                        {item.value}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+      </AnimatedSection>
+
       <Card>
         <CardContent>
           <section aria-label="Ingredients with catalog mapping">
             <h2 className="text-lg font-medium text-foreground border-b border-border pt-4 pb-4 mb-6">
               Ingredients
             </h2>
-            <ol
-              className="mt-2 list-none space-y-4 pl-0 text-foreground"
-              role="list"
-            >
-              {structured.map((item, i) => (
-                <li
-                  key={item.id}
-                  className="flex flex-wrap items-center gap-3 gap-y-1"
+            {cookingView ? (
+              <NumberedList items={ingredientLines} />
+            ) : (
+              <>
+                <ol
+                  className="mt-2 list-none space-y-4 pl-0 text-foreground"
+                  role="list"
                 >
-                  <span
-                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
-                    aria-hidden
-                  >
-                    {i + 1}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    {item.displayLine?.trim() ||
-                      item.displayText?.trim() ||
-                      "—"}
-                  </span>
-                  <span className="w-full shrink-0 sm:w-auto">
-                    {item.ingredient ? (
-                      <Link
-                        href={`/ingredients/${item.ingredient.id}`}
-                        className="inline-block rounded-full bg-accent px-2 py-0.5 text-xs font-normal text-accent-foreground hover:underline"
+                  {structured.map((item, i) => (
+                    <li
+                      key={item.id}
+                      className="flex flex-wrap items-center gap-3 gap-y-1"
+                    >
+                      <span
+                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
+                        aria-hidden
                       >
-                        {item.ingredient.name}
-                      </Link>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">
-                        Not mapped
+                        {i + 1}
                       </span>
-                    )}
-                  </span>
-                </li>
-              ))}
-            </ol>
-            {!ingredientsEnhanced && (
-              <div className="mt-6 flex flex-col gap-4 sm:items-end">
-                <Callout
-                  variant="info"
-                  className="w-full text-center text-info"
-                >
-                  Enhancing ingredients maps them to your catalog which enables
-                  recipe scaling, cost tracking, and smart planning. It&apos;s
-                  one extra step, but it enables lots of functionality.
-                </Callout>
-                <Button asChild variant="default" className="w-full sm:w-auto">
-                  <Link href={`/recipes/${recipe.id}/enhance`}>
-                    Enhance ingredients
-                  </Link>
-                </Button>
-              </div>
+                      <span className="min-w-0 flex-1">
+                        {item.displayLine?.trim() ||
+                          item.displayText?.trim() ||
+                          "—"}
+                      </span>
+                      <span className="w-full shrink-0 sm:w-auto">
+                        {item.ingredient ? (
+                          <Link
+                            href={`/ingredients/${item.ingredient.id}`}
+                            className="inline-block rounded-full bg-accent px-2 py-0.5 text-xs font-normal text-accent-foreground hover:underline"
+                          >
+                            {item.ingredient.name}
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            Not mapped
+                          </span>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                <AnimatedSection show={!cookingView && !ingredientsEnhanced}>
+                  <div className="mt-6 flex flex-col gap-4 sm:items-end">
+                    <Callout
+                      variant="info"
+                      className="w-full text-center text-info"
+                    >
+                      Enhancing ingredients maps them to your catalog which enables
+                      recipe scaling, cost tracking, and smart planning. It&apos;s
+                      one extra step, but it enables lots of functionality.
+                    </Callout>
+                    <Button asChild variant="default" className="w-full sm:w-auto">
+                      <Link href={`/recipes/${recipe.id}/enhance`}>
+                        Enhance ingredients
+                      </Link>
+                    </Button>
+                  </div>
+                </AnimatedSection>
+              </>
             )}
           </section>
         </CardContent>
       </Card>
+
       <Card>
         <CardContent>
           <section>
@@ -322,14 +318,17 @@ export function RecipeView({
           </section>
         </CardContent>
       </Card>
-      {recipe.notes && (
-        <section>
-          <h2 className="text-lg font-medium text-foreground">Notes</h2>
-          <p className="mt-2 whitespace-pre-wrap text-foreground">
-            {recipe.notes}
-          </p>
-        </section>
-      )}
+
+      <AnimatedSection show={showFullSections && !!recipe.notes}>
+        {recipe.notes && (
+          <section>
+            <h2 className="text-lg font-medium text-foreground">Notes</h2>
+            <p className="mt-2 whitespace-pre-wrap text-foreground">
+              {recipe.notes}
+            </p>
+          </section>
+        )}
+      </AnimatedSection>
     </article>
   );
 }

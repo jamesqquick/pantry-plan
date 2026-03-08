@@ -67,6 +67,34 @@ export async function getRecipeWithIngredientsForUser(
   });
 }
 
+/** Convert Prisma recipe to plain object safe for Client Components (no Decimal). */
+export function serializeRecipeForClient(
+  recipe: NonNullable<RecipeWithIngredients>
+) {
+  type Row = NonNullable<RecipeWithIngredients>;
+  type IngredientRow = Row["recipeIngredients"][number];
+  return {
+    ...recipe,
+    recipeIngredients: recipe.recipeIngredients.map((ri: IngredientRow) => ({
+      ...ri,
+      ingredient: ri.ingredient
+        ? {
+            ...ri.ingredient,
+            gramsPerCup:
+              ri.ingredient.gramsPerCup != null
+                ? Number(ri.ingredient.gramsPerCup)
+                : null,
+          }
+        : null,
+    })),
+  };
+}
+
+/** Client-safe recipe (Decimal fields converted to number). Use when passing recipe to Client Components. */
+export type RecipeWithIngredientsSerialized = ReturnType<
+  typeof serializeRecipeForClient
+>;
+
 /** Fetch multiple recipes with ingredients (for order grocery list). */
 export async function getRecipesWithIngredientsForUser(
   recipeIds: string[],
