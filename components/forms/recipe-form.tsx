@@ -269,13 +269,6 @@ export function RecipeForm(props: Props) {
   );
   const state = isEdit ? updateState : createState;
 
-  useEffect(() => {
-    if (state && state.ok && "data" in state && state.data?.id) {
-      router.push(`/recipes/${state.data.id}`);
-      router.refresh();
-    }
-  }, [state, router]);
-
   const formAction = isEdit ? updateFormAction : createFormAction;
 
   const addIngredient = () =>
