@@ -1,12 +1,28 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { User } from "lucide-react";
 import { signOutAction } from "@/app/actions/auth.actions";
 
 const HOVER_OPEN_DELAY_MS = 150;
 const HOVER_CLOSE_DELAY_MS = 150;
+
+function SignOutSubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      aria-busy={pending}
+      className="w-full cursor-pointer px-4 py-2 text-left text-xs text-muted-foreground transition-colors duration-150 ease-out hover:font-bold hover:text-primary sm:text-sm disabled:opacity-50"
+      role="menuitem"
+    >
+      {pending ? "Signing out…" : "Sign out"}
+    </button>
+  );
+}
 
 interface UserMenuProps {
   email: string;
@@ -94,13 +110,7 @@ export function UserMenu({ email }: UserMenuProps) {
             View profile
           </Link>
           <form action={signOutAction} className="block">
-            <button
-              type="submit"
-              className="w-full cursor-pointer px-4 py-2 text-left text-xs text-muted-foreground transition-colors duration-150 ease-out hover:font-bold hover:text-primary sm:text-sm"
-              role="menuitem"
-            >
-              Sign out
-            </button>
+            <SignOutSubmitButton />
           </form>
           <hr className="my-1 border-border" />
           <p

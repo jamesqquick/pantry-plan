@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { resetPasswordAction } from "@/app/actions/profile.actions";
 import { Button } from "@/components/ui/button";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Toast } from "@/components/ui/toast";
@@ -99,7 +100,9 @@ export function ResetPasswordForm() {
             </p>
           )}
           <div>
-            <Button type="submit">Change password</Button>
+            <FormSubmitButton pendingLabel="Changing password…">
+              Change password
+            </FormSubmitButton>
           </div>
         </form>
       </CardContent>

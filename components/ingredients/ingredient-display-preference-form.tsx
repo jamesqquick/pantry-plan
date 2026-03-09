@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateIngredientPreferencesAction } from "@/app/actions/ingredients.actions";
 import { Button } from "@/components/ui/button";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -95,9 +96,13 @@ export function IngredientDisplayPreferenceForm({
               {state.error.message}
             </p>
           )}
-          <Button type="submit" variant="secondary" className="text-sm">
+          <FormSubmitButton
+            variant="secondary"
+            className="text-sm"
+            pendingLabel="Saving…"
+          >
             Save display preference
-          </Button>
+          </FormSubmitButton>
         </form>
       </CardContent>
     </Card>

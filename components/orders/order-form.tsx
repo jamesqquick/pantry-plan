@@ -10,6 +10,7 @@ import {
 import type { RecipeOption } from "@/components/orders/order-items-editor";
 import { OrderItemsEditor, type OrderItemRow } from "@/components/orders/order-items-editor";
 import { Button } from "@/components/ui/button";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { AppIcon, ICON_LABEL_GAP_CLASS } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -113,7 +114,11 @@ export function OrderForm(props: Props) {
             </p>
           )}
           <div className="flex gap-2">
-            <Button type="submit">{isEdit ? "Save order" : "Create order"}</Button>
+            <FormSubmitButton
+              pendingLabel={isEdit ? "Saving…" : "Creating…"}
+            >
+              {isEdit ? "Save order" : "Create order"}
+            </FormSubmitButton>
             {isEdit && (
               <Button type="button" variant="secondary" onClick={() => router.push(`/orders/${props.orderId}`)}>
                 Cancel
@@ -125,10 +130,14 @@ export function OrderForm(props: Props) {
           <div className="border-t border-border pt-4">
             <form action={deleteFormAction} onSubmit={(e) => !confirm("Delete this order?") && e.preventDefault()}>
               <input type="hidden" name="id" value={props.orderId} />
-              <Button type="submit" variant="danger" className={ICON_LABEL_GAP_CLASS}>
+              <FormSubmitButton
+                variant="danger"
+                className={ICON_LABEL_GAP_CLASS}
+                pendingLabel="Deleting…"
+              >
                 <AppIcon name="delete" size={18} aria-hidden />
                 Delete order
-              </Button>
+              </FormSubmitButton>
             </form>
             {deleteState && !deleteState.ok && (
               <p className="mt-2 text-sm text-destructive">{deleteState.error.message}</p>

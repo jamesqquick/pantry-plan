@@ -24,6 +24,7 @@ import {
 import type { ParsedRecipeDraft } from "@/app/actions/parse.actions";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { Callout } from "@/components/ui/callout";
 import { AppIcon, ICON_BUTTON_CLASS } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
@@ -714,9 +715,11 @@ export function RecipeForm(props: Props) {
           </p>
         )}
       <div className="flex gap-2">
-        <Button type="submit">
+        <FormSubmitButton
+          pendingLabel={isEdit ? "Saving…" : "Creating…"}
+        >
           {isEdit ? "Save changes" : "Create recipe"}
-        </Button>
+        </FormSubmitButton>
         {isEdit && (
           <Button
             type="button"

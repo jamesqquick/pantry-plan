@@ -4,6 +4,7 @@ import { useActionState, useState, useCallback } from "react";
 import { setRecipeIngredientsAction } from "@/app/actions/recipe-ingredients.actions";
 import { createIngredientAction } from "@/app/actions/ingredients.actions";
 import { Button } from "@/components/ui/button";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { AppIcon, ICON_LABEL_GAP_CLASS } from "@/components/ui/icons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IngredientEditorRow } from "@/components/recipes/ingredient-editor-row";
@@ -158,10 +159,13 @@ export function StructuredIngredientsEditor({
         <form action={saveAction}>
           <input type="hidden" name="recipeId" value={recipeId} />
           <input type="hidden" name="items" value={JSON.stringify(payload)} />
-          <Button type="submit" className={ICON_LABEL_GAP_CLASS}>
+          <FormSubmitButton
+            className={ICON_LABEL_GAP_CLASS}
+            pendingLabel="Saving…"
+          >
             <AppIcon name="save" size={18} aria-hidden />
             Save structured ingredients
-          </Button>
+          </FormSubmitButton>
         </form>
         {saveState && !saveState.ok && saveState.error?.message && (
           <p className="text-sm text-destructive" role="alert">
