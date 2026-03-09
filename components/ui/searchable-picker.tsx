@@ -93,8 +93,20 @@ export function SearchablePicker<T>({
     }
     const trimmed = displayValue.trim();
     if (trimmed === "") {
-      setSearchResults([]);
-      setSearchLoadingInternal(false);
+      lastQueryRef.current = "";
+      setSearchLoadingInternal(true);
+      onSearch("")
+        .then((data) => {
+          if (lastQueryRef.current === "") {
+            setSearchResults(Array.isArray(data) ? data : []);
+          }
+        })
+        .catch(() => {
+          if (lastQueryRef.current === "") setSearchResults([]);
+        })
+        .finally(() => {
+          if (lastQueryRef.current === "") setSearchLoadingInternal(false);
+        });
       return;
     }
     debounceRef.current = setTimeout(() => {
