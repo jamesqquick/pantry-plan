@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { normalizeRecipe } from "./normalize-recipe";
 
 describe("normalizeRecipe", () => {
-  it("splits single HowToStep with concatenated numbered steps into separate instructions", () => {
+  it("splits single HowToStep with concatenated numbered steps and strips number bullets", () => {
     const recipe = {
       "@type": "Recipe",
       name: "Test Recipe",
@@ -16,9 +16,9 @@ describe("normalizeRecipe", () => {
     const out = normalizeRecipe(recipe as Record<string, unknown>);
     expect(out).not.toBeNull();
     expect(out!.instructions).toHaveLength(3);
-    expect(out!.instructions[0]).toMatch(/Preheat the oven/);
-    expect(out!.instructions[1]).toMatch(/baking dish/);
-    expect(out!.instructions[2]).toMatch(/Shred the chicken/);
+    expect(out!.instructions[0]).toBe("Preheat the oven to 425° F.");
+    expect(out!.instructions[1]).toBe("In a baking dish, add the butter and chicken.");
+    expect(out!.instructions[2]).toBe("Shred the chicken and serve.");
   });
 
   it("keeps already separate HowToSteps unchanged", () => {
@@ -36,7 +36,7 @@ describe("normalizeRecipe", () => {
     expect(out!.instructions[1]).toBe("Step two.");
   });
 
-  it("splits string instruction with numbered steps", () => {
+  it("splits string instruction with numbered steps and strips number bullets", () => {
     const recipe = {
       "@type": "Recipe",
       name: "Test",
@@ -44,8 +44,8 @@ describe("normalizeRecipe", () => {
     };
     const out = normalizeRecipe(recipe as Record<string, unknown>);
     expect(out!.instructions).toHaveLength(3);
-    expect(out!.instructions[0]).toMatch(/First step/);
-    expect(out!.instructions[1]).toMatch(/Second step/);
-    expect(out!.instructions[2]).toMatch(/Third/);
+    expect(out!.instructions[0]).toBe("First step.");
+    expect(out!.instructions[1]).toBe("Second step.");
+    expect(out!.instructions[2]).toBe("Third.");
   });
 });

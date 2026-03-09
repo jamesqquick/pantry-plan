@@ -7,18 +7,25 @@
 import { htmlToText } from "../ingredients/html-to-text";
 import { parseIso8601DurationToMinutes } from "./iso8601-duration";
 
+/** Strip leading number bullet (e.g. "1. " or "2) ") from a step string. */
+function stripLeadingNumberBullet(text: string): string {
+  return text.replace(/^\d+[.)]\s*/, "").trim();
+}
+
 /**
  * Split a single string that contains multiple numbered steps (e.g. "1. Do this. 2. Do that.")
- * into an array of step strings. Handles "1. ", "2) ", etc. If no numbered pattern found,
- * returns [text] so the string is kept as one step.
+ * into an array of step strings, with the number bullet stripped from each (e.g. "Do this.").
+ * Handles "1. ", "2) ", etc. If no numbered pattern found, returns [text] so the string is kept as one step.
  */
 function splitNumberedSteps(text: string): string[] {
   const trimmed = text.trim();
   if (!trimmed) return [];
   // Match position before "digit(s). " or "digit(s)) " (step number at start of next step)
   const parts = trimmed.split(/(?!^)(?=\d+[.)]\s)/);
-  const steps = parts.map((s) => s.trim()).filter(Boolean);
-  return steps.length > 0 ? steps : [trimmed];
+  const steps = parts
+    .map((s) => stripLeadingNumberBullet(s.trim()))
+    .filter(Boolean);
+  return steps.length > 0 ? steps : [stripLeadingNumberBullet(trimmed)];
 }
 
 function asString(v: unknown): string {
