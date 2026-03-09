@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { GroceryDisplayToggle } from "./grocery-display-toggle";
 import {
   toDisplayUnits,
@@ -16,6 +17,9 @@ type GrocerySource = {
   qty: number;
   unit: string | null;
   batches: number;
+  recipeId?: string;
+  recipeTitle?: string;
+  basisQty?: number | null;
 };
 
 type GroceryRow = {
@@ -31,12 +35,16 @@ type GroceryRow = {
   sources?: GrocerySource[];
 };
 
-function formatCalculation(sources: GrocerySource[]): string {
-  if (sources.length === 0) return "";
-  const parts = sources.map((s) =>
-    s.batches > 1 ? `(${formatQuantity(s.qty)} * ${s.batches})` : formatQuantity(s.qty)
-  );
-  return parts.join(" + ");
+function formatSourceAmount(
+  s: GrocerySource,
+  basisUnitLabel: CanonicalUnitLabel
+): string {
+  if (s.basisQty != null) {
+    return formatCanonicalForKitchen(s.basisQty, basisUnitLabel);
+  }
+  return s.batches > 1
+    ? `(${formatQuantity(s.qty)} × ${s.batches})`
+    : formatQuantity(s.qty);
 }
 
 function formatDollars(cents: number): string {
@@ -134,10 +142,8 @@ export function GroceryListDisplay({
             </thead>
             <tbody>
               {totals.map((row) => {
-                const calculationStr =
-                  row.sources && row.sources.length > 0
-                    ? formatCalculation(row.sources)
-                    : null;
+                const hasSources =
+                  row.sources && row.sources.length > 0;
                 const totalText =
                   mode === "kitchen"
                     ? formatCanonicalForKitchen(
@@ -164,7 +170,35 @@ export function GroceryListDisplay({
                       )}
                     </td>
                     <td className="border border-border px-3 py-2 text-muted-foreground">
-                      {calculationStr ?? "—"}
+                      {hasSources ? (
+                        <ul className="list-none space-y-1 pl-0">
+                          {row.sources!.map((s, i) => {
+                            const amount = formatSourceAmount(
+                              s,
+                              row.basisUnitLabel
+                            );
+                            const label = s.recipeTitle ?? "Recipe";
+                            return (
+                              <li key={i}>
+                                {s.recipeId ? (
+                                  <Link
+                                    href={`/recipes/${s.recipeId}`}
+                                    className="text-primary underline-offset-4 hover:underline"
+                                  >
+                                    {label}
+                                  </Link>
+                                ) : (
+                                  <span>{label}</span>
+                                )}
+                                {": "}
+                                {amount}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="border border-border px-3 py-2">
                       {totalText}

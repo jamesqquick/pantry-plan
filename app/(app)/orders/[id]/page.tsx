@@ -154,9 +154,12 @@ async function OrderDetailPageData({
               preferredDisplayUnit: t.preferredDisplayUnit,
               gramsPerCup: t.gramsPerCup != null ? Number(t.gramsPerCup) : null,
               sources: t.sources.map((s) => ({
+                recipeId: s.recipeId,
+                recipeTitle: s.recipeTitle,
                 qty: s.qty,
                 unit: s.unit,
                 batches: s.batches,
+                basisQty: s.basisQty,
               })),
             }))}
             title="Grocery list"
