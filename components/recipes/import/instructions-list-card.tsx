@@ -1,11 +1,8 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
-import { EditableNumberedList } from "@/components/ui/editable-numbered-list";
-import { AppIcon, ICON_BUTTON_CLASS } from "@/components/ui/icons";
-import { cn } from "@/lib/cn";
+import { SortableInstructionsList } from "@/components/ui/sortable-instructions-list";
 import { defaultInstruction } from "./import-wizard-helpers";
 
 type InstructionsListCardProps = {
@@ -20,31 +17,19 @@ export function InstructionsListCard({
   return (
     <Card>
       <CardContent>
-        <SectionHeader
-          variant="section"
-          title="Instructions"
-          action={
-            <Button
-              type="button"
-              variant="secondary"
-              aria-label="Add step"
-              onClick={() =>
-                setInstructionsList((prev) => [defaultInstruction, ...prev])
-              }
-              className={cn(ICON_BUTTON_CLASS, "h-9 w-9 shrink-0")}
-            >
-              <AppIcon name="add" size={18} aria-hidden />
-            </Button>
-          }
-        />
-        <EditableNumberedList
+        <SectionHeader variant="section" title="Instructions" />
+        <SortableInstructionsList
           items={instructionsList}
           onItemsChange={(next) =>
             setInstructionsList(next.length === 0 ? [defaultInstruction] : next)
           }
           placeholder="Step description"
           removeLabel="Remove step"
+          addLabel="Add step"
           minItems={1}
+          onAdd={() =>
+            setInstructionsList((prev) => [...prev, defaultInstruction])
+          }
         />
       </CardContent>
     </Card>
