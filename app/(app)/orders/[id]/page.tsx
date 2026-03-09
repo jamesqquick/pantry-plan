@@ -124,7 +124,12 @@ async function OrderDetailPageData({
               {order.orderItems.map((item: OrderItemRow) => (
                 <tr key={item.id}>
                   <td className="border border-border px-3 py-2">
-                    {item.recipe?.title ?? "—"}
+                    <Link
+                      href={`/recipes/${item.recipeId}`}
+                      className="text-primary underline-offset-4 hover:underline"
+                    >
+                      {item.recipe?.title ?? "—"}
+                    </Link>
                   </td>
                   <td className="border border-border px-3 py-2">
                     {item.batches}
