@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import { SortableInstructionsList } from "@/components/ui/sortable-instructions-list";
 import { IngredientEditorRow } from "@/components/recipes/ingredient-editor-row";
 import { RecipeIngredientList } from "@/components/recipes/ingredient-list";
 import {
@@ -308,10 +309,6 @@ export function RecipeForm(props: Props) {
 
   const addInstruction = () =>
     setInstructions((prev) => [...prev, defaultInstruction]);
-  const removeInstruction = (i: number) =>
-    setInstructions((prev) =>
-      prev.length > 1 ? prev.filter((_, j) => j !== i) : prev,
-    );
 
   const fieldErrors =
     state && !state.ok ? (state.error?.fieldErrors ?? {}) : {};
@@ -659,46 +656,17 @@ export function RecipeForm(props: Props) {
       <Card>
         <CardContent>
           <SectionHeader variant="section" title="Instructions" />
-          <ol className="mt-2 list-none space-y-4 p-0">
-            {instructions.map((_, i) => (
-              <li key={i} className="flex items-center gap-3">
-                <span
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground"
-                  aria-hidden
-                >
-                  {i + 1}
-                </span>
-                <div className="min-w-0 flex-1 flex gap-2">
-                  <Input
-                    name="instructions"
-                    defaultValue={instructions[i]}
-                    placeholder="Step description"
-                    error={!!fieldErrors.instructions}
-                    className="flex-1"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className={ICON_BUTTON_CLASS}
-                    onClick={() => removeInstruction(i)}
-                    aria-label="Remove step"
-                    disabled={instructions.length === 1}
-                  >
-                    <AppIcon name="delete" size={18} aria-hidden />
-                  </Button>
-                </div>
-              </li>
-            ))}
-            <Button
-              type="button"
-              variant="secondary"
-              aria-label="Add step"
-              onClick={addInstruction}
-              className={cn("mt-2", ICON_BUTTON_CLASS, "h-9 w-9 shrink-0")}
-            >
-              <AppIcon name="add" size={18} aria-hidden />
-            </Button>
-          </ol>
+          <SortableInstructionsList
+            items={instructions}
+            onItemsChange={setInstructions}
+            placeholder="Step description"
+            removeLabel="Remove step"
+            addLabel="Add step"
+            minItems={1}
+            formInputName="instructions"
+            formInputError={!!fieldErrors.instructions}
+            onAdd={addInstruction}
+          />
           {fieldErrors.instructions && (
             <p className="mt-1 text-sm text-destructive" role="alert">
               {fieldErrors.instructions[0]}
