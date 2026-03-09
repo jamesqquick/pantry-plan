@@ -16,7 +16,7 @@ function SignOutSubmitButton() {
       type="submit"
       disabled={pending}
       aria-busy={pending}
-      className="w-full cursor-pointer px-4 py-2 text-left text-xs text-muted-foreground transition-colors duration-150 ease-out hover:font-bold hover:text-primary-on-background sm:text-sm disabled:opacity-50"
+      className="w-full cursor-pointer px-4 py-2 text-left text-xs text-muted-foreground transition-colors duration-150 ease-out hover:font-bold hover:text-primary-on-card sm:text-sm disabled:opacity-50"
       role="menuitem"
     >
       {pending ? "Signing out…" : "Sign out"}
@@ -103,7 +103,7 @@ export function UserMenu({ email }: UserMenuProps) {
         >
           <Link
             href="/profile"
-            className="block cursor-pointer px-4 py-2 text-xs text-muted-foreground transition-colors duration-150 ease-out hover:font-bold hover:text-primary-on-background sm:text-sm"
+            className="block cursor-pointer px-4 py-2 text-xs text-muted-foreground transition-colors duration-150 ease-out hover:font-bold hover:text-primary-on-card sm:text-sm"
             role="menuitem"
             onClick={() => setOpen(false)}
           >

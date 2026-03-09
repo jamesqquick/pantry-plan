@@ -90,9 +90,9 @@ All theme tokens are defined in `app/globals.css` as HSL CSS variables and expos
 ## Available semantic colors
 
 - **Core:** `background`, `foreground`, `card`, `card-foreground`, `popover`, `popover-foreground`
-- **Actions:** `primary`, `primary-foreground`, `primary-on-background`, `secondary`, `secondary-foreground`, `accent`, `accent-foreground`, `destructive`, `destructive-foreground`
+- **Actions:** `primary`, `primary-foreground`, `primary-on-background`, `primary-on-card`, `secondary`, `secondary-foreground`, `accent`, `accent-foreground`, `destructive`, `destructive-foreground`
 - **Surfaces:** `muted`, `muted-foreground`, `border`, `input`, `ring`
-- **Extended:** `panel`, `panel-foreground`, `divider`, `success`, `success-foreground`, `warning`, `warning-foreground`, `info`, `info-foreground`
+- **Extended:** `panel`, `panel-foreground`, `divider`, `primary-icon-bg`, `success`, `success-foreground`, `warning`, `warning-foreground`, `info`, `info-foreground`
 
 Use them as: `bg-<token>`, `text-<token>`, `border-<token>`, and with opacity: `bg-primary/90`, `bg-success/15`, etc.
 
@@ -102,4 +102,8 @@ Use them as: `bg-<token>`, `text-<token>`, `border-<token>`, and with opacity: `
 
 Dark mode is driven by the **`.dark`** class (shadcn pattern). Add `class="dark"` to the root `<html>` to switch to dark tokens. The same utilities apply; variable values switch automatically (e.g. `bg-background` becomes the dark background when `.dark` is present).
 
-**Primary consistency:** `--primary` is the same in light and dark (22 100% 25%) so buttons, focus rings, and charts look consistent. Use **`text-primary-on-background`** (and `bg-primary-on-background` where needed) for primary-colored text or icons that sit on the page or card background: in light mode it matches `primary`; in dark mode it uses a lighter shade (22 100% 55%) so links and labels meet WCAG contrast on the dark background.
+**Primary consistency:** The primary color (22 100% 25%) does not change between light and dark theme. `--primary` and `--primary-on-background` are both the same value in both themes. Use **`text-primary-on-background`** (or `text-primary`) for primary-colored text or icons on the page or card background.
+
+**Primary icon containers:** Use **`bg-primary-icon-bg`** for the background of icon circles/badges that display a primary-colored icon. This token is tuned so primary (22 100% 25%) meets contrast requirements: light theme uses a light blush (98% lightness); dark theme uses a medium-light gray (86% lightness) so the dark primary icon remains readable.
+
+**Primary on card:** Use **`text-primary-on-card`** for link or hover text on **card** (`bg-card`) or **popover** (`bg-popover`) surfaces. In light theme it matches primary; in dark theme it uses card-foreground so primary is never used on the dark card background (16% lightness), keeping contrast and consistency.

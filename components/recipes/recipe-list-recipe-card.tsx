@@ -107,7 +107,7 @@ export function RecipeListRecipeCard({ recipe, onDelete, onToast, className }: R
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col p-4">
-          <h3 className="line-clamp-2 text-lg font-semibold tracking-tight text-foreground group-hover:text-primary-on-background">
+          <h3 className="line-clamp-2 text-lg font-semibold tracking-tight text-foreground group-hover:text-primary-on-card">
             {recipe.title}
           </h3>
 
