@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 
 const navItems = [
   { href: "/recipes", label: "Recipes" },
+  { href: "/meal-plan", label: "Meal plan" },
   { href: "/ingredients", label: "Ingredients" },
   { href: "/orders", label: "Orders" },
 ] as const;
@@ -17,6 +18,9 @@ function isActive(pathname: string, href: string): boolean {
   }
   if (href === "/ingredients") {
     return pathname === "/ingredients" || pathname.startsWith("/ingredients/");
+  }
+  if (href === "/meal-plan") {
+    return pathname === "/meal-plan" || pathname.startsWith("/meal-plan/");
   }
   if (href === "/orders") {
     return pathname === "/orders" || pathname.startsWith("/orders/");

@@ -146,6 +146,7 @@ const SEED_ALIASES: {
 
 async function main() {
   await prisma.$transaction([
+    prisma.plannedMeal.deleteMany({}),
     prisma.orderItem.deleteMany({}),
     prisma.order.deleteMany({}),
     prisma.recipeInstruction.deleteMany({}),
@@ -537,6 +538,50 @@ async function main() {
     "Seeded",
     ordersData.length,
     "order(s) from data/seed/orders.json.",
+  );
+
+  // Seed a few planned meals for the demo user (current week)
+  const now = new Date();
+  const dayOfWeek = now.getUTCDay();
+  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(now);
+  monday.setUTCDate(monday.getUTCDate() + diff);
+  const weekStartStr =
+    monday.getUTCFullYear() +
+    "-" +
+    String(monday.getUTCMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(monday.getUTCDate()).padStart(2, "0");
+  const weekDates: Date[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStartStr + "T00:00:00.000Z");
+    d.setUTCDate(d.getUTCDate() + i);
+    weekDates.push(d);
+  }
+  const plannedMealsSeed = [
+    { date: weekDates[0]!, mealSlot: "DINNER" as const, recipeId: recipeIds[0], servings: 4 },
+    { date: weekDates[1]!, mealSlot: "LUNCH" as const, recipeId: recipeIds[1], servings: 2 },
+    { date: weekDates[2]!, mealSlot: "DINNER" as const, customLabel: "Leftovers" },
+    { date: weekDates[3]!, mealSlot: "DINNER" as const, recipeId: recipeIds[2], servings: 6 },
+    { date: weekDates[5]!, mealSlot: "DINNER" as const, customLabel: "Takeout" },
+  ].filter((pm) => !("recipeId" in pm) || !pm.recipeId || recipeIds.includes(pm.recipeId));
+  for (const pm of plannedMealsSeed) {
+    await prisma.plannedMeal.create({
+      data: {
+        userId: user.id,
+        date: pm.date,
+        mealSlot: pm.mealSlot,
+        recipeId: pm.recipeId ?? null,
+        customLabel: pm.customLabel ?? null,
+        servings: pm.servings ?? null,
+      },
+    });
+  }
+  console.log(
+    "Seeded",
+    plannedMealsSeed.length,
+    "planned meal(s) for week of",
+    weekStartStr + ".",
   );
 
   console.log("Seed completed successfully.");

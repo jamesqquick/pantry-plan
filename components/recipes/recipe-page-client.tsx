@@ -18,9 +18,11 @@ const SCALE_OPTIONS: { value: RecipeScale; label: string }[] = [
 export function RecipePageClient({
   recipe,
   initialCookingView,
+  weekStart,
 }: {
   recipe: RecipeWithIngredientsSerialized;
   initialCookingView: boolean;
+  weekStart: string;
 }) {
   const [cookingView, setCookingView] = useState(initialCookingView);
   const [scale, setScale] = useState<RecipeScale>(1);
@@ -37,6 +39,12 @@ export function RecipePageClient({
           className="inline-block text-sm text-muted-foreground hover:text-foreground"
         >
           ← My recipes
+        </Link>
+        <Link
+          href={`/meal-plan/${weekStart}?addRecipe=${recipe.id}`}
+          className="inline-flex items-center gap-1.5 rounded-input border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          Add to meal plan
         </Link>
         <CookingViewToggle
           recipeId={recipe.id}
