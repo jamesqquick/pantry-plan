@@ -39,7 +39,7 @@ function AppNavStatic({ onNavigate }: { onNavigate?: () => void }) {
             <span className="invisible select-none font-bold" aria-hidden>
               {label}
             </span>
-            <span className="absolute inset-0 text-left text-muted-foreground transition-colors duration-150 ease-out group-hover:font-bold group-hover:text-primary">
+            <span className="absolute inset-0 text-left text-muted-foreground transition-colors duration-150 ease-out group-hover:font-bold group-hover:text-primary-on-background">
               {label}
             </span>
           </span>
@@ -71,8 +71,8 @@ function AppNavWithPathname({ onNavigate }: { onNavigate?: () => void }) {
                 className={cn(
                   "absolute inset-0 text-left transition-colors duration-150 ease-out",
                   active
-                    ? "font-bold text-primary"
-                    : "text-muted-foreground group-hover:font-bold group-hover:text-primary"
+                    ? "font-bold text-primary-on-background"
+                    : "text-muted-foreground group-hover:font-bold group-hover:text-primary-on-background"
                 )}
               >
                 {label}

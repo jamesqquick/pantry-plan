@@ -161,7 +161,7 @@ export function RecipeView({
               attention. Enhance ingredient data to unlock scaling, cost tracking, and smart planning.{" "}
               <Link
                 href={`/recipes/${recipe.id}/edit`}
-                className="font-medium text-primary hover:underline"
+                className="font-medium text-primary-on-background hover:underline"
                 aria-label="Update recipe to enhance ingredient data"
               >
                 Update recipe<span aria-hidden="true"> →</span>

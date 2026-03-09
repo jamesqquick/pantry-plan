@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
+import { ContentLink } from "@/components/ui/content-link";
 import { GroceryDisplayToggle } from "./grocery-display-toggle";
 import {
   toDisplayUnits,
@@ -181,12 +181,9 @@ export function GroceryListDisplay({
                             return (
                               <li key={i}>
                                 {s.recipeId ? (
-                                  <Link
-                                    href={`/recipes/${s.recipeId}`}
-                                    className="text-primary underline-offset-4 hover:underline"
-                                  >
+                                  <ContentLink href={`/recipes/${s.recipeId}`}>
                                     {label}
-                                  </Link>
+                                  </ContentLink>
                                 ) : (
                                   <span>{label}</span>
                                 )}

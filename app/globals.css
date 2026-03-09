@@ -20,6 +20,7 @@
   /* Primary — #802E00 (deep rust/brown accent) */
   --primary: 22 100% 25%;
   --primary-foreground: 0 0% 100%;
+  --primary-on-background: 22 100% 25%;
   --secondary: 35 25% 92%;
   --secondary-foreground: 25 18% 14%;
   --muted: 35 20% 93%;
@@ -57,9 +58,15 @@
   --sidebar-accent-foreground: 25 18% 14%;
   --sidebar-border: 30 18% 88%;
   --sidebar-ring: 22 100% 25%;
+  /* Primary icon container — light enough for primary (22 100% 25%) to meet contrast */
+  --primary-icon-bg: 0 63% 98%;
+  /* Header logo: primary in light, light color in dark (works with class or prefers-color-scheme) */
+  --header-logo: 22 100% 25%;
+  /* Link/hover on card or popover: primary in light; in dark use card-foreground so primary is never on dark card */
+  --primary-on-card: 22 100% 25%;
 }
 
-/* Dark: primary kept close to light (same hue 22, 100% sat) with lightness raised for contrast */
+/* Dark: primary unchanged from light (22 100% 25%) in all uses */
 .dark {
   --background: 60 5% 12%;
   --foreground: 50 8% 92%;
@@ -67,8 +74,9 @@
   --card-foreground: 50 8% 92%;
   --popover: 50 6% 16%;
   --popover-foreground: 50 8% 92%;
-  --primary: 22 100% 38%;
+  --primary: 22 100% 25%;
   --primary-foreground: 0 0% 100%;
+  --primary-on-background: 22 100% 25%;
   --secondary: 50 5% 22%;
   --secondary-foreground: 50 8% 92%;
   --muted: 50 5% 22%;
@@ -79,7 +87,7 @@
   --destructive-foreground: 0 0% 98%;
   --border: 50 5% 22%;
   --input: 50 5% 22%;
-  --ring: 22 100% 38%;
+  --ring: 22 100% 25%;
   --panel: 55 6% 18%;
   --panel-foreground: 50 8% 92%;
   --divider: 50 4% 28%;
@@ -89,19 +97,22 @@
   --warning-foreground: 0 0% 10%;
   --info: 210 55% 50%;
   --info-foreground: 0 0% 98%;
-  --chart-1: 22 100% 38%;
+  --chart-1: 22 100% 25%;
   --chart-2: 14 40% 55%;
   --chart-3: 35 20% 52%;
   --chart-4: 9 45% 45%;
   --chart-5: 75 15% 50%;
   --sidebar: 55 5% 15%;
   --sidebar-foreground: 50 8% 92%;
-  --sidebar-primary: 22 100% 38%;
+  --sidebar-primary: 22 100% 25%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 50 5% 22%;
   --sidebar-accent-foreground: 50 8% 92%;
   --sidebar-border: 50 5% 22%;
-  --sidebar-ring: 22 100% 38%;
+  --sidebar-ring: 22 100% 25%;
+  --primary-icon-bg: 0 0% 86%;
+  --header-logo: 0 0% 100%;
+  --primary-on-card: 50 8% 92%;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -112,8 +123,9 @@
     --card-foreground: 50 8% 92%;
     --popover: 50 6% 16%;
     --popover-foreground: 50 8% 92%;
-    --primary: 22 100% 38%;
+    --primary: 22 100% 25%;
     --primary-foreground: 0 0% 100%;
+    --primary-on-background: 22 100% 25%;
     --secondary: 50 5% 22%;
     --secondary-foreground: 50 8% 92%;
     --muted: 50 5% 22%;
@@ -124,7 +136,7 @@
     --destructive-foreground: 0 0% 98%;
     --border: 50 5% 22%;
     --input: 50 5% 22%;
-    --ring: 22 100% 38%;
+    --ring: 22 100% 25%;
     --panel: 55 6% 18%;
     --panel-foreground: 50 8% 92%;
     --divider: 50 4% 28%;
@@ -134,19 +146,22 @@
     --warning-foreground: 0 0% 10%;
     --info: 210 55% 50%;
     --info-foreground: 0 0% 98%;
-    --chart-1: 22 100% 38%;
+    --chart-1: 22 100% 25%;
     --chart-2: 14 40% 55%;
     --chart-3: 35 20% 52%;
     --chart-4: 9 45% 45%;
     --chart-5: 75 15% 50%;
     --sidebar: 55 5% 15%;
     --sidebar-foreground: 50 8% 92%;
-    --sidebar-primary: 22 100% 38%;
+    --sidebar-primary: 22 100% 25%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 50 5% 22%;
     --sidebar-accent-foreground: 50 8% 92%;
     --sidebar-border: 50 5% 22%;
-    --sidebar-ring: 22 100% 38%;
+    --sidebar-ring: 22 100% 25%;
+    --primary-icon-bg: 0 0% 86%;
+    --header-logo: 0 0% 100%;
+    --primary-on-card: 50 8% 92%;
   }
 }
 
@@ -160,6 +175,10 @@
   --color-popover-foreground: hsl(var(--popover-foreground));
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-on-background: hsl(var(--primary-on-background));
+  --color-primary-icon-bg: hsl(var(--primary-icon-bg));
+  --color-header-logo: hsl(var(--header-logo));
+  --color-primary-on-card: hsl(var(--primary-on-card));
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
   --color-muted: hsl(var(--muted));
