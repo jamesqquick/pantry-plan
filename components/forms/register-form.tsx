@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { registerAction } from "@/app/actions/auth.actions";
 import { Button } from "@/components/ui/button";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -57,9 +58,9 @@ export function RegisterForm() {
               {state.error.message}
             </p>
           )}
-          <Button type="submit" className="w-full">
+          <FormSubmitButton className="w-full" pendingLabel="Creating account…">
             Create account
-          </Button>
+          </FormSubmitButton>
           <p className="text-center text-sm text-muted-foreground">
             <a href="/login" className="underline hover:no-underline">
               Already have an account? Sign in

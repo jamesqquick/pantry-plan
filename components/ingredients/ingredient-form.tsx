@@ -7,6 +7,7 @@ import {
   updateIngredientAction,
 } from "@/app/actions/ingredients.actions";
 import { Button } from "@/components/ui/button";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -214,9 +215,11 @@ export function IngredientForm(props: Props) {
             </p>
           )}
           <div className="flex gap-2">
-            <Button type="submit">
+            <FormSubmitButton
+              pendingLabel={isEdit ? "Saving…" : "Creating…"}
+            >
               {isEdit ? "Save changes" : "Create ingredient"}
-            </Button>
+            </FormSubmitButton>
             {isEdit && (
               <Button
                 type="button"

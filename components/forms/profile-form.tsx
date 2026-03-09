@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateProfileAction } from "@/app/actions/profile.actions";
 import { Button } from "@/components/ui/button";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Toast } from "@/components/ui/toast";
@@ -81,7 +82,7 @@ export function ProfileForm({ initialName, email }: ProfileFormProps) {
             </p>
           )}
           <div>
-            <Button type="submit">Save</Button>
+            <FormSubmitButton pendingLabel="Saving…">Save</FormSubmitButton>
           </div>
         </form>
       </CardContent>
