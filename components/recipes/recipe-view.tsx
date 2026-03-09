@@ -149,15 +149,21 @@ export function RecipeView({
 
       {needAttentionCount > 0 && (
         <AnimatedSection show={showFullSections}>
-          <div className="rounded-input border border-amber-200/60 bg-amber-50/30 px-4 py-3 text-sm dark:border-amber-800/50 dark:bg-amber-950/20">
+          <div
+            role="region"
+            aria-label="Ingredients need attention"
+            className="rounded-input border border-amber-200/60 bg-amber-50/30 px-4 py-3 text-sm dark:border-amber-800/50 dark:bg-amber-950/20"
+          >
             <p className="text-foreground">
-              ⚡ {needAttentionCount} ingredient{needAttentionCount !== 1 ? "s" : ""} need
+              <span aria-hidden="true">⚡</span>{" "}
+              {needAttentionCount} ingredient{needAttentionCount !== 1 ? "s" : ""} need
               attention. Enhance ingredient data to unlock scaling, cost tracking, and smart planning.{" "}
               <Link
                 href={`/recipes/${recipe.id}/edit`}
                 className="font-medium text-primary hover:underline"
+                aria-label="Update recipe to enhance ingredient data"
               >
-                Update recipe →
+                Update recipe<span aria-hidden="true"> →</span>
               </Link>
             </p>
           </div>
@@ -180,7 +186,7 @@ export function RecipeView({
                 ))}
               </div>
             )}
-            {recipe.sourceUrl && (
+            {recipe.sourceUrl && !cookingView && (
               <p className="mt-1 text-sm">
                 <a
                   href={recipe.sourceUrl}
