@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Callout } from "@/components/ui/callout";
 import { NumberedList } from "@/components/ui/numbered-list";
+import { QuantityAwareText } from "@/components/ui/quantity-aware-text";
 import { AnimatedSection } from "@/components/ui/animated-section";
 import { DeleteRecipeButton } from "@/components/recipes/delete-recipe-button";
 import { DuplicateRecipeButton } from "@/components/recipes/duplicate-recipe-button";
@@ -271,9 +272,11 @@ export function RecipeView({
                         {i + 1}
                       </span>
                       <span className="min-w-0 flex-1">
-                        {item.displayLine?.trim() ||
-                          item.displayText?.trim() ||
-                          "—"}
+                        <QuantityAwareText>
+                          {item.displayLine?.trim() ||
+                            item.displayText?.trim() ||
+                            "—"}
+                        </QuantityAwareText>
                       </span>
                       <span className="w-full shrink-0 sm:w-auto">
                         {item.ingredient ? (

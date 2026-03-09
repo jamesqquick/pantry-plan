@@ -1,3 +1,5 @@
+import { QuantityAwareText } from "@/components/ui/quantity-aware-text";
+
 function shouldShowMapped(raw: string, mapped?: string | null): boolean {
   if (!mapped?.trim()) return false;
   return raw.trim().toLowerCase() !== mapped.trim().toLowerCase();
@@ -27,7 +29,7 @@ export function IngredientRow({
 
   const content = (
     <p className="text-base text-foreground">
-        {displayText}
+        <QuantityAwareText>{displayText}</QuantityAwareText>
         {showMapped && (
           <span className="text-muted-foreground"> ({mappedIngredientName})</span>
         )}

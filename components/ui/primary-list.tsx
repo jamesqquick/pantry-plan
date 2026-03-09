@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/cn";
+import { QuantityAwareText } from "@/components/ui/quantity-aware-text";
 
 export type PrimaryListItem = {
   id: string;
@@ -36,7 +37,7 @@ export function PrimaryList({
         const content = (
           <>
             <span className="flex items-center gap-2 font-medium">
-              {item.primaryText}
+              <QuantityAwareText>{item.primaryText}</QuantityAwareText>
               {item.badge != null && item.badge !== "" && (
                 <span
                   className="rounded-full bg-accent px-2 py-0.5 text-xs font-normal text-accent-foreground"

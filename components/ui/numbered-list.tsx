@@ -1,3 +1,5 @@
+import { QuantityAwareText } from "@/components/ui/quantity-aware-text";
+
 export function NumberedList({ items }: { items: string[] }) {
   if (items.length === 0) return null;
   return (
@@ -10,7 +12,9 @@ export function NumberedList({ items }: { items: string[] }) {
           >
             {i + 1}
           </span>
-          <span className="min-w-0 flex-1">{item || "—"}</span>
+          <span className="min-w-0 flex-1">
+            <QuantityAwareText>{item || "—"}</QuantityAwareText>
+          </span>
         </li>
       ))}
     </ol>
