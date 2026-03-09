@@ -6,6 +6,7 @@ import { getIngredient } from "@/lib/queries/ingredients";
 import { Button } from "@/components/ui/button";
 import { PageTitle } from "@/components/ui/page-title";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AppIcon, ICON_LABEL_GAP_CLASS } from "@/components/ui/icons";
 import { UNIT_LABELS } from "@/lib/ingredients/units";
 import { DeleteIngredientButton } from "@/components/ingredients/delete-ingredient-button";
 import { IngredientViewSkeleton } from "@/components/ingredients/ingredient-view-skeleton";
@@ -32,6 +33,7 @@ const DISPLAY_UNIT_LABELS: Record<IngredientDisplayUnit, string> = {
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 const valueClass = "text-sm text-foreground";
+const valueEmptyClass = "text-sm text-muted-foreground";
 
 async function IngredientViewData({
   params,
@@ -53,40 +55,53 @@ async function IngredientViewData({
   const gramsPerCup =
     ingredient.gramsPerCup != null ? Number(ingredient.gramsPerCup) : null;
 
+  const costValue =
+    ingredient.estimatedCentsPerBasisUnit != null
+      ? `${ingredient.estimatedCentsPerBasisUnit}¢ per ${COST_BASIS_LABELS[ingredient.costBasisUnit as CostBasisUnit]}`
+      : null;
+  const notesValue = ingredient.notes?.trim() || null;
+
   return (
     <div className="space-y-6">
       <Link
         href="/ingredients"
-        className="inline-block text-sm text-muted-foreground hover:text-foreground"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-input"
       >
-        ← Back to ingredients
+        <AppIcon name="back" size={16} aria-hidden />
+        Back to ingredients
       </Link>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-2">
           <PageTitle>{ingredient.name}</PageTitle>
           <span
-            className="rounded-full bg-accent px-2 py-0.5 text-sm text-accent-foreground"
+            className="rounded-full bg-muted px-2 py-0.5 text-sm text-muted-foreground"
             aria-label={isGlobal ? "Global ingredient" : "User created"}
           >
             {isGlobal ? "Global" : "User created"}
           </span>
         </div>
         {canEdit && (
-          <Button asChild variant="secondary">
-            <Link href={`/ingredients/${id}/edit`}>Edit</Link>
+          <Button asChild variant="secondary" className={ICON_LABEL_GAP_CLASS}>
+            <Link href={`/ingredients/${id}/edit`}>
+              <AppIcon name="edit" size={18} aria-hidden />
+              Edit
+            </Link>
           </Button>
         )}
       </div>
 
       <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Ingredient details</CardTitle>
+        </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+            <div className="border-b border-border pb-3">
               <span className={labelClass}>Name</span>
               <p className={valueClass}>{ingredient.name}</p>
             </div>
             {ingredient.category && (
-              <div>
+              <div className="border-b border-border pb-3">
                 <span className={labelClass}>Category</span>
                 <p className={valueClass}>
                   {ingredient.subcategory
@@ -96,39 +111,45 @@ async function IngredientViewData({
               </div>
             )}
             {ingredient.defaultUnit != null && (
-              <div>
+              <div className="border-b border-border pb-3">
                 <span className={labelClass}>Default unit</span>
                 <p className={valueClass}>
                   {UNIT_LABELS[ingredient.defaultUnit as IngredientUnit]}
                 </p>
               </div>
             )}
-            <div>
+            <div className="border-b border-border pb-3">
               <span className={labelClass}>Cost basis unit</span>
               <p className={valueClass}>
                 {COST_BASIS_LABELS[ingredient.costBasisUnit as CostBasisUnit]}
               </p>
             </div>
-            <div>
+            <div className="border-b border-border pb-3">
               <span className={labelClass}>
                 Estimated cost (cents per basis unit)
               </span>
-              <p className={valueClass}>
-                {ingredient.estimatedCentsPerBasisUnit != null
-                  ? `${ingredient.estimatedCentsPerBasisUnit}¢ per ${COST_BASIS_LABELS[ingredient.costBasisUnit as CostBasisUnit]}`
-                  : "—"}
+              <p
+                className={
+                  costValue ? `${valueClass} font-semibold` : valueEmptyClass
+                }
+              >
+                {costValue ?? "—"}
               </p>
             </div>
             {gramsPerCup != null && (
-              <div>
+              <div className="border-b border-border pb-3">
                 <span className={labelClass}>Grams per cup</span>
                 <p className={valueClass}>{gramsPerCup}</p>
               </div>
             )}
-            <div>
+            <div className="border-b border-border pb-3 sm:col-span-2">
               <span className={labelClass}>Notes</span>
-              <p className={`${valueClass} whitespace-pre-wrap`}>
-                {ingredient.notes || "—"}
+              <p
+                className={`whitespace-pre-wrap ${
+                  notesValue ? valueClass : valueEmptyClass
+                }`}
+              >
+                {notesValue ?? "—"}
               </p>
             </div>
           </div>
@@ -144,7 +165,7 @@ async function IngredientViewData({
           </p>
         </CardHeader>
         <CardContent>
-          <div>
+          <div className="border-b border-border pb-3">
             <span className={labelClass}>Preferred display unit</span>
             <p className={valueClass}>
               {DISPLAY_UNIT_LABELS[ingredient.preferredDisplayUnit as IngredientDisplayUnit]}
@@ -153,7 +174,11 @@ async function IngredientViewData({
         </CardContent>
       </Card>
 
-      {canEdit && <DeleteIngredientButton ingredientId={id} />}
+      {canEdit && (
+        <div className="pt-6 border-t border-border">
+          <DeleteIngredientButton ingredientId={id} />
+        </div>
+      )}
     </div>
   );
 }
