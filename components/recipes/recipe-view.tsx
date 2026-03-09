@@ -168,7 +168,7 @@ export function RecipeView({
         <div>
           <PageTitle>{recipe.title}</PageTitle>
           <div className="space-y-2">
-            {recipe.recipeTags && recipe.recipeTags.length > 0 && (
+            {!cookingView && recipe.recipeTags && recipe.recipeTags.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-2">
                 {recipe.recipeTags.map((rt) => (
                   <span
