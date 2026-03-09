@@ -194,17 +194,19 @@ export function RecipeView({
             )}
           </div>
         </div>
-        <div className="flex shrink-0 flex-nowrap items-center gap-2">
-          <Link
-            href={`/recipes/${recipe.id}/edit`}
-            aria-label="Edit recipe"
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-input border border-input bg-secondary p-2 text-secondary-foreground hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            <AppIcon name="edit" size={18} aria-hidden />
-          </Link>
-          <DuplicateRecipeButton recipeId={recipe.id} />
-          <DeleteRecipeButton recipeId={recipe.id} />
-        </div>
+        {!cookingView && (
+          <div className="flex shrink-0 flex-nowrap items-center gap-2">
+            <Link
+              href={`/recipes/${recipe.id}/edit`}
+              aria-label="Edit recipe"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-input border border-input bg-secondary p-2 text-secondary-foreground hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <AppIcon name="edit" size={18} aria-hidden />
+            </Link>
+            <DuplicateRecipeButton recipeId={recipe.id} />
+            <DeleteRecipeButton recipeId={recipe.id} />
+          </div>
+        )}
       </div>
 
       <AnimatedSection show={showFullSections && metaItems.length > 0}>
