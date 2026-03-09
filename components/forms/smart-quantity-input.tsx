@@ -67,7 +67,7 @@ export function SmartQuantityInput({
     <div className="min-w-0">
       <Input
         type="text"
-        inputMode="decimal"
+        inputMode="text"
         placeholder="1 1/2"
         value={valueText}
         onChange={(e) => onChangeText(e.target.value)}
