@@ -31,9 +31,10 @@ const DISPLAY_UNIT_LABELS: Record<IngredientDisplayUnit, string> = {
   TSP: "Teaspoon",
 };
 
-const labelClass = "mb-1 block text-sm font-medium text-foreground";
-const valueClass = "text-sm text-foreground";
-const valueEmptyClass = "text-sm text-muted-foreground";
+/* Recipe metadata pattern: label smaller/muted, value larger/semibold */
+const labelClass = "mb-1 block text-xs font-medium text-muted-foreground";
+const valueClass = "text-base font-semibold text-foreground";
+const valueEmptyClass = "text-base text-muted-foreground";
 
 async function IngredientViewData({
   params,
@@ -129,9 +130,7 @@ async function IngredientViewData({
                 Estimated cost (cents per basis unit)
               </span>
               <p
-                className={
-                  costValue ? `${valueClass} font-semibold` : valueEmptyClass
-                }
+                className={costValue ? valueClass : valueEmptyClass}
               >
                 {costValue ?? "—"}
               </p>
