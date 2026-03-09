@@ -64,22 +64,22 @@ export function LandingPage() {
             </p>
             <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               <FeatureCard
-                icon={<Link2 className="size-6 text-primary-on-background" />}
+                icon={<Link2 className="size-6 text-primary-foreground" />}
                 title="Import from URL"
                 description="Paste a recipe link and get structured ingredients. Map each line to your catalog so everything stays consistent."
               />
               <FeatureCard
-                icon={<BookOpen className="size-6 text-primary-on-background" />}
+                icon={<BookOpen className="size-6 text-primary-foreground" />}
                 title="Your ingredient catalog"
                 description="One place for ingredients, units, and cost basis. Reuse the same item across every recipe and order."
               />
               <FeatureCard
-                icon={<ShoppingBag className="size-6 text-primary-on-background" />}
+                icon={<ShoppingBag className="size-6 text-primary-foreground" />}
                 title="Orders & grocery lists"
                 description="Add recipes with batch counts and get one merged grocery list. No more copying lines by hand."
               />
               <FeatureCard
-                icon={<Calculator className="size-6 text-primary-on-background" />}
+                icon={<Calculator className="size-6 text-primary-foreground" />}
                 title="Cost estimates"
                 description="See estimated cost per order from your catalog. Great for meal prep, catering, or just knowing what you’ll spend."
               />
@@ -181,7 +181,7 @@ function FeatureCard({
   return (
     <Card className="h-full border-border bg-card">
       <CardHeader>
-        <div className="flex size-10 items-center justify-center rounded-input bg-accent">
+        <div className="flex size-10 items-center justify-center rounded-input bg-primary text-primary-foreground">
           {icon}
         </div>
         <CardTitle className="text-lg">{title}</CardTitle>
