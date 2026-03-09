@@ -25,6 +25,7 @@ import { RecipeListRecipeCard, type RecipeListRecipe } from "./recipe-list-recip
 import { RecipeListTagsDropdown } from "./recipe-list-tags-dropdown";
 
 const SORT_OPTIONS = [
+  { value: "recently-viewed", label: "Recently viewed" },
   { value: "recently-updated", label: "Recently updated" },
   { value: "name-az", label: "Name (A–Z)" },
   { value: "newest-created", label: "Newest created" },
@@ -67,7 +68,7 @@ export function RecipeListWrapper({
 }: RecipeListWrapperProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [sortOption, setSortOption] = useState<SortValue>("recently-updated");
+  const [sortOption, setSortOption] = useState<SortValue>("recently-viewed");
   const [toast, setToast] = useState<{
     message: string;
     variant: "success" | "error";
@@ -199,7 +200,13 @@ export function RecipeListContent({ initialRecipes }: RecipeListContentProps) {
       ? recipes.filter((r) => r.title.toLowerCase().includes(q))
       : [...recipes];
 
-    if (sortOption === "recently-updated") {
+    if (sortOption === "recently-viewed") {
+      list.sort((a, b) => {
+        const aVal = a.lastViewedAt ? new Date(a.lastViewedAt).getTime() : 0;
+        const bVal = b.lastViewedAt ? new Date(b.lastViewedAt).getTime() : 0;
+        return bVal - aVal;
+      });
+    } else if (sortOption === "recently-updated") {
       list.sort(
         (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
       );

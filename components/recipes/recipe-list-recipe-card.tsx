@@ -19,6 +19,7 @@ export type RecipeListRecipe = {
   prepTimeMinutes: number | null;
   cookTimeMinutes: number | null;
   totalTimeMinutes: number | null;
+  lastViewedAt: Date | string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
   tags?: { id: string; name: string }[];

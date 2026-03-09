@@ -67,6 +67,17 @@ export async function getRecipeWithIngredientsForUser(
   });
 }
 
+/** Update recipe lastViewedAt for "recently viewed" sort. Call when user views the recipe page.
+ * Uses raw SQL so updatedAt is not touched—"Recently updated" should reflect edits, not views. */
+export async function recordRecipeView(recipeId: string, userId: string) {
+  const db = getDb();
+  const now = new Date();
+  await db.$executeRaw`
+    UPDATE Recipe SET lastViewedAt = ${now}
+    WHERE id = ${recipeId} AND userId = ${userId}
+  `;
+}
+
 /** Convert Prisma recipe to plain object safe for Client Components (no Decimal). */
 export function serializeRecipeForClient(
   recipe: NonNullable<RecipeWithIngredients>
