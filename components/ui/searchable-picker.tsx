@@ -354,9 +354,10 @@ export function SearchablePicker<T>({
               );
             }
             if (e.key === "Enter") {
-              if (highlightedIndex >= 0) {
+              if (optionCount > 0) {
                 e.preventDefault();
-                selectOption(highlightedIndex);
+                const index = highlightedIndex >= 0 ? highlightedIndex : 0;
+                selectOption(index);
               }
             }
             if (e.key === "Escape") {
