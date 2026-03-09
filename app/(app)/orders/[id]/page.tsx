@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { CostBasisUnit, IngredientUnit } from "@/generated/prisma/client";
 import Link from "next/link";
+import { ContentLink } from "@/components/ui/content-link";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getOrderWithGroceryData } from "@/lib/queries/orders";
@@ -124,12 +125,9 @@ async function OrderDetailPageData({
               {order.orderItems.map((item: OrderItemRow) => (
                 <tr key={item.id}>
                   <td className="border border-border px-3 py-2">
-                    <Link
-                      href={`/recipes/${item.recipeId}`}
-                      className="text-primary-on-background underline-offset-4 hover:underline"
-                    >
+                    <ContentLink href={`/recipes/${item.recipeId}`}>
                       {item.recipe?.title ?? "—"}
-                    </Link>
+                    </ContentLink>
                   </td>
                   <td className="border border-border px-3 py-2">
                     {item.batches}
