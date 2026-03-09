@@ -32,13 +32,23 @@ type EditProps = {
 
 type Props = CreateProps | EditProps;
 
+function defaultOrderName(): string {
+  return new Date().toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 export function OrderForm(props: Props) {
   const router = useRouter();
   const isEdit = props.mode === "edit";
-  const [name, setName] = useState(isEdit ? props.initialName : "");
+  const [name, setName] = useState(
+    isEdit ? props.initialName : defaultOrderName()
+  );
   const [notes, setNotes] = useState(isEdit ? props.initialNotes : "");
   const [items, setItems] = useState<OrderItemRow[]>(
-    isEdit ? props.initialItems : [{ recipeId: props.recipeOptions[0]?.id ?? "", batches: 1 }]
+    isEdit ? props.initialItems : [{ recipeId: "", batches: 1 }]
   );
 
   const [createState, createFormAction] = useActionState(createOrderAction, null);
@@ -49,9 +59,9 @@ export function OrderForm(props: Props) {
   useEffect(() => {
     if (state && state.ok && state.data?.id) {
       if (!isEdit) {
-        setName("");
+        setName(defaultOrderName());
         setNotes("");
-        setItems([{ recipeId: props.recipeOptions[0]?.id ?? "", batches: 1 }]);
+        setItems([{ recipeId: "", batches: 1 }]);
       }
       router.push(`/orders/${state.data.id}`);
       router.refresh();
@@ -76,10 +86,14 @@ export function OrderForm(props: Props) {
       <CardContent className="space-y-4">
         <form action={formAction} className="space-y-4">
           {isEdit && <input type="hidden" name="id" value={props.orderId} />}
-          <input type="hidden" name="items" value={JSON.stringify(items)} />
+          <input
+            type="hidden"
+            name="items"
+            value={JSON.stringify(items.filter((i) => i.recipeId))}
+          />
           <div>
             <label htmlFor="order-name" className="mb-1 block text-sm font-medium text-foreground">
-              Name (optional)
+              Name *
             </label>
             <Input
               id="order-name"
@@ -87,6 +101,7 @@ export function OrderForm(props: Props) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Thanksgiving 2025"
+              required
             />
           </div>
           <div>
@@ -116,6 +131,7 @@ export function OrderForm(props: Props) {
           <div className="flex gap-2">
             <FormSubmitButton
               pendingLabel={isEdit ? "Saving…" : "Creating…"}
+              disabled={items.filter((i) => i.recipeId).length === 0}
             >
               {isEdit ? "Save order" : "Create order"}
             </FormSubmitButton>

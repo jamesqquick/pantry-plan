@@ -93,8 +93,20 @@ export function SearchablePicker<T>({
     }
     const trimmed = displayValue.trim();
     if (trimmed === "") {
-      setSearchResults([]);
-      setSearchLoadingInternal(false);
+      lastQueryRef.current = "";
+      setSearchLoadingInternal(true);
+      onSearch("")
+        .then((data) => {
+          if (lastQueryRef.current === "") {
+            setSearchResults(Array.isArray(data) ? data : []);
+          }
+        })
+        .catch(() => {
+          if (lastQueryRef.current === "") setSearchResults([]);
+        })
+        .finally(() => {
+          if (lastQueryRef.current === "") setSearchLoadingInternal(false);
+        });
       return;
     }
     debounceRef.current = setTimeout(() => {
@@ -202,7 +214,7 @@ export function SearchablePicker<T>({
     const item = resolvedOptions[index];
     if (item) {
       onSelect(item);
-      onDisplayValueChange("");
+      onDisplayValueChange(getItemLabel(item));
       setOpen(false);
     }
   }
@@ -342,9 +354,10 @@ export function SearchablePicker<T>({
               );
             }
             if (e.key === "Enter") {
-              if (highlightedIndex >= 0) {
+              if (optionCount > 0) {
                 e.preventDefault();
-                selectOption(highlightedIndex);
+                const index = highlightedIndex >= 0 ? highlightedIndex : 0;
+                selectOption(index);
               }
             }
             if (e.key === "Escape") {
