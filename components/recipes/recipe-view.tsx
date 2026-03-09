@@ -134,7 +134,9 @@ export function RecipeView({
   const showFullSections = !cookingView;
 
   return (
-    <article className="space-y-6">
+    <article
+      className={cookingView ? "space-y-3" : "space-y-6"}
+    >
       {recipe.imageUrl && (
         <AnimatedSection show={showFullSections}>
           <div className="aspect-16/10 w-full max-h-[400px] overflow-hidden rounded-input bg-accent sm:mx-auto sm:max-w-2xl">
@@ -171,7 +173,11 @@ export function RecipeView({
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <PageTitle>{recipe.title}</PageTitle>
+          <PageTitle
+            className={cookingView ? "mb-2" : undefined}
+          >
+            {recipe.title}
+          </PageTitle>
           <div className="space-y-2">
             {!cookingView && recipe.recipeTags && recipe.recipeTags.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-2">
