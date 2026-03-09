@@ -17,8 +17,8 @@ export function LandingHeader() {
           )}
           aria-label="Pantry Plan home"
         >
-          <span className="text-primary">Pantry</span>
-          <span className="text-primary">Plan</span>
+          <span className="text-primary-on-background">Pantry</span>
+          <span className="text-primary-on-background">Plan</span>
         </Link>
 
         <nav

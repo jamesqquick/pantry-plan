@@ -24,6 +24,7 @@ All theme tokens are defined in `app/globals.css` as HSL CSS variables and expos
 | **Cards** | `bg-card text-card-foreground border border-border` |
 | **Panels (totals / summary blocks)** | `bg-panel text-panel-foreground border border-border` |
 | **Primary buttons** | `bg-primary text-primary-foreground hover:bg-primary/90` |
+| **Links / primary text on background** | `text-primary-on-background hover:underline` |
 | **Secondary buttons** | `bg-secondary text-secondary-foreground hover:bg-secondary/80` |
 | **Outline buttons** | `border border-border bg-background hover:bg-muted` |
 | **Inputs** | `border border-input bg-background placeholder:text-muted-foreground` |
@@ -89,7 +90,7 @@ All theme tokens are defined in `app/globals.css` as HSL CSS variables and expos
 ## Available semantic colors
 
 - **Core:** `background`, `foreground`, `card`, `card-foreground`, `popover`, `popover-foreground`
-- **Actions:** `primary`, `primary-foreground`, `secondary`, `secondary-foreground`, `accent`, `accent-foreground`, `destructive`, `destructive-foreground`
+- **Actions:** `primary`, `primary-foreground`, `primary-on-background`, `secondary`, `secondary-foreground`, `accent`, `accent-foreground`, `destructive`, `destructive-foreground`
 - **Surfaces:** `muted`, `muted-foreground`, `border`, `input`, `ring`
 - **Extended:** `panel`, `panel-foreground`, `divider`, `success`, `success-foreground`, `warning`, `warning-foreground`, `info`, `info-foreground`
 
@@ -100,3 +101,5 @@ Use them as: `bg-<token>`, `text-<token>`, `border-<token>`, and with opacity: `
 ## Dark mode
 
 Dark mode is driven by the **`.dark`** class (shadcn pattern). Add `class="dark"` to the root `<html>` to switch to dark tokens. The same utilities apply; variable values switch automatically (e.g. `bg-background` becomes the dark background when `.dark` is present).
+
+**Primary consistency:** `--primary` is the same in light and dark (22 100% 25%) so buttons, focus rings, and charts look consistent. Use **`text-primary-on-background`** (and `bg-primary-on-background` where needed) for primary-colored text or icons that sit on the page or card background: in light mode it matches `primary`; in dark mode it uses a lighter shade (22 100% 55%) so links and labels meet WCAG contrast on the dark background.

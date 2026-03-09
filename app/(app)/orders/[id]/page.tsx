@@ -126,7 +126,7 @@ async function OrderDetailPageData({
                   <td className="border border-border px-3 py-2">
                     <Link
                       href={`/recipes/${item.recipeId}`}
-                      className="text-primary underline-offset-4 hover:underline"
+                      className="text-primary-on-background underline-offset-4 hover:underline"
                     >
                       {item.recipe?.title ?? "—"}
                     </Link>

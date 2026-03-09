@@ -183,7 +183,7 @@ export function GroceryListDisplay({
                                 {s.recipeId ? (
                                   <Link
                                     href={`/recipes/${s.recipeId}`}
-                                    className="text-primary underline-offset-4 hover:underline"
+                                    className="text-primary-on-background underline-offset-4 hover:underline"
                                   >
                                     {label}
                                   </Link>
