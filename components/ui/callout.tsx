@@ -35,12 +35,14 @@ type CalloutProps = {
   variant?: CalloutVariant;
   className?: string;
   children: React.ReactNode;
+  "aria-label"?: string;
 };
 
 export function Callout({
   variant = "info",
   className,
   children,
+  "aria-label": ariaLabel,
 }: CalloutProps) {
   const Icon = variantIcons[variant];
   return (
@@ -51,6 +53,7 @@ export function Callout({
         className
       )}
       role="status"
+      aria-label={ariaLabel}
     >
       <Icon
         className={cn("size-5 shrink-0 mt-0.5", variantIconStyles[variant])}
