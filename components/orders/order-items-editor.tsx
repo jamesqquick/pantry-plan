@@ -27,11 +27,7 @@ export function OrderItemsEditor({
   const [searchQueries, setSearchQueries] = useState<(string | undefined)[]>([]);
 
   const addRow = () => {
-    const first = recipeOptions[0];
-    onChange([
-      ...items,
-      { recipeId: first?.id ?? "", batches: 1 },
-    ]);
+    onChange([...items, { recipeId: "", batches: 1 }]);
   };
 
   const removeRow = (index: number) => {
@@ -59,7 +55,7 @@ export function OrderItemsEditor({
     [items, recipeOptions, searchQueries]
   );
 
-  const setDisplayValue = useCallback((index: number, value: string) => {
+  const setDisplayValue = useCallback((index: number, value: string | undefined) => {
     setSearchQueries((prev) => {
       const next = [...prev];
       while (next.length <= index) next.push(undefined);
@@ -67,6 +63,18 @@ export function OrderItemsEditor({
       return next;
     });
   }, []);
+
+  /** Recipe IDs already used in other rows (so we don't show them in this row's picker). */
+  const getUsedRecipeIdsForRow = useCallback(
+    (currentIndex: number) => {
+      const used = new Set<string>();
+      items.forEach((row, i) => {
+        if (i !== currentIndex && row.recipeId) used.add(row.recipeId);
+      });
+      return used;
+    },
+    [items]
+  );
 
   const itemsError = fieldErrors?.items?.[0];
 
@@ -95,12 +103,21 @@ export function OrderItemsEditor({
                   getItemId={(r) => r.id}
                   getItemLabel={(r) => r.title}
                   onSelect={(r) => {
-                    updateRow(index, { recipeId: r.id });
-                    setDisplayValue(index, "");
+                    const used = getUsedRecipeIdsForRow(index);
+                    if (used.has(r.id)) return;
+                    const next = [...items];
+                    next[index] = { ...next[index], recipeId: r.id };
+                    onChange([...next, { recipeId: "", batches: 1 }]);
                   }}
-                  onSearch={(query) =>
-                    Promise.resolve(fuzzyFilterRecipes(recipeOptions, query))
-                  }
+                  onSearch={(query) => {
+                    const used = getUsedRecipeIdsForRow(index);
+                    const available = recipeOptions.filter(
+                      (opt) => !used.has(opt.id)
+                    );
+                    return Promise.resolve(
+                      fuzzyFilterRecipes(available, query)
+                    );
+                  }}
                   displayValue={getDisplayValue(index)}
                   onDisplayValueChange={(v) => setDisplayValue(index, v)}
                   placeholder="Search recipes"

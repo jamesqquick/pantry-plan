@@ -214,7 +214,7 @@ export function SearchablePicker<T>({
     const item = resolvedOptions[index];
     if (item) {
       onSelect(item);
-      onDisplayValueChange("");
+      onDisplayValueChange(getItemLabel(item));
       setOpen(false);
     }
   }

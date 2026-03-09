@@ -10,14 +10,14 @@ export const orderItemSchema = z.object({
 });
 
 export const orderCreateSchema = z.object({
-  name: z.string().optional(),
+  name: z.string().min(1, "Name is required").transform((s) => s.trim()),
   notes: z.string().optional(),
   items: z.array(orderItemSchema).min(1, "Add at least one recipe"),
 });
 
 export const orderUpdateSchema = z.object({
   id: z.string().min(1, "Order id is required"),
-  name: z.string().optional(),
+  name: z.string().min(1, "Name is required").transform((s) => s.trim()),
   notes: z.string().optional(),
   items: z.array(orderItemSchema).min(1, "Add at least one recipe"),
 });
