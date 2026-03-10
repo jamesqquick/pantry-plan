@@ -7,6 +7,7 @@ import {
   recordRecipeView,
   serializeRecipeForClient,
 } from "@/lib/queries/recipes";
+import { getWeekStartString } from "@/lib/meal-plan/week-dates";
 import { RecipePageClient } from "@/components/recipes/recipe-page-client";
 import { RecipeViewSkeleton } from "@/components/recipes/recipe-view-skeleton";
 
@@ -31,10 +32,12 @@ async function RecipePageData({
   });
   const initialCookingView = cooking === "1";
   const recipeSerialized = serializeRecipeForClient(recipe);
+  const weekStart = getWeekStartString(new Date());
   return (
     <RecipePageClient
       recipe={recipeSerialized}
       initialCookingView={initialCookingView}
+      weekStart={weekStart}
     />
   );
 }

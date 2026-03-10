@@ -9,6 +9,7 @@ const navItems = [
   { href: "/recipes", label: "Recipes" },
   { href: "/ingredients", label: "Ingredients" },
   { href: "/orders", label: "Orders" },
+  { href: "/meal-plan", label: "Meal plan" },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {
@@ -17,6 +18,9 @@ function isActive(pathname: string, href: string): boolean {
   }
   if (href === "/ingredients") {
     return pathname === "/ingredients" || pathname.startsWith("/ingredients/");
+  }
+  if (href === "/meal-plan") {
+    return pathname === "/meal-plan" || pathname.startsWith("/meal-plan/");
   }
   if (href === "/orders") {
     return pathname === "/orders" || pathname.startsWith("/orders/");
@@ -37,11 +41,7 @@ function NavItem({
   onNavigate?: () => void;
 }) {
   return (
-    <Link
-      href={href}
-      className="group shrink-0 text-base"
-      onClick={onNavigate}
-    >
+    <Link href={href} className="group shrink-0 text-base" onClick={onNavigate}>
       <span className="relative inline-block whitespace-nowrap">
         <span className="invisible select-none font-bold" aria-hidden>
           {label}
@@ -51,7 +51,7 @@ function NavItem({
             "absolute inset-0 text-left transition-colors duration-150 ease-out",
             active
               ? "font-bold text-header-logo"
-              : "text-muted-foreground group-hover:font-bold group-hover:text-header-logo"
+              : "text-muted-foreground group-hover:font-bold group-hover:text-header-logo",
           )}
         >
           {label}
@@ -66,7 +66,13 @@ function AppNavStatic({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <>
       {navItems.map(({ href, label }) => (
-        <NavItem key={href} href={href} label={label} active={false} onNavigate={onNavigate} />
+        <NavItem
+          key={href}
+          href={href}
+          label={label}
+          active={false}
+          onNavigate={onNavigate}
+        />
       ))}
     </>
   );

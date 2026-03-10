@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
@@ -34,9 +35,18 @@ export function ConfirmDialog({
   loadingLabel = "Loading…",
   className,
 }: ConfirmDialogProps) {
-  if (!open) return null;
-
   const canClose = !loading && closeOnOverlayClick;
+
+  useEffect(() => {
+    if (!open || !canClose) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onOpenChange(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, canClose, onOpenChange]);
+
+  if (!open) return null;
 
   return (
     <div

@@ -239,6 +239,20 @@ semantic elements
 
 Do not introduce new styling systems.
 
+9a. Radix UI and components/ui
+
+The project uses the radix-ui package and styled wrappers in components/ui.
+
+Agents must:
+
+Prefer Radix-based components for interactive UI (dialogs, selects, tabs, dropdowns, etc.) for accessibility and consistency.
+
+Prefer existing components in components/ui (e.g. Select, Tabs, Button, ConfirmDialog) over building custom solutions or adding new dependencies.
+
+When adding new interactive patterns, use radix-ui primitives or add a thin styled wrapper in components/ui rather than building from scratch.
+
+Do not introduce alternative component libraries for patterns that Radix or existing components can cover.
+
 10. Caching and Revalidation
 
 Agents must explicitly revalidate when data changes:
