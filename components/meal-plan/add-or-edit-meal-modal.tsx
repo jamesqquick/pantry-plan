@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -133,11 +133,20 @@ export function AddOrEditMealModal({
   const fieldErrors =
     formState && !formState.ok ? (formState.error?.fieldErrors ?? {}) : {};
 
-  const shouldCloseOnSuccess =
-    deleteState?.ok || (success && !!formState?.data?.id);
+  // Close on any successful result — don't require data.id (useActionState can
+  // lag or return shape can differ); delete flow still uses deleteState?.ok.
+  const shouldCloseOnSuccess = Boolean(deleteState?.ok || success);
+  const successHandledRef = useRef(false);
 
   useEffect(() => {
-    if (!shouldCloseOnSuccess) return;
+    if (!shouldCloseOnSuccess) {
+      successHandledRef.current = false;
+      return;
+    }
+    if (successHandledRef.current) return;
+    successHandledRef.current = true;
+    // onSuccess first: parent sets skip ref + router.replace before we close, so the
+    // auto-open effect doesn't reopen while ?addRecipe= is still present.
     onSuccess();
     onClose();
   }, [shouldCloseOnSuccess, onSuccess, onClose]);
