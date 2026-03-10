@@ -41,10 +41,14 @@ const DialogContent = React.forwardRef<
 ));
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
+/**
+ * Radix DialogTitle sets id from context (aria-labelledby). Passing id in props
+ * overrides it and breaks TitleWarning's getElementById(context.titleId) — omit id.
+ */
 const DialogTitle = React.forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
->(({ className, ...props }, ref) => (
+>(({ className, id: _omitId, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
     className={cn("text-lg font-semibold text-foreground", className)}
@@ -53,10 +57,11 @@ const DialogTitle = React.forwardRef<
 ));
 DialogTitle.displayName = DialogPrimitive.Title.displayName;
 
+/** Same as Title: Radix assigns id from context — do not override with id prop. */
 const DialogDescription = React.forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
->(({ className, ...props }, ref) => (
+>(({ className, id: _omitId, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
     className={cn("text-sm text-muted-foreground", className)}
@@ -75,7 +80,8 @@ const DialogFullscreenContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed inset-0 z-50 flex flex-col bg-background sm:hidden",
+        "mobile-menu-slide-panel fixed inset-0 z-50 flex flex-col bg-background sm:hidden",
+        "will-change-transform",
         className,
       )}
       {...props}

@@ -58,7 +58,7 @@ export function ConfirmDialog({
       <DialogContent
         role="alertdialog"
         aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
+        aria-describedby={undefined}
         className={cn("max-w-sm", className)}
         onPointerDownOutside={(e) => {
           if (!canClose) e.preventDefault();
@@ -70,7 +70,7 @@ export function ConfirmDialog({
           if (!canClose) e.preventDefault();
         }}
       >
-        <DialogTitle id="confirm-dialog-title">{title}</DialogTitle>
+        <DialogTitle>{title}</DialogTitle>
         {description != null && (
           <div className="text-sm text-muted-foreground">{description}</div>
         )}

@@ -99,8 +99,8 @@ export function MealPlanDayCard({
       onDrop={handleDrop}
     >
       <header className="mb-2 text-center">
-        <p className="text-sm font-medium text-foreground">{dayAbbr}</p>
-        <p className="text-xs text-muted-foreground">{dayNum}</p>
+        <p className="text-base font-bold text-foreground">{dayAbbr}</p>
+        <p className="text-sm text-muted-foreground">{dayNum}</p>
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col gap-2">

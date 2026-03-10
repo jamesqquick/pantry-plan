@@ -11,6 +11,7 @@ import { ICON_BUTTON_CLASS } from "@/components/ui/icons";
 import {
   Dialog,
   DialogFullscreenContent,
+  DialogTitle,
 } from "@/components/ui/dialog";
 
 const lilitaOne = Lilita_One({ weight: "400", subsets: ["latin"] });
@@ -73,16 +74,16 @@ export function AppHeader({ userEmail }: AppHeaderProps) {
       >
         <DialogFullscreenContent
           id="mobile-nav-overlay"
-          aria-label="Navigation menu"
+          aria-describedby={undefined}
           onCloseAutoFocus={(e) => {
             e.preventDefault();
             hamburgerRef.current?.focus();
           }}
         >
           <div className="flex min-h-14 items-center justify-between px-4 py-4">
-            <span className="text-lg font-semibold text-foreground">
+            <DialogTitle className="text-lg font-semibold text-foreground">
               Menu
-            </span>
+            </DialogTitle>
             <button
               type="button"
               className={cn(ICON_BUTTON_CLASS, "h-10 w-10 cursor-pointer")}
