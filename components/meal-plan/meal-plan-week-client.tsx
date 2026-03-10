@@ -119,13 +119,26 @@ export function MealPlanWeekClient({
   const [modalSlot, setModalSlot] = useState("DINNER");
   const [modalInitialMeal, setModalInitialMeal] =
     useState<PlannedMealItem | null>(null);
+  /** Bumped each time the modal opens so AddOrEditMealModal remounts with fresh useActionState. */
+  const [modalInstanceId, setModalInstanceId] = useState(0);
+  /**
+   * After a successful add from ?addRecipe=, we close the modal before searchParams
+   * update. The auto-open effect would immediately reopen while addRecipe is still
+   * in the URL — set this ref so we skip auto-open until the param is gone.
+   */
+  const skipAddRecipeAutoOpenRef = useRef(false);
 
   useEffect(() => {
+    if (!initialAddRecipeId) {
+      skipAddRecipeAutoOpenRef.current = false;
+    }
     if (initialAddRecipeId && weekDates.length > 0 && !modalOpen) {
+      if (skipAddRecipeAutoOpenRef.current) return;
       setModalMode("add");
       setModalDate(weekDates[0]!);
       setModalSlot("DINNER");
       setModalInitialMeal(null);
+      setModalInstanceId((n) => n + 1);
       setModalOpen(true);
     }
   }, [initialAddRecipeId, weekDates, modalOpen]);
@@ -135,6 +148,7 @@ export function MealPlanWeekClient({
     setModalDate(date);
     setModalSlot(mealSlot);
     setModalInitialMeal(null);
+    setModalInstanceId((n) => n + 1);
     setModalOpen(true);
   }, []);
 
@@ -143,12 +157,20 @@ export function MealPlanWeekClient({
     setModalDate(meal.date);
     setModalSlot(meal.mealSlot);
     setModalInitialMeal(meal);
+    setModalInstanceId((n) => n + 1);
     setModalOpen(true);
   }, []);
 
   const handleModalSuccess = useCallback(() => {
-    refresh();
-  }, [refresh]);
+    // Must run before onClose: once modalOpen is false, auto-open effect runs while
+    // addRecipe may still be in URL — ref prevents reopen until replace updates shell.
+    if (initialAddRecipeId) {
+      skipAddRecipeAutoOpenRef.current = true;
+      router.replace(`/meal-plan/${weekStart}`);
+    }
+    // Defer refresh until after close so recipeOptions refetch doesn't reset form in-place.
+    queueMicrotask(() => refresh());
+  }, [refresh, initialAddRecipeId, router, weekStart]);
 
   const [draggingMeal, setDraggingMeal] = useState<{
     id: string;
@@ -340,7 +362,7 @@ export function MealPlanWeekClient({
       )}
 
       <AddOrEditMealModal
-        key={modalOpen ? `add-edit-${modalDate}-${modalSlot}` : "add-edit-closed"}
+        key={modalOpen ? `add-edit-${modalInstanceId}` : "add-edit-closed"}
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         mode={modalMode}
