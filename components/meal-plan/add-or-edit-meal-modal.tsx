@@ -151,7 +151,7 @@ export function AddOrEditMealModal({
     >
       <DialogContent
         className="max-w-md"
-        aria-labelledby="meal-modal-title"
+        aria-describedby={undefined}
         onPointerDownOutside={(e) => {
           if (anyPending) e.preventDefault();
         }}
@@ -159,7 +159,7 @@ export function AddOrEditMealModal({
           if (anyPending) e.preventDefault();
         }}
       >
-        <DialogTitle id="meal-modal-title">
+        <DialogTitle>
           {mode === "add" ? "Add meal" : "Edit meal"}
         </DialogTitle>
         <form action={formAction} className="mt-4 space-y-4">
