@@ -88,7 +88,15 @@ export function ProfileForm({ initialName, email }: ProfileFormProps) {
       </CardContent>
     </Card>
 
-      {toast && <Toast message={toast.message} variant={toast.variant} />}
+      {toast && (
+        <Toast
+          message={toast.message}
+          variant={toast.variant}
+          onOpenChange={(open) => {
+            if (!open) setToast(null);
+          }}
+        />
+      )}
     </>
   );
 }

@@ -353,7 +353,13 @@ export function MealPlanWeekClient({
         onSuccess={handleModalSuccess}
       />
       {moveError && (
-        <Toast message={moveError} variant="error" />
+        <Toast
+          message={moveError}
+          variant="error"
+          onOpenChange={(open) => {
+            if (!open) setMoveError(null);
+          }}
+        />
       )}
     </>
   );

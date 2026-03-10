@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { AppHeader } from "@/components/app/app-header";
+import { AppShellWithToaster } from "@/components/app/app-shell-with-toaster";
 
 async function AppLayoutContent({
   children,
@@ -9,10 +10,12 @@ async function AppLayoutContent({
 }) {
   const session = await auth();
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader userEmail={session?.user?.email ?? ""} />
-      <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
-    </div>
+    <AppShellWithToaster>
+      <div className="min-h-screen bg-background">
+        <AppHeader userEmail={session?.user?.email ?? ""} />
+        <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+      </div>
+    </AppShellWithToaster>
   );
 }
 
@@ -22,10 +25,12 @@ function AppLayoutFallback({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader userEmail="" />
-      <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
-    </div>
+    <AppShellWithToaster>
+      <div className="min-h-screen bg-background">
+        <AppHeader userEmail="" />
+        <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+      </div>
+    </AppShellWithToaster>
   );
 }
 

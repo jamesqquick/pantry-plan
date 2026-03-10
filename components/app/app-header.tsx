@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { Lilita_One } from "next/font/google";
@@ -8,6 +8,10 @@ import { cn } from "@/lib/cn";
 import { AppNav } from "@/components/app/app-nav";
 import { UserMenu } from "@/components/app/user-menu";
 import { ICON_BUTTON_CLASS } from "@/components/ui/icons";
+import {
+  Dialog,
+  DialogFullscreenContent,
+} from "@/components/ui/dialog";
 
 const lilitaOne = Lilita_One({ weight: "400", subsets: ["latin"] });
 
@@ -17,53 +21,7 @@ interface AppHeaderProps {
 
 export function AppHeader({ userEmail }: AppHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [closing, setClosing] = useState(false);
-  const [entered, setEntered] = useState(false);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
-
-  const showOverlay = menuOpen || closing;
-
-  useEffect(() => {
-    if (!showOverlay) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [showOverlay]);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    setClosing(false);
-    setEntered(false);
-    const id = requestAnimationFrame(() => {
-      requestAnimationFrame(() => setEntered(true));
-    });
-    return () => cancelAnimationFrame(id);
-  }, [menuOpen]);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    function handleEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") startClose();
-    }
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [menuOpen]);
-
-  function startClose() {
-    setClosing(true);
-  }
-
-  function handleOverlayTransitionEnd(e: React.TransitionEvent) {
-    if (e.target !== e.currentTarget) return;
-    if (closing) {
-      setMenuOpen(false);
-      setClosing(false);
-      setEntered(false);
-      hamburgerRef.current?.focus();
-    }
-  }
 
   return (
     <header className="bg-transparent">
@@ -99,26 +57,28 @@ export function AppHeader({ userEmail }: AppHeaderProps) {
           )}
           aria-label="Open menu"
           aria-expanded={menuOpen}
-          aria-controls="mobile-nav-overlay"
+          aria-haspopup="dialog"
           onClick={() => setMenuOpen(true)}
         >
           <Menu size={24} aria-hidden />
         </button>
       </div>
 
-      {showOverlay && (
-      <div
-        id="mobile-nav-overlay"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Navigation menu"
-        className={cn(
-          "fixed inset-0 z-50 flex flex-col bg-background transition-transform duration-300 ease-out sm:hidden",
-          entered && !closing ? "translate-x-0" : "translate-x-full"
-        )}
-        onTransitionEnd={handleOverlayTransitionEnd}
+      <Dialog
+        open={menuOpen}
+        onOpenChange={(open) => {
+          setMenuOpen(open);
+          if (!open) hamburgerRef.current?.focus();
+        }}
       >
-        <div className="flex flex-1 flex-col">
+        <DialogFullscreenContent
+          id="mobile-nav-overlay"
+          aria-label="Navigation menu"
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            hamburgerRef.current?.focus();
+          }}
+        >
           <div className="flex min-h-14 items-center justify-between px-4 py-4">
             <span className="text-lg font-semibold text-foreground">
               Menu
@@ -127,7 +87,7 @@ export function AppHeader({ userEmail }: AppHeaderProps) {
               type="button"
               className={cn(ICON_BUTTON_CLASS, "h-10 w-10 cursor-pointer")}
               aria-label="Close menu"
-              onClick={startClose}
+              onClick={() => setMenuOpen(false)}
             >
               <X size={24} aria-hidden />
             </button>
@@ -137,15 +97,14 @@ export function AppHeader({ userEmail }: AppHeaderProps) {
             aria-label="Main"
           >
             <div className="flex flex-col items-center gap-6">
-              <AppNav onNavigate={startClose} />
+              <AppNav onNavigate={() => setMenuOpen(false)} />
             </div>
             <div className="mt-4">
               <UserMenu email={userEmail} />
             </div>
           </nav>
-        </div>
-      </div>
-      )}
+        </DialogFullscreenContent>
+      </Dialog>
     </header>
   );
 }
