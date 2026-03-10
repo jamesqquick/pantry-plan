@@ -20,6 +20,11 @@ import {
   deletePlannedMealAction,
 } from "@/app/actions/meal-plan.actions";
 import type { PlannedMealItem } from "./planned-meal-slot";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const MEAL_SLOTS = [
   { value: "BREAKFAST", label: "Breakfast" },
@@ -137,35 +142,26 @@ export function AddOrEditMealModal({
     onClose();
   }, [shouldCloseOnSuccess, onSuccess, onClose]);
 
-  useEffect(() => {
-    if (!open) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="meal-modal-title"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
+      }}
     >
-      <div
-        className="w-full max-w-md rounded-input border border-border bg-card p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
+      <DialogContent
+        className="max-w-md"
+        aria-labelledby="meal-modal-title"
+        onPointerDownOutside={(e) => {
+          if (anyPending) e.preventDefault();
+        }}
+        onInteractOutside={(e) => {
+          if (anyPending) e.preventDefault();
+        }}
       >
-        <h2
-          id="meal-modal-title"
-          className="text-lg font-semibold text-foreground"
-        >
+        <DialogTitle id="meal-modal-title">
           {mode === "add" ? "Add meal" : "Edit meal"}
-        </h2>
+        </DialogTitle>
         <form action={formAction} className="mt-4 space-y-4">
           {mode === "edit" && initialMeal && (
             <input type="hidden" name="id" value={initialMeal.id} />
@@ -281,7 +277,7 @@ export function AddOrEditMealModal({
             )}
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

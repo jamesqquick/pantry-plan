@@ -107,7 +107,15 @@ export function ResetPasswordForm() {
         </form>
       </CardContent>
     </Card>
-    {toast && <Toast message={toast.message} variant={toast.variant} />}
+    {toast && (
+      <Toast
+        message={toast.message}
+        variant={toast.variant}
+        onOpenChange={(open) => {
+          if (!open) setToast(null);
+        }}
+      />
+    )}
     </>
   );
 }

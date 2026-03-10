@@ -830,6 +830,7 @@ export function useImportWizard({
     handleMethodChange,
     mappingSectionRef,
     toast,
+    clearToast: () => setToast(null),
     urlSectionProps,
     imageSectionProps,
     manualSectionProps,
