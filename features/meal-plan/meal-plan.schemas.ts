@@ -8,7 +8,7 @@ export const dateStringSchema = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD")
   .refine((s) => !Number.isNaN(Date.parse(s)), "Invalid date");
 
-/** Week start (Monday) YYYY-MM-DD */
+/** Week start (Sunday) YYYY-MM-DD */
 export const weekStartSchema = dateStringSchema;
 
 export const plannedMealIdSchema = z.object({
@@ -21,15 +21,16 @@ export const upsertPlannedMealSchema = z
     mealSlot: mealSlotSchema,
     recipeId: z.string().min(1).optional(),
     customLabel: z.string().min(1).max(120).optional(),
-    servings: z.coerce.number().int().min(1).optional(),
+    servings: z.preprocess(
+      (v) => (v === "" || v === null ? undefined : v),
+      z.coerce.number().int().min(1).optional(),
+    ),
   })
   .refine(
-    (data) => (data.recipeId != null) !== (data.customLabel != null && data.customLabel !== ""),
-    { message: "Provide either recipeId or customLabel, not both or neither." }
-  )
-  .refine(
-    (data) => data.recipeId == null || (data.servings != null && data.servings >= 1),
-    { message: "Servings required when adding a recipe." }
+    (data) =>
+      (data.recipeId != null) !==
+      (data.customLabel != null && data.customLabel !== ""),
+    { message: "Provide either recipeId or customLabel, not both or neither." },
   );
 
 export const updatePlannedMealSchema = z.object({
@@ -38,7 +39,10 @@ export const updatePlannedMealSchema = z.object({
   mealSlot: mealSlotSchema.optional(),
   recipeId: z.string().min(1).nullable().optional(),
   customLabel: z.string().min(1).max(120).nullable().optional(),
-  servings: z.coerce.number().int().min(1).nullable().optional(),
+  servings: z.preprocess(
+    (v) => (v === "" || v === null ? undefined : v),
+    z.coerce.number().int().min(1).nullable().optional(),
+  ),
 });
 
 export const movePlannedMealSchema = z.object({

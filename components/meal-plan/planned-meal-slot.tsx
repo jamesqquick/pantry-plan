@@ -34,7 +34,7 @@ export function PlannedMealSlot({
   date: string;
   mealSlot: string;
   meal: PlannedMealItem | null;
-  onAdd: () => void;
+  onAdd?: () => void;
   onEdit: () => void;
   onRemove: () => void;
   compact?: boolean;
@@ -53,18 +53,30 @@ export function PlannedMealSlot({
         <span className="text-xs font-medium text-muted-foreground">{slotLabel}</span>
       )}
       {isEmpty ? (
-        <button
-          type="button"
-          onClick={onAdd}
-          className={cn(
-            "mt-1 flex flex-1 items-center justify-center gap-1 rounded-input border border-dashed border-muted-foreground/40 bg-muted/30 text-muted-foreground hover:border-muted-foreground/60 hover:bg-muted/50 hover:text-foreground",
-            compact ? "min-h-[2.5rem] text-xs" : "min-h-[3.5rem] text-sm"
-          )}
-          aria-label={`Add meal for ${slotLabel}`}
-        >
-          <AppIcon name="add" size={compact ? 14 : 16} aria-hidden />
-          Add
-        </button>
+        onAdd ? (
+          <button
+            type="button"
+            onClick={onAdd}
+            className={cn(
+              "mt-1 flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-input border border-dashed border-muted-foreground/40 bg-muted/30 text-muted-foreground hover:border-muted-foreground/60 hover:bg-muted/50 hover:text-foreground",
+              compact ? "min-h-[2.5rem] text-xs" : "min-h-[3.5rem] text-sm"
+            )}
+            aria-label={`Add meal for ${slotLabel}`}
+          >
+            <AppIcon name="add" size={compact ? 14 : 16} aria-hidden />
+            Add
+          </button>
+        ) : (
+          <div
+            className={cn(
+              "mt-1 flex flex-1 items-center justify-center rounded-input border border-dashed border-muted-foreground/30 bg-muted/10 text-muted-foreground",
+              compact ? "min-h-[2.5rem] text-xs" : "min-h-[3.5rem] text-sm"
+            )}
+            aria-hidden
+          >
+            —
+          </div>
+        )
       ) : (
         <div className="mt-1 flex flex-1 flex-col gap-1">
           <div className="flex items-start justify-between gap-1">
@@ -80,11 +92,6 @@ export function PlannedMealSlot({
                 <span className="line-clamp-2 text-sm font-medium text-foreground">
                   {meal.customLabel ?? "—"}
                 </span>
-              )}
-              {meal.servings != null && meal.servings > 0 && (
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {meal.servings} serving{meal.servings !== 1 ? "s" : ""}
-                </p>
               )}
             </div>
             <div className="flex shrink-0 gap-0.5">

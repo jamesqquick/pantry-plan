@@ -83,8 +83,8 @@ export function GroceryActions({
   }, [title, text, empty]);
 
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-start gap-x-2 gap-y-1">
+      <span className="relative inline-flex">
         <Button
           type="button"
           variant="secondary"
@@ -96,7 +96,18 @@ export function GroceryActions({
           <AppIcon name="duplicate" size={18} aria-hidden />
           Copy
         </Button>
-        {shareAvailable && (
+        {copyConfirm && (
+          <p
+            className="absolute left-0 top-full z-10 mt-1 whitespace-nowrap rounded-input border border-border bg-card px-2 py-1 text-sm text-success shadow-md"
+            aria-live="polite"
+            role="status"
+          >
+            Copied to clipboard
+          </p>
+        )}
+      </span>
+      {shareAvailable && (
+        <span className="relative inline-flex">
           <Button
             type="button"
             variant="secondary"
@@ -108,25 +119,16 @@ export function GroceryActions({
             <AppIcon name="share" size={18} aria-hidden />
             Share
           </Button>
-        )}
-      </div>
-      {copyConfirm && (
-        <p
-          className="text-sm text-success"
-          aria-live="polite"
-          role="status"
-        >
-          Copied to clipboard
-        </p>
-      )}
-      {shareConfirm && (
-        <p
-          className="text-sm text-success"
-          aria-live="polite"
-          role="status"
-        >
-          Shared
-        </p>
+          {shareConfirm && (
+            <p
+              className="absolute left-0 top-full z-10 mt-1 whitespace-nowrap rounded-input border border-border bg-card px-2 py-1 text-sm text-success shadow-md"
+              aria-live="polite"
+              role="status"
+            >
+              Shared
+            </p>
+          )}
+        </span>
       )}
     </div>
   );

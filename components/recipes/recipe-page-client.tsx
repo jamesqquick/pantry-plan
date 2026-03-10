@@ -65,7 +65,7 @@ export function RecipePageClient({
                 "rounded-input px-3 py-1.5 font-medium transition-colors",
                 scale === opt.value
                   ? "bg-primary text-primary-foreground"
-                  : "text-foreground hover:bg-muted"
+                  : "text-foreground hover:bg-muted",
               )}
               aria-pressed={scale === opt.value}
             >

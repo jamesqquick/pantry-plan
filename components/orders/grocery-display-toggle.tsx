@@ -14,11 +14,11 @@ export function GroceryDisplayToggle({
   onModeChange,
 }: GroceryDisplayToggleProps) {
   return (
-    <div className="flex gap-1 rounded-input border border-border bg-muted/50 p-1">
+    <div className="flex h-14 items-center gap-1 rounded-input border border-border bg-muted/50 p-1">
       <button
         type="button"
         onClick={() => onModeChange("shopper")}
-        className={`rounded-input px-3 py-1.5 text-sm font-medium transition-colors ${
+        className={`flex h-12 flex-1 items-center justify-center rounded-input px-3 text-sm font-medium transition-colors ${
           mode === "shopper"
             ? "bg-background text-foreground shadow"
             : "text-muted-foreground hover:text-foreground"
@@ -29,7 +29,7 @@ export function GroceryDisplayToggle({
       <button
         type="button"
         onClick={() => onModeChange("kitchen")}
-        className={`rounded-input px-3 py-1.5 text-sm font-medium transition-colors ${
+        className={`flex h-12 flex-1 items-center justify-center rounded-input px-3 text-sm font-medium transition-colors ${
           mode === "kitchen"
             ? "bg-background text-foreground shadow"
             : "text-muted-foreground hover:text-foreground"

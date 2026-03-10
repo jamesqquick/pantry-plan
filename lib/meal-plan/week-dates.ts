@@ -1,5 +1,5 @@
 /**
- * Week boundaries and date formatting for meal planning (Monday = start of week).
+ * Week boundaries and date formatting for meal planning (Sunday = start of week).
  */
 
 /** Parse YYYY-MM-DD to Date at midnight UTC */
@@ -15,11 +15,13 @@ export function toDateString(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-/** Get Monday of the week containing the given date (UTC) */
+/** Get Sunday of the week containing the given date (UTC) */
 export function getWeekStart(d: Date): Date {
-  const du = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const du = new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
+  );
   const day = du.getUTCDay();
-  const diff = day === 0 ? -6 : 1 - day; // Monday = 1
+  const diff = 0 - day;
   du.setUTCDate(du.getUTCDate() + diff);
   return du;
 }
@@ -29,7 +31,7 @@ export function getWeekStartString(d: Date): string {
   return toDateString(getWeekStart(d));
 }
 
-/** Return [Monday, Tuesday, ..., Sunday] as YYYY-MM-DD for the given week start */
+/** Return [Sunday, Monday, ..., Saturday] as YYYY-MM-DD for the given week start */
 export function getWeekDates(weekStart: string): string[] {
   const start = parseDateString(weekStart);
   const out: string[] = [];
@@ -41,14 +43,14 @@ export function getWeekDates(weekStart: string): string[] {
   return out;
 }
 
-/** Previous Monday from weekStart */
+/** Previous Sunday from weekStart */
 export function prevWeek(weekStart: string): string {
   const d = parseDateString(weekStart);
   d.setUTCDate(d.getUTCDate() - 7);
   return toDateString(d);
 }
 
-/** Next Monday from weekStart */
+/** Next Sunday from weekStart */
 export function nextWeek(weekStart: string): string {
   const d = parseDateString(weekStart);
   d.setUTCDate(d.getUTCDate() + 7);

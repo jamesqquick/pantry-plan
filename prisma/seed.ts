@@ -7,7 +7,11 @@ import { getDb } from "../lib/db";
 import { normalizeIngredientName } from "../lib/ingredients/normalize";
 import { getDisplayTextFromIngredientLine } from "../lib/ingredients/parse-ingredient-line-structured";
 
-console.log("[seed] Using Turso (TURSO_DATABASE_URL=%s, TURSO_AUTH_TOKEN=%s)", process.env.TURSO_DATABASE_URL ? "set" : "not set", process.env.TURSO_AUTH_TOKEN ? "set" : "not set");
+console.log(
+  "[seed] Using Turso (TURSO_DATABASE_URL=%s, TURSO_AUTH_TOKEN=%s)",
+  process.env.TURSO_DATABASE_URL ? "set" : "not set",
+  process.env.TURSO_AUTH_TOKEN ? "set" : "not set",
+);
 
 const prisma = getDb();
 
@@ -543,15 +547,15 @@ async function main() {
   // Seed a few planned meals for the demo user (current week)
   const now = new Date();
   const dayOfWeek = now.getUTCDay();
-  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  const monday = new Date(now);
-  monday.setUTCDate(monday.getUTCDate() + diff);
+  const diff = 0 - dayOfWeek;
+  const sunday = new Date(now);
+  sunday.setUTCDate(sunday.getUTCDate() + diff);
   const weekStartStr =
-    monday.getUTCFullYear() +
+    sunday.getUTCFullYear() +
     "-" +
-    String(monday.getUTCMonth() + 1).padStart(2, "0") +
+    String(sunday.getUTCMonth() + 1).padStart(2, "0") +
     "-" +
-    String(monday.getUTCDate()).padStart(2, "0");
+    String(sunday.getUTCDate()).padStart(2, "0");
   const weekDates: Date[] = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(weekStartStr + "T00:00:00.000Z");
@@ -559,12 +563,38 @@ async function main() {
     weekDates.push(d);
   }
   const plannedMealsSeed = [
-    { date: weekDates[0]!, mealSlot: "DINNER" as const, recipeId: recipeIds[0], servings: 4 },
-    { date: weekDates[1]!, mealSlot: "LUNCH" as const, recipeId: recipeIds[1], servings: 2 },
-    { date: weekDates[2]!, mealSlot: "DINNER" as const, customLabel: "Leftovers" },
-    { date: weekDates[3]!, mealSlot: "DINNER" as const, recipeId: recipeIds[2], servings: 6 },
-    { date: weekDates[5]!, mealSlot: "DINNER" as const, customLabel: "Takeout" },
-  ].filter((pm) => !("recipeId" in pm) || !pm.recipeId || recipeIds.includes(pm.recipeId));
+    {
+      date: weekDates[0]!,
+      mealSlot: "DINNER" as const,
+      recipeId: recipeIds[0],
+      servings: 4,
+    },
+    {
+      date: weekDates[1]!,
+      mealSlot: "LUNCH" as const,
+      recipeId: recipeIds[1],
+      servings: 2,
+    },
+    {
+      date: weekDates[2]!,
+      mealSlot: "DINNER" as const,
+      customLabel: "Leftovers",
+    },
+    {
+      date: weekDates[3]!,
+      mealSlot: "DINNER" as const,
+      recipeId: recipeIds[2],
+      servings: 6,
+    },
+    {
+      date: weekDates[5]!,
+      mealSlot: "DINNER" as const,
+      customLabel: "Takeout",
+    },
+  ].filter(
+    (pm) =>
+      !("recipeId" in pm) || !pm.recipeId || recipeIds.includes(pm.recipeId),
+  );
   for (const pm of plannedMealsSeed) {
     await prisma.plannedMeal.create({
       data: {

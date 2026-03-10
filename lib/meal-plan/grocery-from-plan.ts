@@ -4,7 +4,10 @@
 import type { IngredientUnit } from "@/generated/prisma/client";
 import { getPlannedMealsForWeek } from "@/lib/queries/meal-plan";
 import { getRecipesWithIngredientsForUser } from "@/lib/queries/recipes";
-import { buildGroceryList, type GroceryListResult } from "@/lib/grocery/aggregate";
+import {
+  buildGroceryList,
+  type GroceryListResult,
+} from "@/lib/grocery/aggregate";
 
 export type MealPlanGroceryInput = {
   userId: string;
@@ -16,16 +19,18 @@ export type MealPlanGroceryInput = {
  * Custom meals are excluded. Uses recipe default servings when planned meal has no servings.
  */
 export async function getGroceryListFromPlan(
-  input: MealPlanGroceryInput
+  input: MealPlanGroceryInput,
 ): Promise<GroceryListResult | null> {
   const planned = await getPlannedMealsForWeek(input.userId, input.weekStart);
-  const recipeMeals = planned.filter((p) => p.recipeId != null && p.recipe != null);
+  const recipeMeals = planned.filter(
+    (p) => p.recipeId != null && p.recipe != null,
+  );
   if (recipeMeals.length === 0) return null;
 
   const recipeIds = [...new Set(recipeMeals.map((p) => p.recipeId!))];
   const recipesWithIngredients = await getRecipesWithIngredientsForUser(
     recipeIds,
-    input.userId
+    input.userId,
   );
 
   type RecipeRow = (typeof recipesWithIngredients)[number];
@@ -41,7 +46,8 @@ export async function getGroceryListFromPlan(
             id: ri.ingredient.id,
             name: ri.ingredient.name,
             costBasisUnit: ri.ingredient.costBasisUnit ?? "GRAM",
-            estimatedCentsPerBasisUnit: ri.ingredient.estimatedCentsPerBasisUnit ?? null,
+            estimatedCentsPerBasisUnit:
+              ri.ingredient.estimatedCentsPerBasisUnit ?? null,
             gramsPerCup: ri.ingredient.gramsPerCup ?? null,
             cupsPerEach: ri.ingredient.cupsPerEach ?? null,
             preferredDisplayUnit: ri.ingredient.preferredDisplayUnit ?? "AUTO",
@@ -54,7 +60,7 @@ export async function getGroceryListFromPlan(
   }));
 
   const recipeServingsMap = new Map(
-    recipesWithIngredients.map((r: RecipeRow) => [r.id, r.servings ?? 1])
+    recipesWithIngredients.map((r: RecipeRow) => [r.id, r.servings ?? 1]),
   );
 
   const orderItems = recipeMeals.map((p) => {

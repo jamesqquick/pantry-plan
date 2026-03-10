@@ -12,13 +12,9 @@ export type PlannedMealRow = {
   recipe: { id: string; title: string } | null;
 };
 
-/**
- * Fetch all planned meals for a user in the given week (Monday–Sunday).
- * weekStart: YYYY-MM-DD of Monday.
- */
 export async function getPlannedMealsForWeek(
   userId: string,
-  weekStart: string
+  weekStart: string,
 ): Promise<PlannedMealRow[]> {
   const start = parseDateString(weekStart);
   const end = new Date(start);
