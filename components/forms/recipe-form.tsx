@@ -32,6 +32,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { SortableInstructionsList } from "@/components/ui/sortable-instructions-list";
+import { SortableListProvider, SortableRow } from "@/components/ui/sortable-list";
 import { IngredientEditorRow } from "@/components/recipes/ingredient-editor-row";
 import { RecipeIngredientList } from "@/components/recipes/ingredient-list";
 import {
@@ -525,79 +526,91 @@ export function RecipeForm(props: Props) {
               </div>
             </div>
           ) : hasStructured && mergedIngredients.length > 0 ? (
-            <div className="space-y-5">
-              {mergedIngredients.map((row, index) => {
-                const needsQuantityOutline = !row.quantityText?.trim();
-                const needsUnitOutline = !row.unit;
-                const needsPickerOutline = !row.ingredientId;
-                return (
-                  <div key={index}>
-                    {row.rawText?.trim() && (
-                      <p
-                        className="mb-3 text-sm text-muted-foreground"
-                        aria-label="Original ingredient line"
+            <SortableListProvider
+              items={mergedIngredients}
+              onReorder={setMergedIngredients}
+            >
+              <div className="space-y-5">
+                {mergedIngredients.map((row, index) => {
+                  const needsQuantityOutline = !row.quantityText?.trim();
+                  const needsUnitOutline = !row.unit;
+                  const needsPickerOutline = !row.ingredientId;
+                  return (
+                    <div key={index}>
+                      <SortableRow
+                        id={index}
+                        dragHandleAriaLabel={`Reorder ingredient ${index + 1}`}
                       >
-                        <span className="not-italic">Original:</span>{" "}
-                        <span className="italic">{row.rawText}</span>
-                      </p>
-                    )}
-                    <IngredientEditorRow
-                      mode="edit"
-                      compact
-                      hideLabels
-                      outlineQuantity={needsQuantityOutline}
-                      outlineUnit={needsUnitOutline}
-                      outlinePicker={needsPickerOutline}
-                      displayText={row.displayText}
-                      onDisplayTextChange={(v) =>
-                        updateMergedIngredient(index, { displayText: v })
-                      }
-                      quantityText={row.quantityText}
-                      onQuantityTextChange={(v) =>
-                        updateMergedIngredient(index, { quantityText: v })
-                      }
-                      unit={row.unit}
-                      onUnitChange={(v) =>
-                        updateMergedIngredient(index, { unit: v })
-                      }
-                      catalog={ingredientsCatalogState}
-                      onSearchIngredients={handleSearchIngredients}
-                      ingredientId={row.ingredientId}
-                      onChangeIngredient={(id, name) =>
-                        updateMergedIngredient(index, {
-                          ingredientId: id,
-                          ingredientName: name,
-                        })
-                      }
-                      selectedIngredientName={row.ingredientName}
-                      placeholder="Search or type to create"
-                      onSelectNew={async (name) => {
-                        const formData = new FormData();
-                        formData.set("name", name.trim());
-                        formData.set("costBasisUnit", "GRAM");
-                        const result = await createIngredientAction(
-                          null,
-                          formData,
-                        );
-                        if (result.ok) {
-                          const newItem = {
-                            id: result.data.id,
-                            name: name.trim(),
-                          };
-                          setIngredientsCatalogState((prev) => [
-                            newItem,
-                            ...prev,
-                          ]);
-                          return newItem;
-                        }
-                        return null;
-                      }}
-                      onRemove={() => removeMergedIngredient(index)}
-                      canRemove={mergedIngredients.length > 1}
-                    />
-                  </div>
-                );
-              })}
+                        <div className="space-y-3">
+                          {row.rawText?.trim() && (
+                            <p
+                              className="mb-3 text-sm text-muted-foreground"
+                              aria-label="Original ingredient line"
+                            >
+                              <span className="not-italic">Original:</span>{" "}
+                              <span className="italic">{row.rawText}</span>
+                            </p>
+                          )}
+                          <IngredientEditorRow
+                            mode="edit"
+                            compact
+                            hideLabels
+                            outlineQuantity={needsQuantityOutline}
+                            outlineUnit={needsUnitOutline}
+                            outlinePicker={needsPickerOutline}
+                            displayText={row.displayText}
+                            onDisplayTextChange={(v) =>
+                              updateMergedIngredient(index, { displayText: v })
+                            }
+                            quantityText={row.quantityText}
+                            onQuantityTextChange={(v) =>
+                              updateMergedIngredient(index, { quantityText: v })
+                            }
+                            unit={row.unit}
+                            onUnitChange={(v) =>
+                              updateMergedIngredient(index, { unit: v })
+                            }
+                            catalog={ingredientsCatalogState}
+                            onSearchIngredients={handleSearchIngredients}
+                            ingredientId={row.ingredientId}
+                            onChangeIngredient={(id, name) =>
+                              updateMergedIngredient(index, {
+                                ingredientId: id,
+                                ingredientName: name,
+                              })
+                            }
+                            selectedIngredientName={row.ingredientName}
+                            placeholder="Search or type to create"
+                            onSelectNew={async (name) => {
+                              const formData = new FormData();
+                              formData.set("name", name.trim());
+                              formData.set("costBasisUnit", "GRAM");
+                              const result = await createIngredientAction(
+                                null,
+                                formData,
+                              );
+                              if (result.ok) {
+                                const newItem = {
+                                  id: result.data.id,
+                                  name: name.trim(),
+                                };
+                                setIngredientsCatalogState((prev) => [
+                                  newItem,
+                                  ...prev,
+                                ]);
+                                return newItem;
+                              }
+                              return null;
+                            }}
+                            onRemove={() => removeMergedIngredient(index)}
+                            canRemove={mergedIngredients.length > 1}
+                          />
+                        </div>
+                      </SortableRow>
+                    </div>
+                  );
+                })}
+              </div>
               <input
                 type="hidden"
                 name="ingredientsStructured"
@@ -612,39 +625,21 @@ export function RecipeForm(props: Props) {
               >
                 <AppIcon name="add" size={18} aria-hidden />
               </Button>
-            </div>
+            </SortableListProvider>
           ) : (
-            <div className="space-y-2">
-              {ingredients.map((_, i) => (
-                <div key={i} className="flex gap-2">
-                  <Input
-                    name="ingredients"
-                    defaultValue={ingredients[i]}
-                    placeholder="e.g. 2 cups flour"
-                    error={!!fieldErrors.ingredients}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className={ICON_BUTTON_CLASS}
-                    onClick={() => removeIngredient(i)}
-                    aria-label="Remove ingredient"
-                    disabled={ingredients.length === 1}
-                  >
-                    <AppIcon name="delete" size={18} aria-hidden />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="secondary"
-                aria-label="Add ingredient"
-                onClick={hasStructured ? addMergedIngredient : addIngredient}
-                className={cn("mt-2", ICON_BUTTON_CLASS, "h-9 w-9 shrink-0")}
-              >
-                <AppIcon name="add" size={18} aria-hidden />
-              </Button>
-            </div>
+            <SortableInstructionsList
+              items={ingredients}
+              onItemsChange={(next) =>
+                setIngredients(next.length === 0 ? [defaultIngredient] : next)
+              }
+              placeholder="e.g. 2 cups flour"
+              removeLabel="Remove ingredient"
+              addLabel="Add ingredient"
+              minItems={1}
+              formInputName="ingredients"
+              formInputError={!!fieldErrors.ingredients}
+              onAdd={addIngredient}
+            />
           )}
           {fieldErrors.ingredients && (
             <p className="mt-1 text-sm text-destructive" role="alert">
