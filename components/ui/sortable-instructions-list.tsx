@@ -1,26 +1,9 @@
 "use client";
 
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  useSortable,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppIcon, ICON_BUTTON_CLASS } from "@/components/ui/icons";
+import { SortableListProvider, SortableRow } from "@/components/ui/sortable-list";
 import { cn } from "@/lib/cn";
 
 const TOUCH_TARGET = "min-h-[44px] min-w-[44px]";
@@ -40,108 +23,6 @@ export type SortableInstructionsListProps = {
   onAdd?: () => void;
 };
 
-function SortableInstructionRow({
-  id,
-  index,
-  value,
-  placeholder,
-  removeLabel,
-  canRemove,
-  formInputName,
-  formInputError,
-  onRemove,
-  onValueChange,
-}: {
-  id: number;
-  index: number;
-  value: string;
-  placeholder: string;
-  removeLabel: string;
-  canRemove: boolean;
-  formInputName?: string;
-  formInputError?: boolean;
-  onRemove: () => void;
-  onValueChange?: (value: string) => void;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    setActivatorNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <li
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        "flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap",
-        isDragging && "opacity-50 z-10"
-      )}
-    >
-      <span
-        ref={setActivatorNodeRef}
-        className={cn(
-          "flex items-center justify-center rounded touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground",
-          TOUCH_TARGET
-        )}
-        {...attributes}
-        {...listeners}
-        aria-label={`${removeLabel.replace("Remove ", "Reorder ")} ${index + 1}`}
-      >
-        <GripVertical size={20} aria-hidden />
-      </span>
-      <span className={cn(BADGE_CLASS)} aria-hidden>
-        {index + 1}
-      </span>
-      <div className="min-w-0 flex-1 flex gap-2 flex-wrap sm:flex-nowrap">
-        {formInputName ? (
-          <>
-            <input
-              type="hidden"
-              name={formInputName}
-              value={value}
-              readOnly
-            />
-            <Input
-              value={value}
-              onChange={(e) => onValueChange?.(e.target.value)}
-              placeholder={placeholder}
-              error={!!formInputError}
-              className="flex-1 min-w-0"
-            />
-          </>
-        ) : (
-          <Input
-            value={value}
-            onChange={(e) => onValueChange?.(e.target.value)}
-            placeholder={placeholder}
-            className="flex-1 min-w-0"
-          />
-        )}
-        <Button
-          type="button"
-          variant="ghost"
-          className={cn(ICON_BUTTON_CLASS, TOUCH_TARGET)}
-          onClick={onRemove}
-          aria-label={removeLabel}
-          disabled={!canRemove}
-        >
-          <AppIcon name="delete" size={18} aria-hidden />
-        </Button>
-      </div>
-    </li>
-  );
-}
-
 export function SortableInstructionsList({
   items,
   onItemsChange,
@@ -154,27 +35,7 @@ export function SortableInstructionsList({
   onAdd,
 }: SortableInstructionsListProps) {
   const list = items.length === 0 ? [""] : items;
-  const itemIds = list.map((_, i) => i);
   const canRemove = list.length > minItems;
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { delay: 200, tolerance: 5 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over == null || active.id === over.id) return;
-    const oldIndex = itemIds.indexOf(active.id as number);
-    const newIndex = itemIds.indexOf(over.id as number);
-    if (oldIndex === -1 || newIndex === -1) return;
-    const next = arrayMove(list, oldIndex, newIndex);
-    onItemsChange(next.length === 0 ? [""] : next);
-  };
 
   const updateAt = (index: number, value: string) => {
     const next = [...(items.length === 0 ? [""] : items)];
@@ -188,47 +49,66 @@ export function SortableInstructionsList({
   };
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleDragEnd}
-    >
-      <SortableContext
-        items={itemIds}
-        strategy={verticalListSortingStrategy}
-      >
-        <ol
-          className="mt-2 list-none space-y-4 p-0"
-          role="list"
-        >
-          {list.map((item, i) => (
-            <SortableInstructionRow
-              key={i}
+    <SortableListProvider items={list} onReorder={(next) => onItemsChange(next.length === 0 ? [""] : next)}>
+      <ol className="mt-2 list-none space-y-4 p-0" role="list">
+        {list.map((item, i) => (
+          <li key={i}>
+            <SortableRow
               id={i}
-              index={i}
-              value={item}
-              placeholder={placeholder}
-              removeLabel={removeLabel}
-              canRemove={canRemove}
-              formInputName={formInputName}
-              formInputError={formInputError}
-              onRemove={() => removeAt(i)}
-              onValueChange={(v) => updateAt(i, v)}
-            />
-          ))}
-        </ol>
-        {onAdd && (
-          <Button
-            type="button"
-            variant="secondary"
-            aria-label={addLabel}
-            onClick={onAdd}
-            className={cn("mt-4", ICON_BUTTON_CLASS, TOUCH_TARGET)}
-          >
-            <AppIcon name="add" size={18} aria-hidden />
-          </Button>
-        )}
-      </SortableContext>
-    </DndContext>
+              dragHandleAriaLabel={`${removeLabel.replace("Remove ", "Reorder ")} ${i + 1}`}
+              className="flex-nowrap"
+            >
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap min-w-0 w-full">
+                <span className={cn(BADGE_CLASS)} aria-hidden>
+                  {i + 1}
+                </span>
+                <div className="min-w-0 flex-1 flex gap-2 flex-wrap sm:flex-nowrap">
+                  {formInputName ? (
+                    <>
+                      <input type="hidden" name={formInputName} value={item} readOnly />
+                      <Input
+                        value={item}
+                        onChange={(e) => updateAt(i, e.target.value)}
+                        placeholder={placeholder}
+                        error={!!formInputError}
+                        className="flex-1 min-w-0"
+                      />
+                    </>
+                  ) : (
+                    <Input
+                      value={item}
+                      onChange={(e) => updateAt(i, e.target.value)}
+                      placeholder={placeholder}
+                      className="flex-1 min-w-0"
+                    />
+                  )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className={cn(ICON_BUTTON_CLASS, TOUCH_TARGET)}
+                    onClick={() => removeAt(i)}
+                    aria-label={removeLabel}
+                    disabled={!canRemove}
+                  >
+                    <AppIcon name="delete" size={18} aria-hidden />
+                  </Button>
+                </div>
+              </div>
+            </SortableRow>
+          </li>
+        ))}
+      </ol>
+      {onAdd && (
+        <Button
+          type="button"
+          variant="secondary"
+          aria-label={addLabel}
+          onClick={onAdd}
+          className={cn("mt-4", ICON_BUTTON_CLASS, TOUCH_TARGET)}
+        >
+          <AppIcon name="add" size={18} aria-hidden />
+        </Button>
+      )}
+    </SortableListProvider>
   );
 }
