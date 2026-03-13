@@ -76,7 +76,7 @@ export function RecipeView({
   const structured = ingredients.map((ri) => {
     const ingredient = ri.ingredient ?? undefined;
     const unitLabel = ri.unit != null ? UNIT_LABELS[ri.unit] : null;
-    const quantity =
+    const     quantity =
       scale > 1 && ri.quantity != null && Number.isFinite(ri.quantity)
         ? ri.quantity * scale
         : (ri.quantity ?? null);
