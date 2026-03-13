@@ -30,7 +30,10 @@ export function CookingViewToggle({
   };
 
   const sharedClass = cn(
-    "inline-flex cursor-pointer items-center gap-2 rounded-input border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+    "inline-flex cursor-pointer items-center gap-2 rounded-input border px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+    isCookingView
+      ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90"
+      : "border-border bg-background text-foreground hover:bg-muted",
     className
   );
 
@@ -41,9 +44,10 @@ export function CookingViewToggle({
         onClick={handleClick}
         className={sharedClass}
         aria-pressed={isCookingView}
+        aria-label={isCookingView ? "Cooking view (exit to turn off)" : "Cooking view"}
       >
         <AppIcon name="chef-hat" size={18} aria-hidden />
-        {isCookingView ? "Exit cooking view" : "Cooking view"}
+        Cooking view
       </button>
     );
   }
@@ -53,9 +57,10 @@ export function CookingViewToggle({
       href={isCookingView ? baseHref : cookingHref}
       className={sharedClass}
       aria-pressed={isCookingView}
+      aria-label={isCookingView ? "Cooking view (exit to turn off)" : "Cooking view"}
     >
       <AppIcon name="chef-hat" size={18} aria-hidden />
-      {isCookingView ? "Exit cooking view" : "Cooking view"}
+      Cooking view
     </Link>
   );
 }

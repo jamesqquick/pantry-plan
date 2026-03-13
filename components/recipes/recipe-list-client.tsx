@@ -110,7 +110,15 @@ export function RecipeListWrapper({
         </div>
         {listSlot}
       </div>
-      {toast && <Toast message={toast.message} variant={toast.variant} />}
+      {toast && (
+        <Toast
+          message={toast.message}
+          variant={toast.variant}
+          onOpenChange={(open) => {
+            if (!open) setToast(null);
+          }}
+        />
+      )}
     </RecipeListContext.Provider>
   );
 }

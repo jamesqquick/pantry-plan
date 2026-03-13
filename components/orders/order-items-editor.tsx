@@ -1,16 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { AppIcon, ICON_BUTTON_CLASS, ICON_LABEL_GAP_CLASS } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchablePicker } from "@/components/ui/searchable-picker";
+import { fuzzyFilterRecipes } from "@/lib/search/fuzzy-recipe";
 
 export type RecipeOption = { id: string; title: string };
 
@@ -29,17 +24,16 @@ export function OrderItemsEditor({
   onChange,
   fieldErrors,
 }: Props) {
+  const [searchQueries, setSearchQueries] = useState<(string | undefined)[]>([]);
+
   const addRow = () => {
-    const first = recipeOptions[0];
-    onChange([
-      ...items,
-      { recipeId: first?.id ?? "", batches: 1 },
-    ]);
+    onChange([...items, { recipeId: "", batches: 1 }]);
   };
 
   const removeRow = (index: number) => {
     if (items.length <= 1) return;
     onChange(items.filter((_, i) => i !== index));
+    setSearchQueries((prev) => prev.filter((_, i) => i !== index));
   };
 
   const updateRow = (index: number, patch: Partial<OrderItemRow>) => {
@@ -47,6 +41,40 @@ export function OrderItemsEditor({
     next[index] = { ...next[index], ...patch };
     onChange(next);
   };
+
+  const getDisplayValue = useCallback(
+    (index: number) => {
+      const row = items[index];
+      const query = searchQueries[index];
+      if (query !== undefined) return query;
+      if (row?.recipeId) {
+        return recipeOptions.find((r) => r.id === row.recipeId)?.title ?? "";
+      }
+      return "";
+    },
+    [items, recipeOptions, searchQueries]
+  );
+
+  const setDisplayValue = useCallback((index: number, value: string | undefined) => {
+    setSearchQueries((prev) => {
+      const next = [...prev];
+      while (next.length <= index) next.push(undefined);
+      next[index] = value;
+      return next;
+    });
+  }, []);
+
+  /** Recipe IDs already used in other rows (so we don't show them in this row's picker). */
+  const getUsedRecipeIdsForRow = useCallback(
+    (currentIndex: number) => {
+      const used = new Set<string>();
+      items.forEach((row, i) => {
+        if (i !== currentIndex && row.recipeId) used.add(row.recipeId);
+      });
+      return used;
+    },
+    [items]
+  );
 
   const itemsError = fieldErrors?.items?.[0];
 
@@ -69,27 +97,34 @@ export function OrderItemsEditor({
         <div className="space-y-2">
           {items.map((row, index) => (
             <div key={index} className="flex flex-wrap items-center gap-2">
-              <Select
-                value={row.recipeId || "__none__"}
-                onValueChange={(v) =>
-                  updateRow(index, { recipeId: v === "__none__" ? "" : v })
-                }
-              >
-                <SelectTrigger
-                  className="block w-fit min-w-[180px] rounded-sm border border-input bg-background pl-3 pr-8 py-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  aria-label="Recipe"
-                >
-                  <SelectValue placeholder="Select recipe" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Select recipe</SelectItem>
-                  {recipeOptions.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>
-                      {r.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="min-w-[180px] w-full max-w-md flex-1">
+                <SearchablePicker<RecipeOption>
+                  options={[]}
+                  getItemId={(r) => r.id}
+                  getItemLabel={(r) => r.title}
+                  onSelect={(r) => {
+                    const used = getUsedRecipeIdsForRow(index);
+                    if (used.has(r.id)) return;
+                    const next = [...items];
+                    next[index] = { ...next[index], recipeId: r.id };
+                    onChange([...next, { recipeId: "", batches: 1 }]);
+                  }}
+                  onSearch={(query) => {
+                    const used = getUsedRecipeIdsForRow(index);
+                    const available = recipeOptions.filter(
+                      (opt) => !used.has(opt.id)
+                    );
+                    return Promise.resolve(
+                      fuzzyFilterRecipes(available, query)
+                    );
+                  }}
+                  displayValue={getDisplayValue(index)}
+                  onDisplayValueChange={(v) => setDisplayValue(index, v)}
+                  placeholder="Search recipes"
+                  emptyMessage="Type to search or pick a recipe"
+                  noResultsMessage="No recipes found"
+                />
+              </div>
               <label className="sr-only">Batches</label>
               <Input
                 type="number"

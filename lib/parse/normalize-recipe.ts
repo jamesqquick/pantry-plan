@@ -7,6 +7,27 @@
 import { htmlToText } from "../ingredients/html-to-text";
 import { parseIso8601DurationToMinutes } from "./iso8601-duration";
 
+/** Strip leading number bullet (e.g. "1. " or "2) ") from a step string. */
+function stripLeadingNumberBullet(text: string): string {
+  return text.replace(/^\d+[.)]\s*/, "").trim();
+}
+
+/**
+ * Split a single string that contains multiple numbered steps (e.g. "1. Do this. 2. Do that.")
+ * into an array of step strings, with the number bullet stripped from each (e.g. "Do this.").
+ * Handles "1. ", "2) ", etc. If no numbered pattern found, returns [text] so the string is kept as one step.
+ */
+function splitNumberedSteps(text: string): string[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+  // Match position before "digit(s). " or "digit(s)) " (step number at start of next step)
+  const parts = trimmed.split(/(?!^)(?=\d+[.)]\s)/);
+  const steps = parts
+    .map((s) => stripLeadingNumberBullet(s.trim()))
+    .filter(Boolean);
+  return steps.length > 0 ? steps : [stripLeadingNumberBullet(trimmed)];
+}
+
 function asString(v: unknown): string {
   if (typeof v === "string") return v.trim();
   if (Array.isArray(v) && v.length > 0 && typeof v[0] === "string")
@@ -44,11 +65,11 @@ function asInstructionArray(v: unknown): string[] {
   }
   if (arr) {
     return arr
-      .map((step: unknown) => {
-        if (typeof step === "string") return htmlToText(step).trim();
-        if (step && typeof step === "object") {
+      .flatMap((step: unknown) => {
+        let stepText: string;
+        if (typeof step === "string") stepText = htmlToText(step).trim();
+        else if (step && typeof step === "object") {
           const obj = step as Record<string, unknown>;
-          // ListItem can wrap the step in .item
           const target =
             "item" in obj && obj.item != null
               ? (obj.item as Record<string, unknown>)
@@ -60,18 +81,25 @@ function asInstructionArray(v: unknown): string[] {
             obj.text ??
             obj.name ??
             obj.description;
-          if (text != null && typeof text === "string")
-            return htmlToText(text).trim();
+          stepText =
+            text != null && typeof text === "string"
+              ? htmlToText(text).trim()
+              : htmlToText(String(step)).trim();
+        } else {
+          stepText = htmlToText(String(step)).trim();
         }
-        return htmlToText(String(step)).trim();
+        if (!stepText) return [];
+        return splitNumberedSteps(stepText);
       })
       .filter(Boolean);
   }
-  if (typeof v === "string")
-    return v
+  if (typeof v === "string") {
+    const byNewline = v
       .split(/\n/)
       .map((s) => htmlToText(s).trim())
       .filter(Boolean);
+    return byNewline.flatMap((s) => splitNumberedSteps(s));
+  }
   return [];
 }
 

@@ -43,6 +43,7 @@ export function ImportWizard({
     handleMethodChange,
     mappingSectionRef,
     toast,
+    clearToast,
     urlSectionProps,
     imageSectionProps,
     manualSectionProps,
@@ -165,7 +166,15 @@ export function ImportWizard({
         </TabsContent>
       </Tabs>
 
-      {toast && <Toast message={toast.message} variant={toast.variant} />}
+      {toast && (
+        <Toast
+          message={toast.message}
+          variant={toast.variant}
+          onOpenChange={(open) => {
+            if (!open) clearToast();
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -13,17 +13,40 @@ enum UserRole {
 }
 
 model User {
-  id           String       @id @default(cuid())
-  email        String       @unique
+  id           String        @id @default(cuid())
+  email        String        @unique
   passwordHash String
   name         String?
-  role         UserRole     @default(USER)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  role         UserRole      @default(USER)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   recipes      Recipe[]
   orders       Order[]
   ingredients  Ingredient[]
   tags         Tag[]
+  plannedMeals PlannedMeal[]
+}
+
+enum MealSlot {
+  BREAKFAST
+  LUNCH
+  DINNER
+}
+
+model PlannedMeal {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        DateTime // day only (UTC date)
+  mealSlot    MealSlot
+  recipeId    String?
+  recipe      Recipe?  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  customLabel String? // e.g. "Leftovers", "Takeout", "TBD"
+  servings    Int? // for recipe-based meals; used for grocery scaling
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, date])
 }
 
 enum IngredientUnit {
@@ -115,6 +138,7 @@ model Recipe {
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   orderItems         OrderItem[]
+  plannedMeals       PlannedMeal[]
   recipeIngredients  RecipeIngredient[]
   recipeInstructions RecipeInstruction[]
   recipeTags         RecipeTag[]

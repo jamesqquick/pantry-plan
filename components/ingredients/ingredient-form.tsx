@@ -133,7 +133,7 @@ export function IngredientForm(props: Props) {
             >
               <SelectTrigger
                 id="defaultUnit"
-                className="block w-full"
+                className="w-full"
               >
                 <SelectValue placeholder="—" />
               </SelectTrigger>
@@ -161,7 +161,7 @@ export function IngredientForm(props: Props) {
             >
               <SelectTrigger
                 id="costBasisUnit"
-                className="block w-full"
+                className="w-full"
               >
                 <SelectValue placeholder="Cost basis unit" />
               </SelectTrigger>

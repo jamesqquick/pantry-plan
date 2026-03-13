@@ -70,17 +70,16 @@ export function RecipeView({
 }) {
   const ingredients = recipe.recipeIngredients ?? [];
   const ingredientsEnhanced = ingredients.some(
-    (ri) =>
-      ri.ingredient != null || ri.quantity != null || ri.unit != null
+    (ri) => ri.ingredient != null || ri.quantity != null || ri.unit != null,
   );
   const needAttentionCount = ingredients.filter(needsAttention).length;
   const structured = ingredients.map((ri) => {
     const ingredient = ri.ingredient ?? undefined;
     const unitLabel = ri.unit != null ? UNIT_LABELS[ri.unit] : null;
-    const quantity =
+    const     quantity =
       scale > 1 && ri.quantity != null && Number.isFinite(ri.quantity)
         ? ri.quantity * scale
-        : ri.quantity ?? null;
+        : (ri.quantity ?? null);
     const displayLine = formatIngredientLine({
       quantity,
       unit: unitLabel,
@@ -98,7 +97,7 @@ export function RecipeView({
   });
   const instructions = recipe.recipeInstructions?.map((i) => i.text) ?? [];
   const ingredientLines = structured.map(
-    (s) => s.displayLine?.trim() || s.displayText?.trim() || "—"
+    (s) => s.displayLine?.trim() || s.displayText?.trim() || "—",
   );
 
   const metaItems: {
@@ -134,7 +133,7 @@ export function RecipeView({
   const showFullSections = !cookingView;
 
   return (
-    <article className="space-y-6">
+    <article className={cookingView ? "space-y-3" : "space-y-6"}>
       {recipe.imageUrl && (
         <AnimatedSection show={showFullSections}>
           <div className="aspect-16/10 w-full max-h-[400px] overflow-hidden rounded-input bg-accent sm:mx-auto sm:max-w-2xl">
@@ -149,38 +148,49 @@ export function RecipeView({
 
       {needAttentionCount > 0 && (
         <AnimatedSection show={showFullSections}>
-          <div className="rounded-input border border-amber-200/60 bg-amber-50/30 px-4 py-3 text-sm dark:border-amber-800/50 dark:bg-amber-950/20">
-            <p className="text-foreground">
-              ⚡ {needAttentionCount} ingredient{needAttentionCount !== 1 ? "s" : ""} need
-              attention. Enhance ingredient data to unlock scaling, cost tracking, and smart planning.{" "}
+          <Callout
+            variant="warning"
+            className="text-foreground dark:bg-warning/25 dark:border-warning/50"
+            aria-label="Ingredients need attention"
+          >
+            <p>
+              {needAttentionCount} ingredient
+              {needAttentionCount !== 1 ? "s" : ""} need attention. Enhance
+              ingredient data to unlock scaling, cost tracking, and smart
+              planning.{" "}
               <Link
                 href={`/recipes/${recipe.id}/edit`}
-                className="font-medium text-primary hover:underline"
+                className="font-medium hover:underline text-primary-on-background dark:text-white dark:hover:text-white/90"
+                aria-label="Update recipe to enhance ingredient data"
               >
-                Update recipe →
+                Update recipe<span aria-hidden="true"> →</span>
               </Link>
             </p>
-          </div>
+          </Callout>
         </AnimatedSection>
       )}
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <PageTitle>{recipe.title}</PageTitle>
+          <PageTitle className={cookingView ? "mb-2" : undefined}>
+            {recipe.title}
+          </PageTitle>
           <div className="space-y-2">
-            {recipe.recipeTags && recipe.recipeTags.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {recipe.recipeTags.map((rt) => (
-                  <span
-                    key={rt.tag.id}
-                    className="inline-flex items-center rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground"
-                  >
-                    {rt.tag.name}
-                  </span>
-                ))}
-              </div>
-            )}
-            {recipe.sourceUrl && (
+            {!cookingView &&
+              recipe.recipeTags &&
+              recipe.recipeTags.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {recipe.recipeTags.map((rt) => (
+                    <span
+                      key={rt.tag.id}
+                      className="inline-flex items-center rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground"
+                    >
+                      {rt.tag.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            {recipe.sourceUrl && !cookingView && (
               <p className="mt-1 text-sm">
                 <a
                   href={recipe.sourceUrl}
@@ -194,17 +204,19 @@ export function RecipeView({
             )}
           </div>
         </div>
-        <div className="flex shrink-0 flex-nowrap items-center gap-2">
-          <Link
-            href={`/recipes/${recipe.id}/edit`}
-            aria-label="Edit recipe"
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-input border border-input bg-secondary p-2 text-secondary-foreground hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            <AppIcon name="edit" size={18} aria-hidden />
-          </Link>
-          <DuplicateRecipeButton recipeId={recipe.id} />
-          <DeleteRecipeButton recipeId={recipe.id} />
-        </div>
+        {!cookingView && (
+          <div className="flex shrink-0 flex-nowrap items-center gap-2">
+            <Link
+              href={`/recipes/${recipe.id}/edit`}
+              aria-label="Edit recipe"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-input border border-input bg-secondary p-2 text-secondary-foreground hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <AppIcon name="edit" size={18} aria-hidden />
+            </Link>
+            <DuplicateRecipeButton recipeId={recipe.id} />
+            <DeleteRecipeButton recipeId={recipe.id} />
+          </div>
+        )}
       </div>
 
       <AnimatedSection show={showFullSections && metaItems.length > 0}>
@@ -298,11 +310,16 @@ export function RecipeView({
                       variant="info"
                       className="w-full text-center text-info"
                     >
-                      Enhancing ingredients maps them to your catalog which enables
-                      recipe scaling, cost tracking, and smart planning. It&apos;s
-                      one extra step, but it enables lots of functionality.
+                      Enhancing ingredients maps them to your catalog which
+                      enables recipe scaling, cost tracking, and smart planning.
+                      It&apos;s one extra step, but it enables lots of
+                      functionality.
                     </Callout>
-                    <Button asChild variant="default" className="w-full sm:w-auto">
+                    <Button
+                      asChild
+                      variant="default"
+                      className="w-full sm:w-auto"
+                    >
                       <Link href={`/recipes/${recipe.id}/enhance`}>
                         Enhance ingredients
                       </Link>

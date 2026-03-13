@@ -11,6 +11,8 @@ type FormSubmitButtonProps = Omit<
   children: React.ReactNode;
   /** Shown while the form action is pending. */
   pendingLabel?: string;
+  /** When true, button is disabled (e.g. form invalid). */
+  disabled?: boolean;
 };
 
 /**
@@ -20,11 +22,17 @@ type FormSubmitButtonProps = Omit<
 export function FormSubmitButton({
   children,
   pendingLabel = "Loading…",
+  disabled: disabledProp,
   ...props
 }: FormSubmitButtonProps) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} aria-busy={pending} {...props}>
+    <Button
+      type="submit"
+      disabled={Boolean(disabledProp) || pending}
+      aria-busy={pending}
+      {...props}
+    >
       {pending ? pendingLabel : children}
     </Button>
   );

@@ -1,9 +1,13 @@
 "use client";
 
 import { useState, useRef, useEffect, useId } from "react";
-import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+} from "@/components/ui/popover";
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -64,11 +68,6 @@ export function SearchablePicker<T>({
   const [searchLoadingInternal, setSearchLoadingInternal] = useState(false);
   const searchLoading = searchLoadingProp ?? (onSearch ? searchLoadingInternal : false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [dropdownRect, setDropdownRect] = useState<{
-    top: number;
-    left: number;
-    width: number;
-  } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -93,8 +92,20 @@ export function SearchablePicker<T>({
     }
     const trimmed = displayValue.trim();
     if (trimmed === "") {
-      setSearchResults([]);
-      setSearchLoadingInternal(false);
+      lastQueryRef.current = "";
+      setSearchLoadingInternal(true);
+      onSearch("")
+        .then((data) => {
+          if (lastQueryRef.current === "") {
+            setSearchResults(Array.isArray(data) ? data : []);
+          }
+        })
+        .catch(() => {
+          if (lastQueryRef.current === "") setSearchResults([]);
+        })
+        .finally(() => {
+          if (lastQueryRef.current === "") setSearchLoadingInternal(false);
+        });
       return;
     }
     debounceRef.current = setTimeout(() => {
@@ -137,49 +148,13 @@ export function SearchablePicker<T>({
   }, [highlightedIndex]);
 
   useEffect(() => {
-    if (!open || !inputRef.current) {
-      setDropdownRect(null);
-      return;
-    }
-    const el = inputRef.current;
-    const update = () => {
-      const rect = el.getBoundingClientRect();
-      setDropdownRect({
-        top: rect.bottom + 4,
-        left: rect.left,
-        width: rect.width,
-      });
-    };
-    update();
-    window.addEventListener("scroll", update, true);
-    window.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("scroll", update, true);
-      window.removeEventListener("resize", update);
-    };
-  }, [open, displayValue]);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        const target = e.target as HTMLElement;
-        if (target.closest(`[${listboxDataAttribute}]`)) return;
-        setOpen(false);
-      }
-    }
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
-    document.addEventListener("mousedown", handleClickOutside);
+    if (!open) return;
     document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [listboxDataAttribute]);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
 
   async function selectOption(index: number) {
     if (index < 0 || index >= optionCount) return;
@@ -202,30 +177,18 @@ export function SearchablePicker<T>({
     const item = resolvedOptions[index];
     if (item) {
       onSelect(item);
-      onDisplayValueChange("");
+      onDisplayValueChange(getItemLabel(item));
       setOpen(false);
     }
   }
 
-  const dropdownContent =
-    open && typeof document !== "undefined" ? (
-      <div
-        {...{ [listboxDataAttribute]: true }}
-        id={listId}
-        role="listbox"
-        className="fixed z-[9999] rounded-input border border-border bg-popover shadow-lg text-popover-foreground"
-        style={
-          dropdownRect
-            ? {
-                top: dropdownRect.top,
-                left: dropdownRect.left,
-                width: dropdownRect.width,
-                maxHeight: 192,
-              }
-            : { visibility: "hidden" as const }
-        }
-      >
-        <div className="max-h-48 overflow-auto py-1">
+  const listbox = (
+    <div
+      {...{ [listboxDataAttribute]: true }}
+      id={listId}
+      role="listbox"
+      className="max-h-48 overflow-auto py-1 outline-none"
+    >
           {(onSearch || searchLoadingProp !== undefined) && !displayValue.trim() && (
             <p className="px-3 py-2 text-sm text-muted-foreground">
               {searchPlaceholder ?? emptyMessage}
@@ -297,9 +260,8 @@ export function SearchablePicker<T>({
                 {noResultsMessage}
               </p>
             )}
-        </div>
-      </div>
-    ) : null;
+    </div>
+  );
 
   return (
     <div className={label ? "space-y-2" : undefined}>
@@ -308,8 +270,13 @@ export function SearchablePicker<T>({
           {label}
         </label>
       )}
-      <div ref={containerRef} className={cn("relative", containerClassName ?? "max-w-md")}>
-        <Input
+      <Popover open={open} onOpenChange={setOpen} modal={false}>
+        <PopoverAnchor asChild>
+          <div
+            ref={containerRef}
+            className={cn("relative", containerClassName ?? "max-w-md")}
+          >
+            <Input
           ref={inputRef}
           type="text"
           placeholder={placeholder}
@@ -342,9 +309,10 @@ export function SearchablePicker<T>({
               );
             }
             if (e.key === "Enter") {
-              if (highlightedIndex >= 0) {
+              if (optionCount > 0) {
                 e.preventDefault();
-                selectOption(highlightedIndex);
+                const index = highlightedIndex >= 0 ? highlightedIndex : 0;
+                selectOption(index);
               }
             }
             if (e.key === "Escape") {
@@ -354,9 +322,18 @@ export function SearchablePicker<T>({
           disabled={disabled}
           className={cn("w-full text-sm", inputClassName)}
           trailingIcon={trailingIcon}
-        />
-        {dropdownContent && createPortal(dropdownContent, document.body)}
-      </div>
+            />
+          </div>
+        </PopoverAnchor>
+        <PopoverContent
+          className="w-[var(--radix-popover-trigger-width)] p-0"
+          align="start"
+          sideOffset={4}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          {listbox}
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
