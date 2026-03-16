@@ -95,6 +95,12 @@ export default function IngredientsPage({
           </Button>
         </Link>
       </div>
+      <p className="text-sm text-muted-foreground">
+        Global ingredients come from the shared catalog, while{" "}
+        <span className="font-medium">Custom</span> ingredients are private to
+        you. Creating Custom ingredients that match your pantry and local
+        prices will make recipe and grocery cost estimates more accurate.
+      </p>
       <Suspense fallback={<IngredientListSkeleton />}>
         <IngredientsPageData searchParams={searchParams} />
       </Suspense>

@@ -85,6 +85,16 @@ export function IngredientForm(props: Props) {
           {isEdit && (
             <input type="hidden" name="id" value={props.ingredientId} />
           )}
+          {!isEdit && (
+            <div className="mb-2 text-sm text-muted-foreground">
+              <p>
+                Ingredients you create here are{" "}
+                <span className="font-medium">Custom</span> to your account.
+                Using Custom ingredients with your local brands and store prices
+                makes recipe and grocery cost estimates more realistic.
+              </p>
+            </div>
+          )}
           <div>
             <label
               htmlFor="name"

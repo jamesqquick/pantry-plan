@@ -101,7 +101,11 @@ export async function listIngredientsForUser(
   const db = getDb();
   return db.ingredient.findMany({
     where,
-    orderBy: { normalizedName: "asc" },
+    orderBy: [
+      // Show user-owned (custom) ingredients before global ones when searching.
+      { userId: "desc" },
+      { normalizedName: "asc" },
+    ],
     ...(options?.skip != null && { skip: options.skip }),
     ...(take != null && { take }),
   });
