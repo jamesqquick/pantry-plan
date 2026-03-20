@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createOrderAction,
@@ -55,25 +55,6 @@ export function OrderForm(props: Props) {
   const [updateState, updateFormAction] = useActionState(updateOrderAction, null);
   const [deleteState, deleteFormAction] = useActionState(deleteOrderAction, null);
   const state = isEdit ? updateState : createState;
-
-  useEffect(() => {
-    if (state && state.ok && state.data?.id) {
-      if (!isEdit) {
-        setName(defaultOrderName());
-        setNotes("");
-        setItems([{ recipeId: "", batches: 1 }]);
-      }
-      router.push(`/orders/${state.data.id}`);
-      router.refresh();
-    }
-  }, [state, router, isEdit, props.recipeOptions]);
-
-  useEffect(() => {
-    if (deleteState?.ok) {
-      router.push("/orders");
-      router.refresh();
-    }
-  }, [deleteState, router]);
 
   const formAction = isEdit ? updateFormAction : createFormAction;
   const fieldErrors = state && !state.ok ? state.error?.fieldErrors ?? {} : {};

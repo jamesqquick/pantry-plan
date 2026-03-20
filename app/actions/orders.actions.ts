@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getDb } from "@/lib/db";
 import { getAuthenticatedUser } from "@/app/actions/_shared";
 import { zodToFieldErrors } from "@/lib/action-helpers";
@@ -71,7 +72,7 @@ export async function createOrderAction(
   revalidatePath("/orders");
   revalidatePath(`/orders/${order.id}`);
   revalidatePath(`/orders/${order.id}/edit`);
-  return { ok: true, data: { id: order.id } };
+  redirect(`/orders/${order.id}`);
 }
 
 export async function updateOrderAction(
@@ -144,7 +145,7 @@ export async function updateOrderAction(
   revalidatePath("/orders");
   revalidatePath(`/orders/${parsed.data.id}`);
   revalidatePath(`/orders/${parsed.data.id}/edit`);
-  return { ok: true, data: { id: parsed.data.id } };
+  redirect(`/orders/${parsed.data.id}`);
 }
 
 export async function deleteOrderAction(
@@ -177,5 +178,5 @@ export async function deleteOrderAction(
 
   await db.order.delete({ where: { id: order.id } });
   revalidatePath("/orders");
-  return { ok: true, data: undefined };
+  redirect("/orders");
 }
