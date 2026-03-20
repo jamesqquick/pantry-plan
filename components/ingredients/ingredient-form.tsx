@@ -1,16 +1,19 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   createIngredientAction,
   updateIngredientAction,
+  searchGlobalIngredientsForBaseAction,
+  getGlobalIngredientBasePrefillAction,
 } from "@/app/actions/ingredients.actions";
 import { Button } from "@/components/ui/button";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ImportIngredientPicker } from "@/components/recipes/import/import-ingredient-picker";
 import {
   Select,
   SelectContent,
@@ -37,6 +40,7 @@ type EditProps = {
   initialValues: {
     name: string;
     category?: string;
+    subcategory?: string;
     defaultUnit?: IngredientUnit;
     costBasisUnit: CostBasisUnit;
     estimatedCentsPerBasisUnit?: number | null;
@@ -50,6 +54,13 @@ export function IngredientForm(props: Props) {
   const router = useRouter();
   const isEdit = props.mode === "edit";
   const initial = isEdit ? props.initialValues : null;
+
+  const [baseIngredientId, setBaseIngredientId] = useState("");
+  const [baseIngredientName, setBaseIngredientName] = useState("");
+  const [category, setCategory] = useState("");
+  const [subcategory, setSubcategory] = useState("");
+  const [notes, setNotes] = useState("");
+  const [estimatedStr, setEstimatedStr] = useState("");
 
   const [defaultUnit, setDefaultUnit] = useState(initial?.defaultUnit ?? "");
   const [costBasisUnit, setCostBasisUnit] = useState(
@@ -73,6 +84,34 @@ export function IngredientForm(props: Props) {
   const formAction = isEdit ? updateFormAction : createFormAction;
   const fieldErrors = state && !state.ok ? state.error?.fieldErrors ?? {} : {};
 
+  const handleSearchGlobalBase = useCallback(async (query: string) => {
+    const res = await searchGlobalIngredientsForBaseAction(query);
+    return res.ok ? res.data : [];
+  }, []);
+
+  const handleBaseIngredientChange = useCallback(async (id: string, name: string) => {
+    setBaseIngredientId(id);
+    setBaseIngredientName(name);
+    const res = await getGlobalIngredientBasePrefillAction({ id });
+    if (!res.ok) return;
+    const d = res.data;
+    setCategory(d.category?.trim() ?? "");
+    setSubcategory(d.subcategory?.trim() ?? "");
+    setNotes(d.notes?.trim() ?? "");
+    setEstimatedStr(
+      d.estimatedCentsPerBasisUnit != null && Number.isFinite(d.estimatedCentsPerBasisUnit)
+        ? String(d.estimatedCentsPerBasisUnit)
+        : ""
+    );
+    setDefaultUnit(d.defaultUnit ?? "");
+    setCostBasisUnit(d.costBasisUnit);
+  }, []);
+
+  const clearBaseIngredient = useCallback(() => {
+    setBaseIngredientId("");
+    setBaseIngredientName("");
+  }, []);
+
   return (
     <Card>
       {!isEdit && (
@@ -86,6 +125,9 @@ export function IngredientForm(props: Props) {
             <input type="hidden" name="id" value={props.ingredientId} />
           )}
           {!isEdit && (
+            <input type="hidden" name="baseIngredientId" value={baseIngredientId} />
+          )}
+          {!isEdit && (
             <div className="mb-2 text-sm text-muted-foreground">
               <p>
                 Ingredients you create here are{" "}
@@ -93,6 +135,36 @@ export function IngredientForm(props: Props) {
                 Using Custom ingredients with your local brands and store prices
                 makes recipe and grocery cost estimates more realistic.
               </p>
+            </div>
+          )}
+          {!isEdit && (
+            <div className="space-y-2">
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                Start from global ingredient (optional)
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Search for a global ingredient to copy category, units, and cost
+                defaults. You can change anything before saving.
+              </p>
+              <ImportIngredientPicker
+                catalog={[]}
+                value={baseIngredientId}
+                displayLabel={baseIngredientName || undefined}
+                placeholder="Search global ingredients…"
+                onChange={handleBaseIngredientChange}
+                onSearch={handleSearchGlobalBase}
+                selectedIngredientName={baseIngredientName}
+              />
+              {fieldErrors.baseIngredientId && (
+                <p className="text-sm text-destructive" role="alert">
+                  {fieldErrors.baseIngredientId[0]}
+                </p>
+              )}
+              {baseIngredientId ? (
+                <Button type="button" variant="ghost" size="sm" onClick={clearBaseIngredient}>
+                  Clear base ingredient
+                </Button>
+              ) : null}
             </div>
           )}
           <div>
@@ -122,12 +194,46 @@ export function IngredientForm(props: Props) {
             >
               Category
             </label>
-            <Input
-              id="category"
-              name="category"
-              placeholder="e.g. Dairy, Produce"
-              defaultValue={initial?.category}
-            />
+            {isEdit ? (
+              <Input
+                id="category"
+                name="category"
+                placeholder="e.g. Dairy, Produce"
+                defaultValue={initial?.category}
+              />
+            ) : (
+              <Input
+                id="category"
+                name="category"
+                placeholder="e.g. Dairy, Produce"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              />
+            )}
+          </div>
+          <div>
+            <label
+              htmlFor="subcategory"
+              className="mb-1 block text-sm font-medium text-foreground"
+            >
+              Subcategory
+            </label>
+            {isEdit ? (
+              <Input
+                id="subcategory"
+                name="subcategory"
+                placeholder="Optional"
+                defaultValue={initial?.subcategory ?? ""}
+              />
+            ) : (
+              <Input
+                id="subcategory"
+                name="subcategory"
+                placeholder="Optional"
+                value={subcategory}
+                onChange={(e) => setSubcategory(e.target.value)}
+              />
+            )}
           </div>
           <div>
             <label
@@ -191,15 +297,28 @@ export function IngredientForm(props: Props) {
             >
               Estimated cost (cents per basis unit)
             </label>
-            <Input
-              id="estimatedCentsPerBasisUnit"
-              name="estimatedCentsPerBasisUnit"
-              type="number"
-              min={0}
-              step={0.01}
-              placeholder="e.g. 0.5 (cents per gram) or 25 (cents per egg)"
-              defaultValue={initial?.estimatedCentsPerBasisUnit ?? ""}
-            />
+            {isEdit ? (
+              <Input
+                id="estimatedCentsPerBasisUnit"
+                name="estimatedCentsPerBasisUnit"
+                type="number"
+                min={0}
+                step={0.01}
+                placeholder="e.g. 0.5 (cents per gram) or 25 (cents per egg)"
+                defaultValue={initial?.estimatedCentsPerBasisUnit ?? ""}
+              />
+            ) : (
+              <Input
+                id="estimatedCentsPerBasisUnit"
+                name="estimatedCentsPerBasisUnit"
+                type="number"
+                min={0}
+                step={0.01}
+                placeholder="e.g. 0.5 (cents per gram) or 25 (cents per egg)"
+                value={estimatedStr}
+                onChange={(e) => setEstimatedStr(e.target.value)}
+              />
+            )}
             <p className="mt-1 text-xs text-muted-foreground">
               GRAM → cents per gram; CUP → cents per cup; EACH → cents per item
             </p>
@@ -211,13 +330,24 @@ export function IngredientForm(props: Props) {
             >
               Notes
             </label>
-            <Textarea
-              id="notes"
-              name="notes"
-              rows={2}
-              defaultValue={initial?.notes}
-              placeholder="Optional notes"
-            />
+            {isEdit ? (
+              <Textarea
+                id="notes"
+                name="notes"
+                rows={2}
+                defaultValue={initial?.notes}
+                placeholder="Optional notes"
+              />
+            ) : (
+              <Textarea
+                id="notes"
+                name="notes"
+                rows={2}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Optional notes"
+              />
+            )}
           </div>
           {state && !state.ok && state.error?.message && !state.error?.fieldErrors && (
             <p className="text-sm text-destructive" role="alert">

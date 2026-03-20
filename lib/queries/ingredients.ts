@@ -3,6 +3,7 @@ import { cacheTag } from "next/cache";
 import { getDb } from "@/lib/db";
 
 const PICKER_SEARCH_TAKE = 25;
+export type IngredientSourceFilter = "all" | "global" | "mine";
 
 export type CachedPickerIngredient = { id: string; name: string; source: "global" | "custom" };
 
@@ -56,16 +57,19 @@ export async function getIngredientCostMap(): Promise<Map<string, IngredientCost
 }
 
 /** Scope: global (userId null) + current user's ingredients. */
-function scopeGlobalAndUser(userId: string) {
+function scopeBySource(userId: string, source: IngredientSourceFilter) {
+  if (source === "global") return { userId: null };
+  if (source === "mine") return { userId };
   return { OR: [{ userId: null }, { userId }] };
 }
 
 function buildListWhere(
   userId: string,
   search: string | undefined,
-  category: string | undefined
+  category: string | undefined,
+  source: IngredientSourceFilter
 ) {
-  const conditions: Record<string, unknown>[] = [scopeGlobalAndUser(userId)];
+  const conditions: Record<string, unknown>[] = [scopeBySource(userId, source)];
   if (typeof search === "string" && search.trim().length > 0) {
     const term = search.trim();
     conditions.push({
@@ -84,7 +88,14 @@ function buildListWhere(
 
 export async function listIngredientsForUser(
   userId: string,
-  options?: { search?: string; category?: string; limit?: number; skip?: number; take?: number }
+  options?: {
+    search?: string;
+    category?: string;
+    source?: IngredientSourceFilter;
+    limit?: number;
+    skip?: number;
+    take?: number;
+  }
 ) {
   const search =
     typeof options?.search === "string" && options.search.trim().length > 0
@@ -94,13 +105,15 @@ export async function listIngredientsForUser(
     typeof options?.category === "string" && options.category.trim().length > 0
       ? options.category.trim()
       : undefined;
-  const where = buildListWhere(userId, search, category);
+  const source: IngredientSourceFilter =
+    options?.source === "global" || options?.source === "mine" ? options.source : "all";
+  const whereWithSource = buildListWhere(userId, search, category, source);
 
   const take = options?.take ?? options?.limit;
 
   const db = getDb();
   return db.ingredient.findMany({
-    where,
+    where: whereWithSource,
     orderBy: [
       // Show user-owned (custom) ingredients before global ones when searching.
       { userId: "desc" },
@@ -111,9 +124,34 @@ export async function listIngredientsForUser(
   });
 }
 
+const GLOBAL_BASE_SEARCH_TAKE = 25;
+
+/** Global catalog ingredients only (userId null), for "create from base" picker. */
+export async function listGlobalIngredientsForBaseSearch(query: string, take = GLOBAL_BASE_SEARCH_TAKE) {
+  const db = getDb();
+  const term = typeof query === "string" ? query.trim() : "";
+  const where =
+    term.length > 0
+      ? {
+          userId: null,
+          OR: [
+            { name: { contains: term } },
+            { normalizedName: { contains: term } },
+          ],
+        }
+      : { userId: null };
+
+  return db.ingredient.findMany({
+    where,
+    orderBy: { normalizedName: "asc" },
+    take,
+    select: { id: true, name: true },
+  });
+}
+
 export async function countIngredientsForUser(
   userId: string,
-  options?: { search?: string; category?: string }
+  options?: { search?: string; category?: string; source?: IngredientSourceFilter }
 ): Promise<number> {
   const search =
     typeof options?.search === "string" && options.search.trim().length > 0
@@ -123,7 +161,9 @@ export async function countIngredientsForUser(
     typeof options?.category === "string" && options.category.trim().length > 0
       ? options.category.trim()
       : undefined;
-  const where = buildListWhere(userId, search, category);
+  const source: IngredientSourceFilter =
+    options?.source === "global" || options?.source === "mine" ? options.source : "all";
+  const where = buildListWhere(userId, search, category, source);
 
   const db = getDb();
   return db.ingredient.count({ where });
@@ -133,5 +173,8 @@ export async function getIngredient(id: string) {
   const db = getDb();
   return db.ingredient.findUnique({
     where: { id },
+    include: {
+      baseIngredient: { select: { id: true, name: true } },
+    },
   });
 }

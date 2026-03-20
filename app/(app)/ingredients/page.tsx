@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import {
   listIngredientsForUser,
   countIngredientsForUser,
+  type IngredientSourceFilter,
 } from "@/lib/queries/ingredients";
 import {
   getIngredientCategoryOptions,
@@ -22,7 +23,13 @@ const MAX_LIMIT = 100;
 async function IngredientsPageData({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; category?: string; page?: string; limit?: string }>;
+  searchParams: Promise<{
+    search?: string;
+    category?: string;
+    source?: string;
+    page?: string;
+    limit?: string;
+  }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) return null;
@@ -30,6 +37,8 @@ async function IngredientsPageData({
   const params = await searchParams;
   const search = params.search;
   const category = params.category;
+  const source: IngredientSourceFilter =
+    params.source === "global" || params.source === "mine" ? params.source : "all";
   const pageRaw = params.page;
   const limitRaw = params.limit;
 
@@ -51,8 +60,8 @@ async function IngredientsPageData({
 
   const [categoryOptions, ingredients, totalCount] = await Promise.all([
     getIngredientCategoryOptions(),
-    listIngredientsForUser(session.user.id, { search, category, skip, take: limit }),
-    countIngredientsForUser(session.user.id, { search, category }),
+    listIngredientsForUser(session.user.id, { search, category, source, skip, take: limit }),
+    countIngredientsForUser(session.user.id, { search, category, source }),
   ]);
 
   const totalPages = Math.ceil(totalCount / limit) || 1;
@@ -70,6 +79,7 @@ async function IngredientsPageData({
       ingredients={ingredientsPlain}
       search={search}
       category={category}
+      source={source}
       categories={categoryOptions.categories.map((c: IngredientCategoryOption) => c.name)}
       totalCount={totalCount}
       page={page}
@@ -82,7 +92,13 @@ async function IngredientsPageData({
 export default function IngredientsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; category?: string; page?: string; limit?: string }>;
+  searchParams: Promise<{
+    search?: string;
+    category?: string;
+    source?: string;
+    page?: string;
+    limit?: string;
+  }>;
 }) {
   return (
     <div className="space-y-6">

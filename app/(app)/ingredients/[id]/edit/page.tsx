@@ -36,17 +36,29 @@ async function EditIngredientPageData({
         <PageTitle>Edit ingredient</PageTitle>
         <span
           className="rounded-full bg-accent px-2 py-0.5 text-sm text-accent-foreground"
-          aria-label={isGlobal ? "Global ingredient" : "User created"}
+          aria-label={isGlobal ? "Global ingredient" : "Custom ingredient"}
         >
-          {isGlobal ? "Global" : "User created"}
+          {isGlobal ? "Global" : "Custom"}
         </span>
       </div>
+      {ingredient.userId != null && ingredient.baseIngredientId && ingredient.baseIngredient && (
+        <p className="text-sm text-muted-foreground">
+          Based on global ingredient:{" "}
+          <Link
+            href={`/ingredients/${ingredient.baseIngredient.id}`}
+            className="font-medium text-foreground underline hover:no-underline"
+          >
+            {ingredient.baseIngredient.name}
+          </Link>
+        </p>
+      )}
       <IngredientForm
         mode="edit"
         ingredientId={id}
         initialValues={{
           name: ingredient.name,
           category: ingredient.category ?? undefined,
+          subcategory: ingredient.subcategory || undefined,
           defaultUnit: ingredient.defaultUnit ?? undefined,
           costBasisUnit: ingredient.costBasisUnit,
           estimatedCentsPerBasisUnit: ingredient.estimatedCentsPerBasisUnit ?? undefined,
