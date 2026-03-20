@@ -1,6 +1,12 @@
 "use client";
 
-import { useActionState, useState, useCallback } from "react";
+import {
+  useActionState,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import { setRecipeIngredientsAction } from "@/app/actions/recipe-ingredients.actions";
 import { createIngredientAction } from "@/app/actions/ingredients.actions";
 import { Button } from "@/components/ui/button";
@@ -88,6 +94,34 @@ export function StructuredIngredientsEditor({
     });
   }, []);
 
+  const pendingFocusDisplayRowIndexRef = useRef<number | null>(null);
+
+  const insertRowAfter = useCallback((afterIndex: number) => {
+    pendingFocusDisplayRowIndexRef.current = afterIndex + 1;
+    setItems((prev) => {
+      const next = [...prev];
+      next.splice(afterIndex + 1, 0, {
+        ingredientId: "",
+        ingredientName: "",
+        quantityText: "",
+        displayText: "",
+        unit: null,
+        sortOrder: afterIndex + 1,
+      });
+      return next.map((row, i) => ({ ...row, sortOrder: i }));
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    const idx = pendingFocusDisplayRowIndexRef.current;
+    if (idx === null) return;
+    pendingFocusDisplayRowIndexRef.current = null;
+    const el = document.querySelector<HTMLInputElement>(
+      `input[data-ingredient-display-row="${idx}"][aria-label="Display text"]`,
+    );
+    el?.focus();
+  }, [items]);
+
   const handleCreateIngredient = useCallback(
     async (name: string): Promise<{ id: string; name: string } | null> => {
       const formData = new FormData();
@@ -132,6 +166,8 @@ export function StructuredIngredientsEditor({
             <IngredientEditorRow
               key={index}
               separatorAbove={index > 0}
+              displayTextRowIndex={index}
+              onDisplayTextEnter={() => insertRowAfter(index)}
               displayText={row.displayText}
               onDisplayTextChange={(v) => updateRow(index, { displayText: v })}
               displayTextPlaceholder="Ingredient line"
