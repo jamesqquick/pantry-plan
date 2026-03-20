@@ -193,6 +193,13 @@ async function OrderDetailPageData({
             <p className="mt-2 text-lg font-medium text-foreground">
               {formatDollars(grocery.totalEstimatedCostCents)}
             </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Costs use a mix of shared <span className="font-medium">Global</span>{" "}
+              ingredients and any <span className="font-medium">Custom</span>{" "}
+              ingredients you have created. Setting up Custom ingredients with
+              your pantry brands and local prices will make these estimates more
+              realistic.
+            </p>
             {grocery.issues.unmapped.length > 0 && (
               <p className="mt-1 text-sm text-muted-foreground">
                 Total cost (excludes {grocery.issues.unmapped.length} unmapped

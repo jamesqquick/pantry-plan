@@ -76,9 +76,9 @@ async function IngredientViewData({
           <PageTitle>{ingredient.name}</PageTitle>
           <span
             className="rounded-full bg-muted px-2 py-0.5 text-sm text-muted-foreground"
-            aria-label={isGlobal ? "Global ingredient" : "User created"}
+            aria-label={isGlobal ? "Global ingredient" : "Custom ingredient"}
           >
-            {isGlobal ? "Global" : "User created"}
+            {isGlobal ? "Global" : "Custom"}
           </span>
         </div>
         {canEdit && (
@@ -96,6 +96,17 @@ async function IngredientViewData({
           <CardTitle className="text-base">Ingredient details</CardTitle>
         </CardHeader>
         <CardContent>
+          {!isGlobal && ingredient.baseIngredientId && ingredient.baseIngredient && (
+            <div className="mb-4 rounded-input border border-border bg-muted/40 px-3 py-2 text-sm text-foreground">
+              <span className="text-muted-foreground">Based on global: </span>
+              <Link
+                href={`/ingredients/${ingredient.baseIngredient.id}`}
+                className="font-medium underline hover:no-underline"
+              >
+                {ingredient.baseIngredient.name}
+              </Link>
+            </div>
+          )}
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
             <div className="border-b border-border pb-3">
               <span className={labelClass}>Name</span>

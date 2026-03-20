@@ -28,6 +28,7 @@ type RecipeIngredientItem = {
   ingredient: {
     id: string;
     name: string;
+    userId: string | null;
     defaultUnit: IngredientUnit | null;
   } | null;
 };
@@ -73,6 +74,11 @@ export function RecipeView({
     (ri) => ri.ingredient != null || ri.quantity != null || ri.unit != null,
   );
   const needAttentionCount = ingredients.filter(needsAttention).length;
+  const linkedWithIngredient = ingredients.filter((ri) => ri.ingredient != null);
+  const customLinkedCount = linkedWithIngredient.filter(
+    (ri) => ri.ingredient && ri.ingredient.userId != null,
+  ).length;
+  const globalLinkedCount = linkedWithIngredient.length - customLinkedCount;
   const structured = ingredients.map((ri) => {
     const ingredient = ri.ingredient ?? undefined;
     const unitLabel = ri.unit != null ? UNIT_LABELS[ri.unit] : null;
@@ -263,6 +269,21 @@ export function RecipeView({
             <h2 className="text-lg font-medium text-foreground border-b border-border pt-4 pb-4 mb-6">
               Ingredients
             </h2>
+            {!cookingView && linkedWithIngredient.length > 0 && (
+              <Callout variant="info" className="mb-4 text-info">
+                <p>
+                  This recipe currently uses{" "}
+                  <span className="font-medium">{linkedWithIngredient.length}</span>{" "}
+                  mapped ingredient
+                  {linkedWithIngredient.length === 1 ? "" : "s"} —{" "}
+                  <span className="font-medium">{customLinkedCount}</span>{" "}
+                  Custom and{" "}
+                  <span className="font-medium">{globalLinkedCount}</span>{" "}
+                  Global. Creating more Custom ingredients that match your pantry
+                  and local prices can make cost estimates more realistic.
+                </p>
+              </Callout>
+            )}
             {cookingView ? (
               <NumberedList items={ingredientLines} />
             ) : (
