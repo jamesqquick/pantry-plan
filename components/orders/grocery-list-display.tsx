@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import {
+  useMemo,
+  useOptimistic,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
+import { useRouter } from "next/navigation";
 import { GroceryDisplayToggle } from "./grocery-display-toggle";
 import {
   toDisplayUnits,
@@ -10,6 +17,10 @@ import {
   type CanonicalUnitLabel,
 } from "@/lib/grocery/display-units";
 import { PrimaryList, type PrimaryListItem } from "@/components/ui/primary-list";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { toggleOrderGroceryItemCheckedAction } from "@/app/actions/orders.actions";
 
 type GroceryRow = {
   ingredientId: string;
@@ -30,17 +41,120 @@ function formatDollars(cents: number): string {
   }).format(cents / 100);
 }
 
+type ChecklistProps = {
+  orderId: string;
+  checkedIngredientIds: string[];
+};
+
+function GroceryChecklistRows({
+  items,
+  orderId,
+  checkedIngredientIds,
+}: {
+  items: PrimaryListItem[];
+  orderId: string;
+  checkedIngredientIds: string[];
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [optimisticChecked, setOptimisticChecked] = useOptimistic(
+    checkedIngredientIds,
+    (current, next: { ingredientId: string; checked: boolean }) => {
+      const set = new Set(current);
+      if (next.checked) set.add(next.ingredientId);
+      else set.delete(next.ingredientId);
+      return [...set];
+    },
+  );
+
+  const checkedSet = new Set(optimisticChecked);
+
+  const onToggle = (ingredientId: string, nextChecked: boolean) => {
+    startTransition(async () => {
+      setOptimisticChecked({ ingredientId, checked: nextChecked });
+      const result = await toggleOrderGroceryItemCheckedAction({
+        orderId,
+        ingredientId,
+        checked: nextChecked,
+      });
+      if (!result.ok) {
+        router.refresh();
+      }
+    });
+  };
+
+  return (
+    <ul
+      className="divide-y divide-border overflow-hidden rounded-input border border-border bg-card"
+      aria-label="Grocery list"
+    >
+      {items.map((item) => {
+        const isChecked = checkedSet.has(item.id);
+        const controlId = `grocery-check-${orderId}-${item.id}`;
+        return (
+          <li key={item.id}>
+            <div
+              className={cn(
+                "flex min-h-14 flex-wrap items-center gap-3 px-4 py-3 text-foreground",
+                isChecked && "bg-muted/40",
+              )}
+            >
+              <Checkbox
+                id={controlId}
+                checked={isChecked}
+                disabled={pending}
+                onCheckedChange={(state) => {
+                  if (state === "indeterminate") return;
+                  onToggle(item.id, state === true);
+                }}
+              />
+              <Label
+                htmlFor={controlId}
+                className="flex min-w-0 flex-1 cursor-pointer flex-col gap-0.5 font-normal"
+              >
+                <span className="flex flex-wrap items-center gap-2 font-medium">
+                  <span
+                    className={cn(
+                      isChecked && "text-muted-foreground line-through decoration-muted-foreground/70",
+                    )}
+                  >
+                    {item.primaryText}
+                  </span>
+                  {item.badge != null && item.badge !== "" && (
+                    <span
+                      className="rounded-full bg-accent px-2 py-0.5 text-xs font-normal text-accent-foreground"
+                      aria-hidden
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </span>
+                {item.secondaryText != null && item.secondaryText !== "" && (
+                  <span className="text-sm text-muted-foreground">{item.secondaryText}</span>
+                )}
+              </Label>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export function GroceryListDisplay({
   totals,
   title,
   actions,
   showCostEstimates = true,
+  checklist,
 }: {
   totals: GroceryRow[];
   title?: string;
-  actions?: React.ReactNode;
+  actions?: ReactNode;
   /** When false, per-ingredient cost estimates are hidden (e.g. on meal planner). */
   showCostEstimates?: boolean;
+  /** When set (order detail), grocery lines become a persisted checklist. */
+  checklist?: ChecklistProps;
 }) {
   const [mode, setMode] = useState<"shopper" | "kitchen">("shopper");
 
@@ -96,10 +210,18 @@ export function GroceryListDisplay({
         </p>
       ) : (
         <div className="mt-2">
-          <PrimaryList
-            items={listItems}
-            aria-label="Grocery list"
-          />
+          {checklist ? (
+            <GroceryChecklistRows
+              items={listItems}
+              orderId={checklist.orderId}
+              checkedIngredientIds={checklist.checkedIngredientIds}
+            />
+          ) : (
+            <PrimaryList
+              items={listItems}
+              aria-label="Grocery list"
+            />
+          )}
         </div>
       )}
     </section>

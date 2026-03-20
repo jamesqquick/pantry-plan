@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import type { CostBasisUnit, IngredientUnit } from "@/generated/prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
 import Link from "next/link";
 import { ContentLink } from "@/components/ui/content-link";
 import { notFound } from "next/navigation";
@@ -7,7 +7,7 @@ import { auth } from "@/lib/auth";
 import { getOrderWithGroceryData } from "@/lib/queries/orders";
 import { getRecipesWithIngredientsForUser } from "@/lib/queries/recipes";
 import { buildGroceryList } from "@/lib/grocery/aggregate";
-import { toDisplayUnits, formatCanonicalForKitchen } from "@/lib/grocery/display-units";
+import { toDisplayUnits } from "@/lib/grocery/display-units";
 import type { CanonicalUnit, CanonicalUnitLabel } from "@/lib/grocery/display-units";
 import { type GroceryLine } from "@/lib/grocery/format";
 import { PageTitle } from "@/components/ui/page-title";
@@ -160,6 +160,10 @@ async function OrderDetailPageData({
                 basisQty: s.basisQty,
               })),
             }))}
+            checklist={{
+              orderId: order.id,
+              checkedIngredientIds: order.orderGroceryChecks.map((c) => c.ingredientId),
+            }}
             title="Grocery list"
             actions={
               grocery.totals.length > 0 ? (

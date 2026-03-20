@@ -229,16 +229,29 @@ model IngredientAlias {
 }
 
 model Order {
-  id         String      @id @default(cuid())
-  userId     String
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name       String?
-  notes      String?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  orderItems OrderItem[]
+  id                 String              @id @default(cuid())
+  userId             String
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name               String?
+  notes              String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  orderItems         OrderItem[]
+  orderGroceryChecks OrderGroceryCheck[]
 
   @@index([userId, updatedAt])
+}
+
+/// Ingredient rows the shopper marked as already on hand for this order (order detail grocery list).
+model OrderGroceryCheck {
+  id           String   @id @default(cuid())
+  orderId      String
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  ingredientId String
+  createdAt    DateTime @default(now())
+
+  @@unique([orderId, ingredientId])
+  @@index([orderId])
 }
 
 model OrderItem {

@@ -10,6 +10,7 @@ import {
   orderCreateSchema,
   orderUpdateSchema,
   orderIdSchema,
+  orderGroceryCheckToggleSchema,
 } from "@/features/orders/orders.schemas";
 
 export async function createOrderAction(
@@ -179,4 +180,83 @@ export async function deleteOrderAction(
   await db.order.delete({ where: { id: order.id } });
   revalidatePath("/orders");
   redirect("/orders");
+}
+
+export async function toggleOrderGroceryItemCheckedAction(
+  input: unknown
+): Promise<ActionResult<{ checked: boolean }>> {
+  const userResult = await getAuthenticatedUser();
+  if (!userResult.ok) return userResult;
+  const user = userResult.data;
+
+  const parsed = orderGroceryCheckToggleSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid input",
+        fieldErrors: zodToFieldErrors(parsed.error.issues),
+      },
+    };
+  }
+
+  const { orderId, ingredientId, checked } = parsed.data;
+  const db = getDb();
+
+  const order = await db.order.findFirst({
+    where: { id: orderId, userId: user.id },
+    include: {
+      orderItems: {
+        include: {
+          recipe: {
+            select: {
+              recipeIngredients: { select: { ingredientId: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!order) {
+    return { ok: false, error: { code: "FORBIDDEN", message: "Order not found." } };
+  }
+
+  const allowedIngredientIds = new Set<string>();
+  for (const oi of order.orderItems) {
+    for (const ri of oi.recipe.recipeIngredients) {
+      if (ri.ingredientId) allowedIngredientIds.add(ri.ingredientId);
+    }
+  }
+  if (!allowedIngredientIds.has(ingredientId)) {
+    return {
+      ok: false,
+      error: { code: "VALIDATION_ERROR", message: "Ingredient is not on this order." },
+    };
+  }
+
+  try {
+    if (checked) {
+      await db.orderGroceryCheck.upsert({
+        where: {
+          orderId_ingredientId: { orderId, ingredientId },
+        },
+        create: { orderId, ingredientId },
+        update: {},
+      });
+    } else {
+      await db.orderGroceryCheck.deleteMany({
+        where: { orderId, ingredientId },
+      });
+    }
+  } catch (err) {
+    console.error("toggleOrderGroceryItemCheckedAction", err);
+    return {
+      ok: false,
+      error: { code: "INTERNAL_ERROR", message: "Could not update checklist." },
+    };
+  }
+
+  revalidatePath(`/orders/${orderId}`);
+  return { ok: true, data: { checked } };
 }
