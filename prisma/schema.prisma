@@ -98,6 +98,10 @@ model Ingredient {
   id                         String                @id @default(cuid())
   userId                     String?
   user                       User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /** Optional global ingredient this custom row was derived from (application: base must have userId null). */
+  baseIngredientId           String?
+  baseIngredient             Ingredient?           @relation("IngredientBase", fields: [baseIngredientId], references: [id], onDelete: SetNull)
+  derivedFromBase            Ingredient[]          @relation("IngredientBase")
   name                       String
   normalizedName             String
   category                   String?
@@ -118,6 +122,7 @@ model Ingredient {
 
   @@unique([userId, normalizedName])
   @@index([userId])
+  @@index([baseIngredientId])
   @@index([category])
   @@index([category, subcategory])
 }
@@ -242,7 +247,7 @@ model OrderItem {
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   recipeId  String
   recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  batches   Int // >= 1
+  batches   Float // >= 0.5
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

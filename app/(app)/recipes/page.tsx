@@ -96,12 +96,20 @@ async function RecipesPageContent({
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <PageTitle>My recipes</PageTitle>
-        <Link href="/recipes/new">
-          <Button size="lg" className={ICON_LABEL_GAP_CLASS}>
-            <AppIcon name="add" size={18} aria-hidden />
-            Add
-          </Button>
-        </Link>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+          <Link href="/ingredients">
+            <Button variant="outline" className={ICON_LABEL_GAP_CLASS}>
+              <AppIcon name="bill" size={18} aria-hidden />
+              Manage ingredients &amp; costs
+            </Button>
+          </Link>
+          <Link href="/recipes/new">
+            <Button size="lg" className={ICON_LABEL_GAP_CLASS}>
+              <AppIcon name="add" size={18} aria-hidden />
+              Add
+            </Button>
+          </Link>
+        </div>
       </div>
       <RecipeListWrapper
         toolbarSlot={

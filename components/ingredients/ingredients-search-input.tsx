@@ -40,6 +40,10 @@ export function IngredientsSearchInput({
       if (limitParam) sp.set("limit", limitParam);
       const categoryParam = searchParams.get("category");
       if (categoryParam) sp.set("category", categoryParam);
+      const sourceParam = searchParams.get("source");
+      if (sourceParam && (sourceParam === "global" || sourceParam === "mine")) {
+        sp.set("source", sourceParam);
+      }
       const query = sp.toString() ? `?${sp.toString()}` : "";
       router.push(`${pathname}${query}`);
     }, DEBOUNCE_MS);

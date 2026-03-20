@@ -12,9 +12,23 @@ import {
   ingredientNameSchema,
   ingredientPreferencesSchema,
   ingredientSearchQuerySchema,
+  globalIngredientByIdSchema,
 } from "@/features/ingredients/ingredients.schemas";
 import { normalizeIngredientName } from "@/lib/ingredients/normalize";
-import { getCachedIngredientSearch } from "@/lib/queries/ingredients";
+import {
+  getCachedIngredientSearch,
+  listGlobalIngredientsForBaseSearch,
+} from "@/lib/queries/ingredients";
+import type { CostBasisUnit, IngredientUnit } from "@/generated/prisma/client";
+
+export type GlobalIngredientBasePrefillData = {
+  category: string | null;
+  subcategory: string;
+  defaultUnit: IngredientUnit | null;
+  costBasisUnit: CostBasisUnit;
+  estimatedCentsPerBasisUnit: number | null;
+  notes: string | null;
+};
 
 export async function createIngredientAction(
   _prev: unknown,
@@ -24,13 +38,21 @@ export async function createIngredientAction(
   if (!userResult.ok) return userResult;
   const user = userResult.data;
 
+  const baseRaw = formData.get("baseIngredientId");
+  const baseIngredientId =
+    typeof baseRaw === "string" && baseRaw.trim().length > 0 ? baseRaw.trim() : undefined;
+
+  const estRaw = formData.get("estimatedCentsPerBasisUnit");
   const raw = {
     name: formData.get("name"),
     category: formData.get("category") || undefined,
+    subcategory: formData.get("subcategory") || undefined,
     defaultUnit: formData.get("defaultUnit") || undefined,
     costBasisUnit: formData.get("costBasisUnit") || "GRAM",
-    estimatedCentsPerBasisUnit: formData.get("estimatedCentsPerBasisUnit") || undefined,
+    estimatedCentsPerBasisUnit:
+      estRaw == null || String(estRaw).trim() === "" ? undefined : estRaw,
     notes: formData.get("notes") || undefined,
+    baseIngredientId,
   };
   const parsed = ingredientCreateSchema.safeParse(raw);
   if (!parsed.success) {
@@ -45,6 +67,24 @@ export async function createIngredientAction(
   }
 
   const db = getDb();
+
+  if (parsed.data.baseIngredientId) {
+    const base = await db.ingredient.findFirst({
+      where: { id: parsed.data.baseIngredientId, userId: null },
+      select: { id: true },
+    });
+    if (!base) {
+      return {
+        ok: false,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Invalid base ingredient.",
+          fieldErrors: { baseIngredientId: ["Select a valid global ingredient."] },
+        },
+      };
+    }
+  }
+
   const normalizedName = normalizeIngredientName(parsed.data.name);
   const existing = await db.ingredient.findFirst({
     where: { userId: user.id, normalizedName },
@@ -66,10 +106,12 @@ export async function createIngredientAction(
       name: parsed.data.name.trim(),
       normalizedName,
       category: parsed.data.category?.trim() || null,
+      subcategory: parsed.data.subcategory?.trim() ?? "",
       defaultUnit: parsed.data.defaultUnit ?? null,
       costBasisUnit: parsed.data.costBasisUnit,
       estimatedCentsPerBasisUnit: parsed.data.estimatedCentsPerBasisUnit ?? null,
       notes: parsed.data.notes?.trim() || null,
+      baseIngredientId: parsed.data.baseIngredientId ?? null,
     },
   });
   revalidatePath("/ingredients");
@@ -85,13 +127,16 @@ export async function updateIngredientAction(
   if (!userResult.ok) return userResult;
   const user = userResult.data;
 
+  const estUpdateRaw = formData.get("estimatedCentsPerBasisUnit");
   const raw = {
     id: formData.get("id"),
     name: formData.get("name"),
     category: formData.get("category") || undefined,
+    subcategory: formData.get("subcategory") || undefined,
     defaultUnit: formData.get("defaultUnit") || undefined,
     costBasisUnit: formData.get("costBasisUnit") || undefined,
-    estimatedCentsPerBasisUnit: formData.get("estimatedCentsPerBasisUnit") || undefined,
+    estimatedCentsPerBasisUnit:
+      estUpdateRaw == null || String(estUpdateRaw).trim() === "" ? undefined : estUpdateRaw,
     notes: formData.get("notes") || undefined,
   };
   const parsed = ingredientUpdateSchema.safeParse(raw);
@@ -146,6 +191,7 @@ export async function updateIngredientAction(
       name: parsed.data.name.trim(),
       normalizedName,
       category: parsed.data.category?.trim() ?? null,
+      subcategory: parsed.data.subcategory?.trim() ?? "",
       defaultUnit: parsed.data.defaultUnit ?? null,
       ...(parsed.data.costBasisUnit != null && { costBasisUnit: parsed.data.costBasisUnit }),
       estimatedCentsPerBasisUnit: parsed.data.estimatedCentsPerBasisUnit ?? null,
@@ -329,4 +375,91 @@ export async function searchIngredientsForPickerAction(
 
   const data = await getCachedIngredientSearch(user.id, query);
   return { ok: true, data };
+}
+
+/** Search global catalog ingredients only (for "create custom from global base"). */
+export async function searchGlobalIngredientsForBaseAction(
+  raw: unknown
+): Promise<ActionResult<PickerIngredient[]>> {
+  const userResult = await getAuthenticatedUser();
+  if (!userResult.ok) return userResult;
+
+  const parsed = ingredientSearchQuerySchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid input",
+        fieldErrors: zodToFieldErrors(parsed.error.issues),
+      },
+    };
+  }
+
+  const query = parsed.data;
+  if (query.length === 0) {
+    return { ok: true, data: [] };
+  }
+
+  const rows = await listGlobalIngredientsForBaseSearch(query);
+  return {
+    ok: true,
+    data: rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      source: "global" as const,
+    })),
+  };
+}
+
+/** Load field values from a global ingredient to prefill the create form. */
+export async function getGlobalIngredientBasePrefillAction(
+  raw: unknown
+): Promise<ActionResult<GlobalIngredientBasePrefillData>> {
+  const userResult = await getAuthenticatedUser();
+  if (!userResult.ok) return userResult;
+
+  const parsed = globalIngredientByIdSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid input",
+        fieldErrors: zodToFieldErrors(parsed.error.issues),
+      },
+    };
+  }
+
+  const db = getDb();
+  const base = await db.ingredient.findFirst({
+    where: { id: parsed.data.id, userId: null },
+    select: {
+      category: true,
+      subcategory: true,
+      defaultUnit: true,
+      costBasisUnit: true,
+      estimatedCentsPerBasisUnit: true,
+      notes: true,
+    },
+  });
+
+  if (!base) {
+    return {
+      ok: false,
+      error: { code: "FORBIDDEN", message: "Global ingredient not found." },
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      category: base.category,
+      subcategory: base.subcategory ?? "",
+      defaultUnit: base.defaultUnit,
+      costBasisUnit: base.costBasisUnit,
+      estimatedCentsPerBasisUnit: base.estimatedCentsPerBasisUnit,
+      notes: base.notes,
+    },
+  };
 }

@@ -107,7 +107,8 @@ export function buildGroceryList(params: {
   for (const orderItem of orderItems) {
     const recipe = recipeMap.get(orderItem.recipeId);
     if (!recipe) continue;
-    const batches = Math.max(1, orderItem.batches);
+    // Orders can be scaled below 1× (e.g. 1/2) so don't clamp to >= 1.
+    const batches = Math.max(0.01, orderItem.batches);
 
     for (const ri of recipe.ingredients) {
       if (ri.ingredientId == null) {
