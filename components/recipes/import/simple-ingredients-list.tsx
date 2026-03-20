@@ -29,6 +29,7 @@ export function SimpleIngredientsList({
           addLabel="Add ingredient"
           minItems={1}
           onAdd={() => setLines((prev) => [...prev, ""])}
+          insertBelowOnEnter
         />
       </CardContent>
     </Card>

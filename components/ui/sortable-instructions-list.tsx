@@ -1,5 +1,6 @@
 "use client";
 
+import { useId, useLayoutEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppIcon, ICON_BUTTON_CLASS } from "@/components/ui/icons";
@@ -21,6 +22,13 @@ export type SortableInstructionsListProps = {
   formInputName?: string;
   formInputError?: boolean;
   onAdd?: () => void;
+  /** When true, Enter in a row inserts a new empty row below and focuses it. */
+  insertBelowOnEnter?: boolean;
+  /**
+   * When true (and `insertBelowOnEnter`), Enter splits the line at the caret: text before
+   * the caret stays on this row, text after (or after a selection) moves to the new row below.
+   */
+  splitLineAtCaretOnEnter?: boolean;
 };
 
 export function SortableInstructionsList({
@@ -33,9 +41,17 @@ export function SortableInstructionsList({
   formInputName,
   formInputError,
   onAdd,
+  insertBelowOnEnter = false,
+  splitLineAtCaretOnEnter = false,
 }: SortableInstructionsListProps) {
+  const lineRowScope = useId().replace(/:/g, "");
+  const lineRowKey = (i: number) => `${lineRowScope}-${i}`;
   const list = items.length === 0 ? [""] : items;
   const canRemove = list.length > minItems;
+  const pendingFocusRef = useRef<{
+    key: string;
+    caret?: { start: number; end: number };
+  } | null>(null);
 
   const updateAt = (index: number, value: string) => {
     const next = [...(items.length === 0 ? [""] : items)];
@@ -46,6 +62,56 @@ export function SortableInstructionsList({
   const removeAt = (index: number) => {
     const next = (items.length === 0 ? [""] : items).filter((_, i) => i !== index);
     onItemsChange(next.length === 0 ? [""] : next);
+  };
+
+  useLayoutEffect(() => {
+    const pending = pendingFocusRef.current;
+    if (!pending) return;
+    pendingFocusRef.current = null;
+    const el = document.querySelector<HTMLInputElement>(
+      `input[data-sortable-line-row="${CSS.escape(pending.key)}"]`,
+    );
+    if (!el) return;
+    el.focus();
+    if (pending.caret) {
+      const { start, end } = pending.caret;
+      try {
+        el.setSelectionRange(start, end);
+      } catch {
+        /* ignore invalid range for type="hidden" etc. */
+      }
+    }
+  }, [items]);
+
+  const handleLineEnter = (
+    rowIndex: number,
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const input = e.currentTarget;
+    const value = input.value;
+    const selStart = input.selectionStart ?? value.length;
+    const selEnd = input.selectionEnd ?? selStart;
+    let before: string;
+    let after: string;
+    if (splitLineAtCaretOnEnter) {
+      before = value.slice(0, selStart);
+      after = value.slice(selEnd);
+    } else {
+      before = value;
+      after = "";
+    }
+    const base = items.length === 0 ? [""] : [...items];
+    base[rowIndex] = before;
+    base.splice(rowIndex + 1, 0, after);
+    const nextKey = lineRowKey(rowIndex + 1);
+    pendingFocusRef.current = {
+      key: nextKey,
+      caret: { start: 0, end: 0 },
+    };
+    onItemsChange(base);
   };
 
   return (
@@ -69,6 +135,14 @@ export function SortableInstructionsList({
                       <Input
                         value={item}
                         onChange={(e) => updateAt(i, e.target.value)}
+                        onKeyDown={
+                          insertBelowOnEnter
+                            ? (e) => handleLineEnter(i, e)
+                            : undefined
+                        }
+                        data-sortable-line-row={
+                          insertBelowOnEnter ? lineRowKey(i) : undefined
+                        }
                         placeholder={placeholder}
                         error={!!formInputError}
                         className="flex-1 min-w-0"
@@ -78,6 +152,14 @@ export function SortableInstructionsList({
                     <Input
                       value={item}
                       onChange={(e) => updateAt(i, e.target.value)}
+                      onKeyDown={
+                        insertBelowOnEnter
+                          ? (e) => handleLineEnter(i, e)
+                          : undefined
+                      }
+                      data-sortable-line-row={
+                        insertBelowOnEnter ? lineRowKey(i) : undefined
+                      }
                       placeholder={placeholder}
                       className="flex-1 min-w-0"
                     />

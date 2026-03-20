@@ -661,6 +661,8 @@ export function RecipeForm(props: Props) {
             formInputName="instructions"
             formInputError={!!fieldErrors.instructions}
             onAdd={addInstruction}
+            insertBelowOnEnter
+            splitLineAtCaretOnEnter
           />
           {fieldErrors.instructions && (
             <p className="mt-1 text-sm text-destructive" role="alert">
