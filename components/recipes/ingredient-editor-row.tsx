@@ -64,10 +64,6 @@ export type IngredientEditorRowProps = {
   outlineUnit?: boolean;
   /** When true, show yellow outline on ingredient picker. */
   outlinePicker?: boolean;
-  /** Row index for focusing the display-text field after inserting a new line (see `data-ingredient-display-row`). */
-  displayTextRowIndex?: number;
-  /** When set, Enter in the display text field adds a line below (handled by the parent). */
-  onDisplayTextEnter?: () => void;
 };
 
 export function IngredientEditorRow({
@@ -100,8 +96,6 @@ export function IngredientEditorRow({
   outlineQuantity = false,
   outlineUnit = false,
   outlinePicker = false,
-  displayTextRowIndex,
-  onDisplayTextEnter,
 }: IngredientEditorRowProps) {
   void mode;
   const inputClass = compact ? "w-full text-sm" : "w-full";
@@ -110,22 +104,6 @@ export function IngredientEditorRow({
   const stopProp = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
   }, []);
-
-  const handleDisplayTextKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
-      if (!onDisplayTextEnter) return;
-      e.preventDefault();
-      e.stopPropagation();
-      onDisplayTextEnter();
-    },
-    [onDisplayTextEnter],
-  );
-
-  const displayTextInputProps =
-    displayTextRowIndex !== undefined
-      ? { "data-ingredient-display-row": String(displayTextRowIndex) }
-      : {};
 
   const tdClass = "border border-border px-3 py-2 align-top";
 
@@ -167,9 +145,7 @@ export function IngredientEditorRow({
             className={inputClass}
             value={displayText}
             onChange={(e) => onDisplayTextChange(e.target.value)}
-            onKeyDown={handleDisplayTextKeyDown}
             aria-label="Display text"
-            {...displayTextInputProps}
           />
         </td>
         <td className={cn(tdClass, "block w-full sm:table-cell min-w-0")}>
@@ -287,9 +263,7 @@ export function IngredientEditorRow({
               className={inputClass}
               value={displayText}
               onChange={(e) => onDisplayTextChange(e.target.value)}
-              onKeyDown={handleDisplayTextKeyDown}
               aria-label="Display text"
-              {...displayTextInputProps}
             />
           </div>
         </div>

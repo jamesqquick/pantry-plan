@@ -3,7 +3,6 @@
 import {
   useActionState,
   useEffect,
-  useLayoutEffect,
   useState,
   useCallback,
   useRef,
@@ -299,27 +298,6 @@ export function RecipeForm(props: Props) {
     [],
   );
 
-  const pendingFocusDisplayRowIndexRef = useRef<number | null>(null);
-
-  const insertMergedRowAfter = useCallback((afterIndex: number) => {
-    pendingFocusDisplayRowIndexRef.current = afterIndex + 1;
-    setMergedIngredients((prev) => {
-      const next = [...prev];
-      next.splice(afterIndex + 1, 0, defaultMergedRow());
-      return next;
-    });
-  }, []);
-
-  useLayoutEffect(() => {
-    const idx = pendingFocusDisplayRowIndexRef.current;
-    if (idx === null) return;
-    pendingFocusDisplayRowIndexRef.current = null;
-    const el = document.querySelector<HTMLInputElement>(
-      `input[data-ingredient-display-row="${idx}"][aria-label="Display text"]`,
-    );
-    el?.focus();
-  }, [mergedIngredients]);
-
   const handleSearchIngredients = useCallback(async (query: string) => {
     const res = await searchIngredientsForPickerAction(query);
     return res.ok ? res.data : [];
@@ -580,8 +558,6 @@ export function RecipeForm(props: Props) {
                             outlineQuantity={needsQuantityOutline}
                             outlineUnit={needsUnitOutline}
                             outlinePicker={needsPickerOutline}
-                            displayTextRowIndex={index}
-                            onDisplayTextEnter={() => insertMergedRowAfter(index)}
                             displayText={row.displayText}
                             onDisplayTextChange={(v) =>
                               updateMergedIngredient(index, { displayText: v })
@@ -663,7 +639,6 @@ export function RecipeForm(props: Props) {
               formInputName="ingredients"
               formInputError={!!fieldErrors.ingredients}
               onAdd={addIngredient}
-              insertBelowOnEnter
             />
           )}
           {fieldErrors.ingredients && (
@@ -686,6 +661,8 @@ export function RecipeForm(props: Props) {
             formInputName="instructions"
             formInputError={!!fieldErrors.instructions}
             onAdd={addInstruction}
+            insertBelowOnEnter
+            splitLineAtCaretOnEnter
           />
           {fieldErrors.instructions && (
             <p className="mt-1 text-sm text-destructive" role="alert">

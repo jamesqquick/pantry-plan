@@ -24,6 +24,11 @@ export type SortableInstructionsListProps = {
   onAdd?: () => void;
   /** When true, Enter in a row inserts a new empty row below and focuses it. */
   insertBelowOnEnter?: boolean;
+  /**
+   * When true (and `insertBelowOnEnter`), Enter splits the line at the caret: text before
+   * the caret stays on this row, text after (or after a selection) moves to the new row below.
+   */
+  splitLineAtCaretOnEnter?: boolean;
 };
 
 export function SortableInstructionsList({
@@ -37,12 +42,16 @@ export function SortableInstructionsList({
   formInputError,
   onAdd,
   insertBelowOnEnter = false,
+  splitLineAtCaretOnEnter = false,
 }: SortableInstructionsListProps) {
   const lineRowScope = useId().replace(/:/g, "");
   const lineRowKey = (i: number) => `${lineRowScope}-${i}`;
   const list = items.length === 0 ? [""] : items;
   const canRemove = list.length > minItems;
-  const pendingFocusLineKeyRef = useRef<string | null>(null);
+  const pendingFocusRef = useRef<{
+    key: string;
+    caret?: { start: number; end: number };
+  } | null>(null);
 
   const updateAt = (index: number, value: string) => {
     const next = [...(items.length === 0 ? [""] : items)];
@@ -56,14 +65,54 @@ export function SortableInstructionsList({
   };
 
   useLayoutEffect(() => {
-    const key = pendingFocusLineKeyRef.current;
-    if (key === null) return;
-    pendingFocusLineKeyRef.current = null;
+    const pending = pendingFocusRef.current;
+    if (!pending) return;
+    pendingFocusRef.current = null;
     const el = document.querySelector<HTMLInputElement>(
-      `input[data-sortable-line-row="${CSS.escape(key)}"]`,
+      `input[data-sortable-line-row="${CSS.escape(pending.key)}"]`,
     );
-    el?.focus();
+    if (!el) return;
+    el.focus();
+    if (pending.caret) {
+      const { start, end } = pending.caret;
+      try {
+        el.setSelectionRange(start, end);
+      } catch {
+        /* ignore invalid range for type="hidden" etc. */
+      }
+    }
   }, [items]);
+
+  const handleLineEnter = (
+    rowIndex: number,
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const input = e.currentTarget;
+    const value = input.value;
+    const selStart = input.selectionStart ?? value.length;
+    const selEnd = input.selectionEnd ?? selStart;
+    let before: string;
+    let after: string;
+    if (splitLineAtCaretOnEnter) {
+      before = value.slice(0, selStart);
+      after = value.slice(selEnd);
+    } else {
+      before = value;
+      after = "";
+    }
+    const base = items.length === 0 ? [""] : [...items];
+    base[rowIndex] = before;
+    base.splice(rowIndex + 1, 0, after);
+    const nextKey = lineRowKey(rowIndex + 1);
+    pendingFocusRef.current = {
+      key: nextKey,
+      caret: { start: 0, end: 0 },
+    };
+    onItemsChange(base);
+  };
 
   return (
     <SortableListProvider items={list} onReorder={(next) => onItemsChange(next.length === 0 ? [""] : next)}>
@@ -88,21 +137,7 @@ export function SortableInstructionsList({
                         onChange={(e) => updateAt(i, e.target.value)}
                         onKeyDown={
                           insertBelowOnEnter
-                            ? (e) => {
-                                if (
-                                  e.key !== "Enter" ||
-                                  e.nativeEvent.isComposing
-                                ) {
-                                  return;
-                                }
-                                e.preventDefault();
-                                e.stopPropagation();
-                                const base =
-                                  items.length === 0 ? [""] : [...items];
-                                base.splice(i + 1, 0, "");
-                                pendingFocusLineKeyRef.current = lineRowKey(i + 1);
-                                onItemsChange(base);
-                              }
+                            ? (e) => handleLineEnter(i, e)
                             : undefined
                         }
                         data-sortable-line-row={
@@ -119,21 +154,7 @@ export function SortableInstructionsList({
                       onChange={(e) => updateAt(i, e.target.value)}
                       onKeyDown={
                         insertBelowOnEnter
-                          ? (e) => {
-                              if (
-                                e.key !== "Enter" ||
-                                e.nativeEvent.isComposing
-                              ) {
-                                return;
-                              }
-                              e.preventDefault();
-                              e.stopPropagation();
-                              const base =
-                                items.length === 0 ? [""] : [...items];
-                              base.splice(i + 1, 0, "");
-                              pendingFocusLineKeyRef.current = lineRowKey(i + 1);
-                              onItemsChange(base);
-                            }
+                          ? (e) => handleLineEnter(i, e)
                           : undefined
                       }
                       data-sortable-line-row={

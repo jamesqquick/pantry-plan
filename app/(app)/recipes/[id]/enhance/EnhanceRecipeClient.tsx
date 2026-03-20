@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -106,36 +100,6 @@ export function EnhanceRecipeClient({
       prev.map((r, i) => (i === index ? { ...r, ...patch } : r))
     );
   }, []);
-
-  const pendingFocusDisplayRowIndexRef = useRef<number | null>(null);
-
-  const insertRowAfter = useCallback((afterIndex: number) => {
-    pendingFocusDisplayRowIndexRef.current = afterIndex + 1;
-    setRows((prev) => {
-      const next = [...prev];
-      const inserted: EditableRow = {
-        displayText: "",
-        quantityText: "",
-        unit: null,
-        ingredientId: "",
-        ingredientName: "",
-        rawText: null,
-        sortOrder: afterIndex + 1,
-      };
-      next.splice(afterIndex + 1, 0, inserted);
-      return next.map((r, i) => ({ ...r, sortOrder: i }));
-    });
-  }, []);
-
-  useLayoutEffect(() => {
-    const idx = pendingFocusDisplayRowIndexRef.current;
-    if (idx === null) return;
-    pendingFocusDisplayRowIndexRef.current = null;
-    const el = document.querySelector<HTMLInputElement>(
-      `input[data-ingredient-display-row="${idx}"][aria-label="Display text"]`,
-    );
-    el?.focus();
-  }, [rows]);
 
   const handleSearchIngredients = useCallback(async (query: string) => {
     const res = await searchIngredientsForPickerAction(query);
@@ -256,8 +220,6 @@ export function EnhanceRecipeClient({
                     outlineQuantity={needsQuantityOutline}
                     outlineUnit={needsUnitOutline}
                     outlinePicker={needsPickerOutline}
-                    displayTextRowIndex={index}
-                    onDisplayTextEnter={() => insertRowAfter(index)}
                     displayText={row.displayText}
                     onDisplayTextChange={(v) =>
                       updateRow(index, { displayText: v })

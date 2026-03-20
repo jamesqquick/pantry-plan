@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useLayoutEffect, useRef } from "react";
+import React from "react";
 import { IngredientEditorRow } from "@/components/recipes/ingredient-editor-row";
 import { SortableListProvider, SortableRow } from "@/components/ui/sortable-list";
 import { Button } from "@/components/ui/button";
@@ -46,47 +46,11 @@ export function IngredientMappingTable({
   firstNeedsAttentionIndex?: number;
   firstNeedsAttentionRef?: React.RefObject<HTMLDivElement | null>;
 }) {
-  const pendingFocusDisplayRowIndexRef = useRef<number | null>(null);
-
   const updateRow = (index: number, patch: Partial<MappingRow>) => {
     setRows((prev) =>
       prev.map((r, i) => (i === index ? { ...r, ...patch } : r))
     );
   };
-
-  const insertRowAfter = (afterIndex: number) => {
-    pendingFocusDisplayRowIndexRef.current = afterIndex + 1;
-    setRows((prev) => {
-      const next = [...prev];
-      const id = `empty-${afterIndex + 1}-${Date.now()}`;
-      const empty: MappingRow = {
-        id,
-        initialRawText: "",
-        rawText: "",
-        displayText: "",
-        normalizedKey: "",
-        ingredientId: "",
-        ingredientName: "",
-        createName: "",
-        quantityText: "",
-        unit: null,
-        sortOrder: afterIndex + 1,
-        didInitQtyUnit: false,
-      };
-      next.splice(afterIndex + 1, 0, empty);
-      return next.map((r, i) => ({ ...r, sortOrder: i }));
-    });
-  };
-
-  useLayoutEffect(() => {
-    const idx = pendingFocusDisplayRowIndexRef.current;
-    if (idx === null) return;
-    pendingFocusDisplayRowIndexRef.current = null;
-    const el = document.querySelector<HTMLInputElement>(
-      `input[data-ingredient-display-row="${idx}"][aria-label="Display text"]`,
-    );
-    el?.focus();
-  }, [rows]);
 
   return (
     <SortableListProvider items={rows} onReorder={setRows}>
@@ -149,8 +113,6 @@ export function IngredientMappingTable({
                       outlineQuantity={needsQuantityOutline}
                       outlineUnit={needsUnitOutline}
                       outlinePicker={needsPickerOutline}
-                      displayTextRowIndex={i}
-                      onDisplayTextEnter={() => insertRowAfter(i)}
                       displayText={row.displayText}
                       onDisplayTextChange={(v) => updateRow(i, { displayText: v })}
                       quantityText={row.quantityText}

@@ -30,6 +30,8 @@ export function InstructionsListCard({
           onAdd={() =>
             setInstructionsList((prev) => [...prev, defaultInstruction])
           }
+          insertBelowOnEnter
+          splitLineAtCaretOnEnter
         />
       </CardContent>
     </Card>
