@@ -3,9 +3,20 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { AppIcon, ICON_BUTTON_CLASS, ICON_LABEL_GAP_CLASS } from "@/components/ui/icons";
-import { Input } from "@/components/ui/input";
 import { SearchablePicker } from "@/components/ui/searchable-picker";
 import { fuzzyFilterRecipes } from "@/lib/search/fuzzy-recipe";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ORDER_ITEM_BATCH_VALUES } from "@/features/orders/orders.schemas";
+
+function orderBatchSelectLabel(value: number): string {
+  return value === 0.5 ? "1/2" : String(value);
+}
 
 export type RecipeOption = { id: string; title: string };
 
@@ -96,8 +107,11 @@ export function OrderItemsEditor({
       ) : (
         <div className="space-y-2">
           {items.map((row, index) => (
-            <div key={index} className="flex flex-wrap items-center gap-2">
-              <div className="min-w-[180px] w-full max-w-md flex-1">
+            <div
+              key={index}
+              className="flex w-full min-w-0 items-center gap-2"
+            >
+              <div className="min-w-0 flex-1">
                 <SearchablePicker<RecipeOption>
                   options={[]}
                   getItemId={(r) => r.id}
@@ -123,19 +137,32 @@ export function OrderItemsEditor({
                   placeholder="Search recipes"
                   emptyMessage="Type to search or pick a recipe"
                   noResultsMessage="No recipes found"
+                  containerClassName="w-full min-w-0"
                 />
               </div>
+              <div className="flex shrink-0 items-center gap-2">
               <label className="sr-only">Batches</label>
-              <Input
-                type="number"
-                min={1}
-                value={row.batches}
-                onChange={(e) =>
-                  updateRow(index, { batches: parseInt(e.target.value, 10) || 1 })
-                }
-                className="w-20"
-                aria-label="Batches"
-              />
+              <Select
+                value={String(row.batches)}
+                onValueChange={(v) => updateRow(index, { batches: Number(v) })}
+              >
+                <SelectTrigger
+                  aria-label="Batches"
+                  className="h-14 min-w-[7rem] shrink-0 rounded-input border border-input bg-background pl-3 pr-8 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background [&_svg]:ml-1"
+                >
+                  <SelectValue
+                    placeholder="Batches"
+                    className="!block !min-w-[2.5ch] !shrink-0 !grow-0 !overflow-visible !text-clip"
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {ORDER_ITEM_BATCH_VALUES.map((v) => (
+                    <SelectItem key={v} value={String(v)}>
+                      {orderBatchSelectLabel(v)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <span className="text-sm text-muted-foreground">batches</span>
               <Button
                 type="button"
@@ -147,6 +174,7 @@ export function OrderItemsEditor({
               >
                 <AppIcon name="delete" size={18} aria-hidden />
               </Button>
+              </div>
             </div>
           ))}
         </div>

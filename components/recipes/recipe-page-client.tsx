@@ -7,9 +7,10 @@ import { CookingViewToggle } from "@/components/recipes/cooking-view-toggle";
 import { cn } from "@/lib/utils";
 import type { RecipeWithIngredientsSerialized } from "@/lib/queries/recipes";
 
-export type RecipeScale = 1 | 2 | 3;
+export type RecipeScale = 0.5 | 1 | 2 | 3;
 
 const SCALE_OPTIONS: { value: RecipeScale; label: string }[] = [
+  { value: 0.5, label: "1/2×" },
   { value: 1, label: "1×" },
   { value: 2, label: "2×" },
   { value: 3, label: "3×" },

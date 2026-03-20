@@ -66,8 +66,8 @@ export function RecipeView({
 }: {
   recipe: Recipe;
   cookingView?: boolean;
-  /** Scale factor for ingredient quantities (1 = original, 2 = double, 3 = triple). */
-  scale?: 1 | 2 | 3;
+  /** Scale factor for ingredient quantities (0.5 = half, 1 = original, 2 = double, 3 = triple). */
+  scale?: 0.5 | 1 | 2 | 3;
 }) {
   const ingredients = recipe.recipeIngredients ?? [];
   const ingredientsEnhanced = ingredients.some(
@@ -82,10 +82,10 @@ export function RecipeView({
   const structured = ingredients.map((ri) => {
     const ingredient = ri.ingredient ?? undefined;
     const unitLabel = ri.unit != null ? UNIT_LABELS[ri.unit] : null;
-    const     quantity =
-      scale > 1 && ri.quantity != null && Number.isFinite(ri.quantity)
+    const quantity =
+      scale !== 1 && ri.quantity != null && Number.isFinite(ri.quantity)
         ? ri.quantity * scale
-        : (ri.quantity ?? null);
+        : ri.quantity ?? null;
     const displayLine = formatIngredientLine({
       quantity,
       unit: unitLabel,

@@ -1,12 +1,23 @@
 import { z } from "zod";
 
+/** Allowed batch counts when adding a recipe to an order (UI + validation). */
+export const ORDER_ITEM_BATCH_VALUES = [0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+
 export const orderIdSchema = z.object({
   id: z.string().min(1, "Order id is required"),
 });
 
 export const orderItemSchema = z.object({
   recipeId: z.string().min(1, "Recipe is required"),
-  batches: z.coerce.number().int().min(1, "Batches must be at least 1"),
+  batches: z
+    .coerce
+    .number()
+    .min(0.5, "Batches must be at least 1/2")
+    .refine(
+      (v) =>
+        ORDER_ITEM_BATCH_VALUES.some((allowed) => Math.abs(v - allowed) < 1e-9),
+      "Batches must be 1/2 or a whole number from 1 to 10",
+    ),
 });
 
 export const orderCreateSchema = z.object({
