@@ -33,7 +33,14 @@ export const orderUpdateSchema = z.object({
   items: z.array(orderItemSchema).min(1, "Add at least one recipe"),
 });
 
+export const orderGroceryCheckToggleSchema = z.object({
+  orderId: z.string().min(1, "Order id is required"),
+  ingredientId: z.string().min(1, "Ingredient id is required"),
+  checked: z.boolean(),
+});
+
 export type OrderIdInput = z.infer<typeof orderIdSchema>;
 export type OrderItemInput = z.infer<typeof orderItemSchema>;
 export type OrderCreateInput = z.infer<typeof orderCreateSchema>;
 export type OrderUpdateInput = z.infer<typeof orderUpdateSchema>;
+export type OrderGroceryCheckToggleInput = z.infer<typeof orderGroceryCheckToggleSchema>;

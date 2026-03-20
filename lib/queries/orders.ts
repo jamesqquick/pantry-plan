@@ -39,6 +39,9 @@ export async function getOrderWithGroceryData(orderId: string, userId: string) {
   return db.order.findFirst({
     where: { id: orderId, userId },
     include: {
+      orderGroceryChecks: {
+        select: { ingredientId: true },
+      },
       orderItems: {
         include: {
           recipe: {
