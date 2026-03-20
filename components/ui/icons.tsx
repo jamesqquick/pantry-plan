@@ -16,6 +16,7 @@ import {
   Flame,
   Users,
   ChefHat,
+  Receipt,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -37,6 +38,7 @@ export type AppIconName =
   | "more"
   | "share"
   | "search"
+  | "bill"
   | "clock"
   | "timer"
   | "flame"
@@ -54,6 +56,7 @@ const ICON_MAP: Record<AppIconName, LucideIcon> = {
   more: MoreHorizontal,
   share: Share2,
   search: Search,
+  bill: Receipt,
   clock: Clock,
   timer: Timer,
   flame: Flame,

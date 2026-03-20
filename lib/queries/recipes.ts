@@ -5,6 +5,7 @@ const recipeIngredientInclude = {
     select: {
       id: true,
       name: true,
+      userId: true,
       defaultUnit: true,
       costBasisUnit: true,
       estimatedCentsPerBasisUnit: true,

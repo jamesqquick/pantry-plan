@@ -150,7 +150,7 @@ export function ImportIngredientPicker({
             <span>{i.name}</span>
             {i.source && (
               <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground">
-                {i.source === "global" ? "Global" : "User created"}
+                {i.source === "global" ? "Global" : "Custom"}
               </span>
             )}
           </>

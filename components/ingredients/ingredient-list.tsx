@@ -22,12 +22,14 @@ export type IngredientListItem = {
 function buildQueryString(params: {
   search?: string;
   category?: string;
+  source?: "all" | "global" | "mine";
   page?: number;
   limit?: number;
 }): string {
   const sp = new URLSearchParams();
   if (params.search?.trim()) sp.set("search", params.search.trim());
   if (params.category?.trim()) sp.set("category", params.category.trim());
+  if (params.source && params.source !== "all") sp.set("source", params.source);
   if (params.page != null && params.page > 1) sp.set("page", String(params.page));
   if (params.limit != null) sp.set("limit", String(params.limit));
   const q = sp.toString();
@@ -38,6 +40,7 @@ export function IngredientList({
   ingredients,
   search,
   category,
+  source,
   categories,
   totalCount,
   page,
@@ -47,6 +50,7 @@ export function IngredientList({
   ingredients: IngredientListItem[];
   search?: string;
   category?: string;
+  source: "all" | "global" | "mine";
   categories: string[];
   totalCount: number;
   page: number;
@@ -56,6 +60,7 @@ export function IngredientList({
   const showPagination = totalCount > limit;
   const formRef = useRef<HTMLFormElement>(null);
   const categoryInputRef = useRef<HTMLInputElement>(null);
+  const sourceInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="space-y-4">
@@ -75,6 +80,12 @@ export function IngredientList({
           {limit !== 25 && (
             <input type="hidden" name="limit" value={String(limit)} />
           )}
+          <input
+            type="hidden"
+            name="source"
+            ref={sourceInputRef}
+            defaultValue={source}
+          />
           <input
             type="hidden"
             name="category"
@@ -105,6 +116,26 @@ export function IngredientList({
               ))}
             </SelectContent>
           </Select>
+          <Select
+            value={source}
+            onValueChange={(v) => {
+              if (sourceInputRef.current) sourceInputRef.current.value = v;
+              formRef.current?.requestSubmit();
+            }}
+          >
+            <SelectTrigger
+              id="source-filter"
+              className="w-full rounded-input border border-input bg-background pl-3 pr-8 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-fit"
+              aria-label="Filter by ingredient source"
+            >
+              <SelectValue placeholder="All sources" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All ingredients</SelectItem>
+              <SelectItem value="global">Global ingredients</SelectItem>
+              <SelectItem value="mine">My ingredients</SelectItem>
+            </SelectContent>
+          </Select>
         </form>
       </div>
       {ingredients.length === 0 ? (
@@ -118,7 +149,7 @@ export function IngredientList({
               (ing): PrimaryListItem => ({
                 id: ing.id,
                 primaryText: ing.name,
-                badge: ing.userId === null ? "Global" : "User created",
+                badge: ing.userId === null ? "Global" : "Custom",
                 secondaryText: ing.category ?? undefined,
                 href: `/ingredients/${ing.id}`,
               })
@@ -144,6 +175,7 @@ export function IngredientList({
                     href={`/ingredients${buildQueryString({
                       search,
                       category,
+                      source,
                       page: page - 1,
                       limit,
                     })}`}
@@ -167,6 +199,7 @@ export function IngredientList({
                     href={`/ingredients${buildQueryString({
                       search,
                       category,
+                      source,
                       page: page + 1,
                       limit,
                     })}`}
