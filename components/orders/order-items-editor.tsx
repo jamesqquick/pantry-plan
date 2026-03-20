@@ -3,9 +3,15 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { AppIcon, ICON_BUTTON_CLASS, ICON_LABEL_GAP_CLASS } from "@/components/ui/icons";
-import { Input } from "@/components/ui/input";
 import { SearchablePicker } from "@/components/ui/searchable-picker";
 import { fuzzyFilterRecipes } from "@/lib/search/fuzzy-recipe";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export type RecipeOption = { id: string; title: string };
 
@@ -126,16 +132,23 @@ export function OrderItemsEditor({
                 />
               </div>
               <label className="sr-only">Batches</label>
-              <Input
-                type="number"
-                min={1}
-                value={row.batches}
-                onChange={(e) =>
-                  updateRow(index, { batches: parseInt(e.target.value, 10) || 1 })
-                }
-                className="w-20"
-                aria-label="Batches"
-              />
+              <Select
+                value={String(row.batches)}
+                onValueChange={(v) => updateRow(index, { batches: Number(v) })}
+              >
+                <SelectTrigger
+                  aria-label="Batches"
+                  className="w-20 rounded-input border border-input bg-background pl-3 pr-8 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                >
+                  <SelectValue placeholder="Batches" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0.5">1/2</SelectItem>
+                  <SelectItem value="1">1</SelectItem>
+                  <SelectItem value="2">2</SelectItem>
+                  <SelectItem value="3">3</SelectItem>
+                </SelectContent>
+              </Select>
               <span className="text-sm text-muted-foreground">batches</span>
               <Button
                 type="button"

@@ -242,7 +242,7 @@ model OrderItem {
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   recipeId  String
   recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  batches   Int // >= 1
+  batches   Float // >= 0.5
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

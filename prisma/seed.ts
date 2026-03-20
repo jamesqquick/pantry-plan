@@ -533,7 +533,7 @@ async function main() {
           id: seedId("oi", oiIndex),
           orderId,
           recipeId,
-          batches: Math.max(1, item.batches),
+          batches: Math.max(0.5, item.batches),
         },
       });
     }

@@ -6,7 +6,14 @@ export const orderIdSchema = z.object({
 
 export const orderItemSchema = z.object({
   recipeId: z.string().min(1, "Recipe is required"),
-  batches: z.coerce.number().int().min(1, "Batches must be at least 1"),
+  batches: z
+    .coerce
+    .number()
+    .min(0.5, "Batches must be at least 1/2")
+    .refine(
+      (v) => [0.5, 1, 2, 3].some((allowed) => Math.abs(v - allowed) < 1e-9),
+      "Batches must be 1/2, 1, 2, or 3",
+    ),
 });
 
 export const orderCreateSchema = z.object({
