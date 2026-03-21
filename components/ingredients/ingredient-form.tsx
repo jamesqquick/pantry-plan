@@ -372,7 +372,7 @@ export function IngredientForm(props: Props) {
                 name="notes"
                 rows={2}
                 defaultValue={initial?.notes}
-                placeholder="Optional notes"
+                placeholder="Optional notes (Markdown supported)"
               />
             ) : (
               <Textarea
@@ -381,9 +381,12 @@ export function IngredientForm(props: Props) {
                 rows={2}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Optional notes"
+                placeholder="Optional notes (Markdown supported)"
               />
             )}
+            <p className="mt-1 text-xs text-muted-foreground">
+              Markdown is supported: **bold**, lists, links, and `inline code`.
+            </p>
           </div>
           {state && !state.ok && state.error?.message && !state.error?.fieldErrors && (
             <p className="text-sm text-destructive" role="alert">

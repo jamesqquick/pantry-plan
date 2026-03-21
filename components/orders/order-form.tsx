@@ -95,8 +95,11 @@ export function OrderForm(props: Props) {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              placeholder="Optional notes"
+              placeholder="Optional notes (Markdown supported)"
             />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Markdown is supported: **bold**, lists, links, and `inline code`.
+            </p>
           </div>
           <OrderItemsEditor
             recipeOptions={props.recipeOptions}
