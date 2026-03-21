@@ -3,7 +3,8 @@ name: new-feature-worktree
 description: >-
   Implements a new feature in a dedicated git worktree on a feature/ branch,
   validates (tests, lint, build as appropriate), runs Prisma generate before
-  commit, then pushes and opens a PR. Use when the user wants a worktree-based
+  commit, pushes and opens a PR, then opens the worktree folder in a new
+  Cursor instance when possible. Use when the user wants a worktree-based
   feature workflow, or mentions implementing a feature in a separate worktree
   with a pull request.
 ---
@@ -199,7 +200,31 @@ If `gh` is missing or auth fails: state that the PR was not created; give the pu
 
 ---
 
-## 13) Final reply to the user
+## 13) Open worktree in a new Cursor instance
+
+After the PR exists (or push succeeded), open **`WORKTREE_PATH`** in a **new** Cursor window so the user can continue in the feature branch checkout without switching the primary repo window.
+
+**macOS (preferred):**
+
+```bash
+open -na "Cursor" --args "$WORKTREE_PATH"
+```
+
+If that fails or does nothing, try:
+
+```bash
+open -a "Cursor" "$WORKTREE_PATH"
+```
+
+**If the `cursor` CLI is on `PATH`:** you may use `cursor -n "$WORKTREE_PATH"` (or the documented flags for a new window) instead—only when verified available.
+
+**Otherwise (Linux, Windows, missing app):** Do not claim success. Tell the user to use **File → New Window**, then **File → Open Folder…**, and choose `WORKTREE_PATH`.
+
+This step is **best-effort**: report whether the open command ran and exited 0; the user can always open the folder manually.
+
+---
+
+## 14) Final reply to the user
 
 Include:
 
@@ -213,6 +238,7 @@ Include:
 | Prisma generate | OK or error |
 | Commit | Hash if committed |
 | PR | URL or “not created” + reason |
+| Cursor | Opened worktree in new instance (command used) or manual open instructions |
 
 ---
 
