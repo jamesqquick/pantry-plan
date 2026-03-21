@@ -663,6 +663,7 @@ export function RecipeForm(props: Props) {
             onAdd={addInstruction}
             insertBelowOnEnter
             splitLineAtCaretOnEnter
+            fieldVariant="textarea"
           />
           {fieldErrors.instructions && (
             <p className="mt-1 text-sm text-destructive" role="alert">

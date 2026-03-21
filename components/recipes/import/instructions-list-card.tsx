@@ -32,6 +32,7 @@ export function InstructionsListCard({
           }
           insertBelowOnEnter
           splitLineAtCaretOnEnter
+          fieldVariant="textarea"
         />
       </CardContent>
     </Card>
