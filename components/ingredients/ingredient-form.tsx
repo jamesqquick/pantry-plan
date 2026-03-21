@@ -234,10 +234,7 @@ export function IngredientForm(props: Props) {
               value={defaultUnit || "__none__"}
               onValueChange={(v) => setDefaultUnit(v === "__none__" ? "" : v)}
             >
-              <SelectTrigger
-                id="defaultUnit"
-                className="w-full"
-              >
+              <SelectTrigger id="defaultUnit" variant="full">
                 <SelectValue placeholder="—" />
               </SelectTrigger>
               <SelectContent>
@@ -262,10 +259,7 @@ export function IngredientForm(props: Props) {
               value={costBasisUnit}
               onValueChange={(v) => setCostBasisUnit(v as CostBasisUnit)}
             >
-              <SelectTrigger
-                id="costBasisUnit"
-                className="w-full"
-              >
+              <SelectTrigger id="costBasisUnit" variant="full">
                 <SelectValue placeholder="Cost basis unit" />
               </SelectTrigger>
               <SelectContent>

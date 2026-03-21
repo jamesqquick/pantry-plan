@@ -102,7 +102,9 @@ export function IngredientList({
           >
             <SelectTrigger
               id="category-filter"
-              className="w-full rounded-input border border-input bg-background pl-3 pr-8 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-fit"
+              size="sm"
+              variant="full"
+              className="w-full sm:w-fit"
               aria-label="Filter by category"
             >
               <SelectValue placeholder="All categories" />
@@ -125,7 +127,9 @@ export function IngredientList({
           >
             <SelectTrigger
               id="source-filter"
-              className="w-full rounded-input border border-input bg-background pl-3 pr-8 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-fit"
+              size="sm"
+              variant="full"
+              className="w-full sm:w-fit"
               aria-label="Filter by ingredient source"
             >
               <SelectValue placeholder="All sources" />

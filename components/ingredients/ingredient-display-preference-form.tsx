@@ -73,7 +73,8 @@ export function IngredientDisplayPreferenceForm({
             >
               <SelectTrigger
                 id="preferredDisplayUnit"
-                className="block w-full max-w-xs"
+                variant="full"
+                className="max-w-xs"
               >
                 <SelectValue placeholder="Preferred display unit" />
               </SelectTrigger>

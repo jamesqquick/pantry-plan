@@ -94,11 +94,7 @@ export function QuantityInput({
           onValueChange={handleFractionChange}
           disabled={disabled}
         >
-          <SelectTrigger
-            id={idFraction}
-            className="rounded-input border border-input bg-background pl-2 pr-8 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            aria-label="Fraction"
-          >
+          <SelectTrigger id={idFraction} size="sm" aria-label="Fraction">
             <SelectValue placeholder="—" />
           </SelectTrigger>
           <SelectContent>
@@ -118,12 +114,14 @@ export function QuantityInput({
       >
         <SelectTrigger
           id={idUnit}
-          className="min-w-28 rounded-input border border-input bg-background pl-2 pr-8 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          size="sm"
+          variant="full"
+          className="min-w-28"
           aria-label="Unit"
         >
           <SelectValue placeholder="—" />
         </SelectTrigger>
-        <SelectContent className="min-w-32">
+        <SelectContent contentMinWidth="sm">
           <SelectItem value="__none__">—</SelectItem>
           {units.map((u) => (
             <SelectItem key={u.value} value={u.value}>

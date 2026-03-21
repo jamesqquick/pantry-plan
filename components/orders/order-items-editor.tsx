@@ -148,7 +148,8 @@ export function OrderItemsEditor({
               >
                 <SelectTrigger
                   aria-label="Batches"
-                  className="h-14 min-w-[7rem] shrink-0 rounded-input border border-input bg-background pl-3 pr-8 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background [&_svg]:ml-1"
+                  size="sm"
+                  className="min-w-[7rem] shrink-0"
                 >
                   <SelectValue
                     placeholder="Batches"

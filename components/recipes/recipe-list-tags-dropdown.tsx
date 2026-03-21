@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { cn } from "@/lib/cn";
 import {
   Select,
   SelectContent,
@@ -9,9 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const TRIGGER_CLASS =
-  "rounded-input border border-input bg-background pl-3 pr-8 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 type RecipeListTagsDropdownProps = {
   tags: { id: string; name: string }[];
@@ -41,7 +37,12 @@ export function RecipeListTagsDropdown({
           );
         }}
       >
-        <SelectTrigger id="recipe-tag-filter" className={cn("w-full sm:w-auto", TRIGGER_CLASS)}>
+        <SelectTrigger
+          id="recipe-tag-filter"
+          size="sm"
+          variant="full"
+          className="w-full sm:w-auto"
+        >
           <SelectValue placeholder="All tags" />
         </SelectTrigger>
         <SelectContent>

@@ -184,7 +184,7 @@ export function AddOrEditMealModal({
             <div>
               <Label htmlFor="meal-date">Day</Label>
               <Select value={date} onValueChange={setDate}>
-                <SelectTrigger id="meal-date" className="mt-2 w-full">
+                <SelectTrigger id="meal-date" variant="full" className="mt-2">
                   <SelectValue placeholder="Day" />
                 </SelectTrigger>
                 <SelectContent>
@@ -203,7 +203,7 @@ export function AddOrEditMealModal({
             <div>
               <Label htmlFor="meal-slot">Meal</Label>
               <Select value={mealSlot} onValueChange={setMealSlot}>
-                <SelectTrigger id="meal-slot" className="mt-2 w-full">
+                <SelectTrigger id="meal-slot" variant="full" className="mt-2">
                   <SelectValue placeholder="Meal" />
                 </SelectTrigger>
                 <SelectContent>

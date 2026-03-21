@@ -19,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/cn";
 import { Toast } from "@/components/ui/toast";
 import { RecipeListRecipeCard, type RecipeListRecipe } from "./recipe-list-recipe-card";
 import { RecipeListTagsDropdown } from "./recipe-list-tags-dropdown";
@@ -32,9 +31,6 @@ const SORT_OPTIONS = [
 ] as const;
 
 export type SortValue = (typeof SORT_OPTIONS)[number]["value"];
-
-const SORT_TRIGGER_CLASS =
-  "rounded-input border border-input bg-background pl-3 pr-8 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 type RecipeListContextValue = {
   searchQuery: string;
@@ -172,7 +168,9 @@ export function RecipeListSortAndTags({
         >
           <SelectTrigger
             id="recipe-sort"
-            className={cn("w-full sm:w-auto", SORT_TRIGGER_CLASS)}
+            size="sm"
+            variant="full"
+            className="w-full sm:w-auto"
           >
             <SelectValue placeholder="Sort" />
           </SelectTrigger>

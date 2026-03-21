@@ -34,9 +34,7 @@ export function IngredientPicker({
           onChange(id, name);
         }}
       >
-        <SelectTrigger
-          className="min-w-[180px] w-full rounded-sm border border-input bg-background pl-3 pr-8 py-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-        >
+        <SelectTrigger variant="full" className="min-w-[180px]">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>

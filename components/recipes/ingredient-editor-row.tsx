@@ -125,10 +125,10 @@ export function IngredientEditorRow({
               onUnitChange((v === "__none__" ? null : v) as IngredientUnit | null)
             }
           >
-            <SelectTrigger className="min-w-28 w-full" aria-label="Unit">
+            <SelectTrigger variant="full" className="min-w-28" aria-label="Unit">
               <SelectValue placeholder="—" />
             </SelectTrigger>
-            <SelectContent className="min-w-32">
+            <SelectContent contentMinWidth="sm">
               <SelectItem value="__none__">—</SelectItem>
               {INGREDIENT_UNITS.map((u) => (
                 <SelectItem key={u} value={u}>
@@ -236,12 +236,13 @@ export function IngredientEditorRow({
               }
             >
               <SelectTrigger
-                className={cn("min-w-28 w-full", outlineUnit && borderWarningClass)}
+                variant="full"
+                className={cn("min-w-28", outlineUnit && borderWarningClass)}
                 aria-label="Unit"
               >
                 <SelectValue placeholder="—" />
               </SelectTrigger>
-              <SelectContent className="min-w-32">
+              <SelectContent contentMinWidth="sm">
                 <SelectItem value="__none__">—</SelectItem>
                 {INGREDIENT_UNITS.map((u) => (
                   <SelectItem key={u} value={u}>
