@@ -22,7 +22,7 @@ export function IngredientPicker({
   placeholder?: string;
 }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex min-w-[180px] w-full flex-col gap-1">
       <Select
         value={value || "__none__"}
         onValueChange={(id) => {
@@ -34,9 +34,7 @@ export function IngredientPicker({
           onChange(id, name);
         }}
       >
-        <SelectTrigger
-          className="min-w-[180px] w-full rounded-sm border border-input bg-background pl-3 pr-8 py-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-        >
+        <SelectTrigger className="min-w-0">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>

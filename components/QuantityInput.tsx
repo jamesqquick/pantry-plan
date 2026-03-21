@@ -96,7 +96,7 @@ export function QuantityInput({
         >
           <SelectTrigger
             id={idFraction}
-            className="rounded-input border border-input bg-background pl-2 pr-8 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="w-[5.5rem] shrink-0"
             aria-label="Fraction"
           >
             <SelectValue placeholder="—" />
@@ -111,16 +111,13 @@ export function QuantityInput({
           </SelectContent>
         </Select>
       </div>
+      <div className="min-w-0 flex-1 basis-28">
       <Select
         value={value.unit ?? "__none__"}
         onValueChange={handleUnitChange}
         disabled={disabled}
       >
-        <SelectTrigger
-          id={idUnit}
-          className="min-w-28 rounded-input border border-input bg-background pl-2 pr-8 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          aria-label="Unit"
-        >
+        <SelectTrigger id={idUnit} className="min-w-0" aria-label="Unit">
           <SelectValue placeholder="—" />
         </SelectTrigger>
         <SelectContent className="min-w-32">
@@ -132,6 +129,7 @@ export function QuantityInput({
           ))}
         </SelectContent>
       </Select>
+      </div>
     </div>
   );
 }
