@@ -359,7 +359,7 @@ export function RecipeView({
             <h2 className="text-lg font-medium text-foreground border-b border-border pt-4 pb-4 mb-6">
               Instructions
             </h2>
-            <NumberedList items={instructions} />
+            <NumberedList items={instructions} hideStepNumbersOnSmall />
           </section>
         </CardContent>
       </Card>
