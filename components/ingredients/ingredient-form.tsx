@@ -28,17 +28,13 @@ import {
   IngredientCategoryCombobox,
   normalizeToCatalogName,
 } from "@/components/ingredients/ingredient-category-combobox";
-import {
-  COST_BASIS_LABELS,
-  COST_BASIS_LABELS_TITLE,
-  COST_BASIS_UNITS,
-} from "@/lib/grocery/cost-basis-units";
+import { COST_BASIS_UNITS } from "@/lib/grocery/cost-basis-units";
 
 const COST_BASIS_OPTIONS: { value: CostBasisUnit; label: string; hint: string }[] =
   COST_BASIS_UNITS.map((value) => ({
     value,
-    label: COST_BASIS_LABELS_TITLE[value],
-    hint: `Cost (cents per ${COST_BASIS_LABELS[value]})`,
+    label: UNIT_LABELS[value],
+    hint: `Cost (cents per ${UNIT_LABELS[value]})`,
   }));
 
 type CreateProps = {

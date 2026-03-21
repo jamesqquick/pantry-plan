@@ -10,6 +10,7 @@
     "seed": "npx tsx prisma/seed.ts",
     "types": "prisma generate",
     "migrate:dev": "cross-env PRISMA_DATABASE_URL=file:./prisma/dev.db npx prisma migrate dev",
+    "fix:cost-basis-legacy": "npx tsx scripts/fix-legacy-cost-basis-units.ts",
     "check-parse": "tsx scripts/check-parse.ts",
     "test": "vitest run",
     "test:watch": "vitest"

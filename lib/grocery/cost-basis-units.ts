@@ -1,7 +1,9 @@
 /**
- * Cost basis = IngredientUnit minus PINCH. Single place for UI lists and display labels.
+ * Cost basis = IngredientUnit minus PINCH.
+ * Select / read-only labels match `UNIT_LABELS` in `@/lib/ingredients/units` (same text as default unit).
  */
 import type { CostBasisUnit } from "@/generated/prisma/client";
+import { UNIT_LABELS } from "@/lib/ingredients/units";
 
 export const COST_BASIS_UNITS: CostBasisUnit[] = [
   "G",
@@ -26,29 +28,19 @@ export const COST_BASIS_SHORT_LABELS: Record<CostBasisUnit, string> = {
   COUNT: "ea",
 };
 
-/** Human label for ingredient detail / forms. */
-export const COST_BASIS_LABELS: Record<CostBasisUnit, string> = {
-  G: "gram",
-  KG: "kilogram",
-  LB: "pound",
-  OZ: "ounce",
-  TSP: "teaspoon",
-  TBSP: "tablespoon",
-  CUP: "cup",
-  COUNT: "each",
-};
+/** Same strings as default-unit dropdown (`UNIT_LABELS`) for each cost basis. */
+export const COST_BASIS_LABELS_TITLE: Record<CostBasisUnit, string> =
+  COST_BASIS_UNITS.reduce(
+    (acc, u) => {
+      acc[u] = UNIT_LABELS[u];
+      return acc;
+    },
+    {} as Record<CostBasisUnit, string>,
+  );
 
-/** Title case for UI selects. */
-export const COST_BASIS_LABELS_TITLE: Record<CostBasisUnit, string> = {
-  G: "Gram",
-  KG: "Kilogram",
-  LB: "Pound",
-  OZ: "Ounce",
-  TSP: "Teaspoon",
-  TBSP: "Tablespoon",
-  CUP: "Cup",
-  COUNT: "Each (count)",
-};
+/** "Cents per …" copy; matches `COST_BASIS_LABELS_TITLE` so wording matches default unit. */
+export const COST_BASIS_LABELS: Record<CostBasisUnit, string> =
+  COST_BASIS_LABELS_TITLE;
 
 /**
  * Map cost basis to legacy 3-bucket canonical unit for display-units.ts (shopper prefs).
