@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { IngredientUnit } from "@/generated/prisma/client";
+import { IngredientUnit, CostBasisUnit } from "@/generated/prisma/client";
 
 const ingredientUnitSchema = z.nativeEnum(IngredientUnit);
-const costBasisUnitSchema = z.enum(["GRAM", "CUP", "EACH"]);
+const costBasisUnitSchema = z.nativeEnum(CostBasisUnit);
 
 export const ingredientDisplayUnitSchema = z.enum([
   "AUTO",

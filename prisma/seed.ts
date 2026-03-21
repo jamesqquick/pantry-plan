@@ -1,11 +1,27 @@
 import "dotenv/config";
 import { Prisma } from "@/generated/prisma/client";
+import type { CostBasisUnit } from "@/generated/prisma/client";
 import * as fs from "fs";
 import * as path from "path";
 import { hash } from "bcryptjs";
 import { getDb } from "../lib/db";
 import { normalizeIngredientName } from "../lib/ingredients/normalize";
 import { getDisplayTextFromIngredientLine } from "../lib/ingredients/parse-ingredient-line-structured";
+import { COST_BASIS_UNITS } from "../lib/grocery/cost-basis-units";
+
+const ALLOWED_COST_BASIS = new Set<string>(COST_BASIS_UNITS);
+
+function normalizeCostBasisFromSeed(raw: unknown): CostBasisUnit {
+  if (typeof raw !== "string") return "G";
+  const legacy: Record<string, CostBasisUnit> = {
+    GRAM: "G",
+    EACH: "COUNT",
+    CUP: "CUP",
+  };
+  if (legacy[raw] != null) return legacy[raw];
+  if (ALLOWED_COST_BASIS.has(raw)) return raw as CostBasisUnit;
+  return "G";
+}
 
 console.log(
   "[seed] Using Turso (TURSO_DATABASE_URL=%s, TURSO_AUTH_TOKEN=%s)",
@@ -295,12 +311,7 @@ async function main() {
         `data/seed/ingredients.json[${i}]: grams_per_cup must be null or a number >= 0`,
       );
     }
-    const costBasisUnit =
-      costBasisUnitRaw === "GRAM" ||
-      costBasisUnitRaw === "CUP" ||
-      costBasisUnitRaw === "EACH"
-        ? costBasisUnitRaw
-        : "GRAM";
+    const costBasisUnit = normalizeCostBasisFromSeed(costBasisUnitRaw);
     if (
       estimatedCentsRaw != null &&
       (typeof estimatedCentsRaw !== "number" || estimatedCentsRaw < 0)

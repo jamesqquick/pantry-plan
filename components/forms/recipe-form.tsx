@@ -584,7 +584,7 @@ export function RecipeForm(props: Props) {
                             onSelectNew={async (name) => {
                               const formData = new FormData();
                               formData.set("name", name.trim());
-                              formData.set("costBasisUnit", "GRAM");
+                              formData.set("costBasisUnit", "G");
                               const result = await createIngredientAction(
                                 null,
                                 formData,

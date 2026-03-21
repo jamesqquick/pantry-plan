@@ -88,35 +88,39 @@ export function formatDisplayQty(qty: number): string {
   return formatQuantity(qty);
 }
 
-/** Kitchen mode: format canonical quantity + unit label (client-safe, no Prisma). */
-export type CanonicalUnitLabel = "g" | "cup" | "ea";
+/** Short label from convertToBasis / COST_BASIS_SHORT_LABELS (g, kg, tsp, ea, …). */
+export type CanonicalUnitLabel = string;
 
 export function formatCanonicalForKitchen(
   totalBasisQty: number,
   basisUnitLabel: CanonicalUnitLabel
 ): string {
-  let qty: number;
   if (basisUnitLabel === "ea") {
-    qty =
+    const qty =
       Math.abs(totalBasisQty - Math.round(totalBasisQty)) < 1e-6
         ? Math.round(totalBasisQty)
         : Math.round(totalBasisQty * 10) / 10;
-  } else if (basisUnitLabel === "g") {
+    return formatDisplayQty(qty);
+  }
+  let qty: number;
+  if (basisUnitLabel === "g") {
     qty =
       totalBasisQty > 500
         ? Math.round(totalBasisQty / 5) * 5
         : Math.round(totalBasisQty);
-  } else {
+  } else if (basisUnitLabel === "cup") {
     qty =
       totalBasisQty >= 1 &&
       Math.abs(totalBasisQty - Math.round(totalBasisQty)) < 1e-6
         ? Math.round(totalBasisQty)
         : Math.round(totalBasisQty * 100) / 100;
+  } else {
+    qty =
+      Math.abs(totalBasisQty - Math.round(totalBasisQty)) < 1e-2
+        ? Math.round(totalBasisQty * 100) / 100
+        : Math.round(totalBasisQty * 1000) / 1000;
   }
-  // EACH: show quantity only (no "ea" on grocery list); other basis units keep label
-  if (basisUnitLabel === "ea") return formatDisplayQty(qty);
-  const label = basisUnitLabel === "g" ? "g" : "cup";
-  return `${formatDisplayQty(qty)} ${label}`;
+  return `${formatDisplayQty(qty)} ${basisUnitLabel}`;
 }
 
 /**

@@ -65,7 +65,7 @@ export async function createIngredientAction(
     name: formData.get("name"),
     category: formData.get("category") || undefined,
     defaultUnit: formData.get("defaultUnit") || undefined,
-    costBasisUnit: formData.get("costBasisUnit") || "GRAM",
+    costBasisUnit: formData.get("costBasisUnit") || "G",
     estimatedCentsPerBasisUnit:
       estRaw == null || String(estRaw).trim() === "" ? undefined : estRaw,
     notes: formData.get("notes") || undefined,
@@ -330,7 +330,7 @@ export async function upsertFromNameAction(
         userId: user.id,
         name: parsed.data.name.trim(),
         normalizedName,
-        costBasisUnit: "GRAM",
+        costBasisUnit: "G",
       },
     });
   }

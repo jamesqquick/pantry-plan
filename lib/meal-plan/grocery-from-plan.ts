@@ -45,7 +45,7 @@ export async function getGroceryListFromPlan(
         ? {
             id: ri.ingredient.id,
             name: ri.ingredient.name,
-            costBasisUnit: ri.ingredient.costBasisUnit ?? "GRAM",
+            costBasisUnit: ri.ingredient.costBasisUnit ?? "G",
             estimatedCentsPerBasisUnit:
               ri.ingredient.estimatedCentsPerBasisUnit ?? null,
             gramsPerCup: ri.ingredient.gramsPerCup ?? null,

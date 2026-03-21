@@ -1,4 +1,6 @@
 import type { CostBasisUnit } from "@/generated/prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
+import { convertToBasis } from "@/lib/grocery/canonical";
 import type { Unit } from "./units";
 
 const G_PER_OZ = 28.3495;
@@ -40,16 +42,12 @@ export function toBasisQuantity(
   basisUnit: CostBasisUnit
 ): number | null {
   const qty = parsed.quantity ?? 1;
-  const unit = parsed.unit ?? "COUNT";
-
-  switch (basisUnit) {
-    case "GRAM":
-      return toGrams(qty, unit);
-    case "CUP":
-      return toCups(qty, unit);
-    case "EACH":
-      return unit === "COUNT" ? qty : null;
-    default:
-      return null;
-  }
+  const unit = (parsed.unit ?? "COUNT") as IngredientUnit;
+  const r = convertToBasis({
+    quantity: qty,
+    unit,
+    basisUnit,
+    ingredientConversion: null,
+  });
+  return r?.basisQty ?? null;
 }

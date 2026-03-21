@@ -1,9 +1,11 @@
+import type { CostBasisUnit } from "@/generated/prisma/client";
+import type { IngredientUnit } from "@/generated/prisma/client";
+import { convertToBasis } from "@/lib/grocery/canonical";
 import type { GroceryEntry } from "./aggregate-grocery-list";
 import type { Unit } from "./units";
-import { toBasisQuantity, toCups } from "./basis-units";
 
 export type IngredientCostInfo = {
-  costBasisUnit: "GRAM" | "CUP" | "EACH";
+  costBasisUnit: CostBasisUnit;
   estimatedCentsPerBasisUnit: number | null;
   gramsPerCup?: number | null;
   cupsPerEach?: number | null;
@@ -25,7 +27,6 @@ export type CostEstimateResult = {
 
 /**
  * Estimate cost from aggregated grocery list and ingredient cost map (basis-unit model).
- * Volume basis is CUP only; no ml.
  */
 export function estimateCost(
   groceryList: GroceryEntry[],
@@ -59,17 +60,16 @@ export function estimateCost(
       });
       continue;
     }
-    let basisQty = toBasisQuantity(
-      { quantity: entry.qty ?? 1, unit: entry.unit ?? "COUNT" },
-      info.costBasisUnit
-    );
-    if (basisQty == null && info.costBasisUnit === "GRAM" && info.gramsPerCup != null) {
-      const cups = toCups(entry.qty ?? 1, entry.unit ?? "COUNT");
-      if (cups != null) {
-        basisQty = cups * info.gramsPerCup;
-      }
-    }
-    if (basisQty == null) {
+    const converted = convertToBasis({
+      quantity: entry.qty ?? 1,
+      unit: (entry.unit ?? "COUNT") as IngredientUnit,
+      basisUnit: info.costBasisUnit,
+      ingredientConversion: {
+        gramsPerCup: info.gramsPerCup,
+        cupsPerEach: info.cupsPerEach,
+      },
+    });
+    if (converted == null) {
       missing.push({
         normalizedName: entry.normalizedName,
         reason: "UNKNOWN_CONVERSION",
@@ -83,7 +83,9 @@ export function estimateCost(
       });
       continue;
     }
-    const estimatedCents = Math.ceil(basisQty * info.estimatedCentsPerBasisUnit);
+    const estimatedCents = Math.ceil(
+      converted.basisQty * info.estimatedCentsPerBasisUnit,
+    );
     totalCents += estimatedCents;
     lines.push({
       normalizedName: entry.normalizedName,
