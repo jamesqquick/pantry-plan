@@ -80,8 +80,7 @@ The seed runs after a fresh DB (or reset) and is the only source of initial ingr
 - **upsertFromNameAction:**  
   - Lookup by `findUnique({ where: { normalizedName } })`.  
   - Create with no `userId`.
-- **updateIngredientPreferencesAction:**  
-  - Find ingredient by `id` only (no `userId`).
+- **Preferred display unit:** Updated via `updateIngredientAction` together with other fields (no separate preferences action).
 - **searchIngredientsForPickerAction:**  
   - Call `listIngredients` (or equivalent) with no user filter; optionally keep `user.id` for logging/revalidation only.
 

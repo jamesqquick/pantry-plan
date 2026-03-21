@@ -47,7 +47,6 @@
 | **IngredientPicker** | components/recipes/ingredient-picker.tsx | Recipe form | (A) zinc input; (E) focus |
 | **OrderItemsEditor** | components/orders/order-items-editor.tsx | Orders | (A) zinc labels, input, red error |
 | **QuantityInput** | components/QuantityInput.tsx | Legacy | (A) zinc inputs; (E) focus |
-| **IngredientDisplayPreferenceForm** | components/ingredients/ingredient-display-preference-form.tsx | Ingredient edit | (A) zinc description, label, select, red |
 | **RecipeTagPicker** | components/recipes/recipe-tag-picker.tsx | Recipe form, import | (A) zinc/slate dropdown, label, chips; (A) red error |
 | **ImportWizard** | components/recipes/import/import-wizard.tsx | New recipe | (A) zinc headings, labels, file input, borders, red; (B) spacing |
 | **ResetPasswordForm** | components/forms/reset-password-form.tsx | Auth | (A) zinc labels, red errors |

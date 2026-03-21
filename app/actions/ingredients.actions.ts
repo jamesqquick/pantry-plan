@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath, updateTag } from "next/cache";
+import { redirect } from "next/navigation";
 import { getDb } from "@/lib/db";
 import { getAuthenticatedUser, requireAdmin } from "@/app/actions/_shared";
 import { zodToFieldErrors } from "@/lib/action-helpers";
@@ -10,7 +11,6 @@ import {
   ingredientUpdateSchema,
   ingredientIdSchema,
   ingredientNameSchema,
-  ingredientPreferencesSchema,
   ingredientSearchQuerySchema,
   globalIngredientByIdSchema,
 } from "@/features/ingredients/ingredients.schemas";
@@ -146,8 +146,9 @@ export async function createIngredientAction(
     },
   });
   revalidatePath("/ingredients");
+  revalidatePath(`/ingredients/${ingredient.id}`);
   updateTag("ingredients");
-  return { ok: true, data: { id: ingredient.id } };
+  redirect(`/ingredients/${ingredient.id}`);
 }
 
 export async function updateIngredientAction(
@@ -168,6 +169,7 @@ export async function updateIngredientAction(
     estimatedCentsPerBasisUnit:
       estUpdateRaw == null || String(estUpdateRaw).trim() === "" ? undefined : estUpdateRaw,
     notes: formData.get("notes") || undefined,
+    preferredDisplayUnit: formData.get("preferredDisplayUnit"),
   };
   const parsed = ingredientUpdateSchema.safeParse(raw);
   if (!parsed.success) {
@@ -237,12 +239,15 @@ export async function updateIngredientAction(
       ...(parsed.data.costBasisUnit != null && { costBasisUnit: parsed.data.costBasisUnit }),
       estimatedCentsPerBasisUnit: parsed.data.estimatedCentsPerBasisUnit ?? null,
       notes: parsed.data.notes?.trim() ?? null,
+      preferredDisplayUnit: parsed.data.preferredDisplayUnit,
     },
   });
   revalidatePath("/ingredients");
+  revalidatePath(`/ingredients/${parsed.data.id}`);
   revalidatePath(`/ingredients/${parsed.data.id}/edit`);
+  revalidatePath("/orders");
   updateTag("ingredients");
-  return { ok: true, data: { id: parsed.data.id } };
+  redirect("/ingredients");
 }
 
 export async function deleteIngredientAction(
@@ -337,55 +342,6 @@ export async function upsertFromNameAction(
   revalidatePath("/ingredients");
   updateTag("ingredients");
   return { ok: true, data: { id: ingredient.id, name: ingredient.name } };
-}
-
-export async function updateIngredientPreferencesAction(
-  _prev: unknown,
-  formData: FormData
-): Promise<ActionResult<{ id: string }>> {
-  const userResult = await getAuthenticatedUser();
-  if (!userResult.ok) return userResult;
-  const user = userResult.data;
-
-  const parsed = ingredientPreferencesSchema.safeParse({
-    ingredientId: formData.get("ingredientId"),
-    preferredDisplayUnit: formData.get("preferredDisplayUnit"),
-  });
-  if (!parsed.success) {
-    return {
-      ok: false,
-      error: {
-        code: "VALIDATION_ERROR",
-        message: "Invalid input",
-        fieldErrors: zodToFieldErrors(parsed.error.issues),
-      },
-    };
-  }
-
-  const db = getDb();
-  const existing = await db.ingredient.findUnique({
-    where: { id: parsed.data.ingredientId },
-  });
-  if (!existing) {
-    return { ok: false, error: { code: "FORBIDDEN", message: "Ingredient not found." } };
-  }
-
-  if (existing.userId === null) {
-    const adminResult = await requireAdmin();
-    if (!adminResult.ok) return adminResult;
-  } else if (existing.userId !== user.id) {
-    return { ok: false, error: { code: "FORBIDDEN", message: "You can only edit your own ingredients." } };
-  }
-
-  await db.ingredient.update({
-    where: { id: parsed.data.ingredientId },
-    data: { preferredDisplayUnit: parsed.data.preferredDisplayUnit },
-  });
-  revalidatePath("/ingredients");
-  revalidatePath(`/ingredients/${parsed.data.ingredientId}/edit`);
-  revalidatePath("/orders");
-  updateTag("ingredients");
-  return { ok: true, data: { id: parsed.data.ingredientId } };
 }
 
 export type PickerIngredient = { id: string; name: string; source: "global" | "custom" };

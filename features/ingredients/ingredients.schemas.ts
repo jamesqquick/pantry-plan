@@ -13,11 +13,6 @@ export const ingredientDisplayUnitSchema = z.enum([
   "TSP",
 ]);
 
-export const ingredientPreferencesSchema = z.object({
-  ingredientId: z.string().min(1, "Ingredient id is required"),
-  preferredDisplayUnit: ingredientDisplayUnitSchema,
-});
-
 export const globalIngredientByIdSchema = z.object({
   id: z.string().min(1, "Ingredient id is required"),
 });
@@ -35,6 +30,7 @@ export const ingredientCreateSchema = z.object({
 
 export const ingredientUpdateSchema = ingredientCreateSchema.extend({
   id: z.string().min(1, "Ingredient id is required"),
+  preferredDisplayUnit: ingredientDisplayUnitSchema,
 });
 
 export const ingredientIdSchema = z.object({
@@ -55,4 +51,3 @@ export type IngredientCreateInput = z.infer<typeof ingredientCreateSchema>;
 export type IngredientUpdateInput = z.infer<typeof ingredientUpdateSchema>;
 export type IngredientIdInput = z.infer<typeof ingredientIdSchema>;
 export type IngredientNameInput = z.infer<typeof ingredientNameSchema>;
-export type IngredientPreferencesInput = z.infer<typeof ingredientPreferencesSchema>;

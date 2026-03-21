@@ -154,18 +154,15 @@ async function IngredientViewData({
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Grocery list display</CardTitle>
-          <p className="text-sm font-normal text-muted-foreground">
-            How this ingredient appears on order grocery lists (Shopper mode).
-            Cost is always calculated from the cost basis unit.
-          </p>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="border-b border-border pb-3">
             <span className={labelClass}>Preferred display unit</span>
             <p className={valueClass}>
               {DISPLAY_UNIT_LABELS[ingredient.preferredDisplayUnit as IngredientDisplayUnit]}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              How this ingredient appears on order grocery lists (Shopper mode).
+              Cost is always calculated from the cost basis unit.
             </p>
           </div>
         </CardContent>
