@@ -22,8 +22,71 @@ import { cn } from "@/lib/cn";
 
 const TOUCH_TARGET = "min-h-[44px] min-w-[44px]";
 
+/** dnd-kit sortable state for one list item; use with SortableItemRoot + SortableDragHandle for custom layouts. */
+export function useSortableListItem(id: number) {
+  return useSortable({ id });
+}
+
+export type SortableListItem = ReturnType<typeof useSortableListItem>;
+
+/** Outer wrapper: `setNodeRef`, drag transform, dragging opacity. */
+export function SortableItemRoot({
+  setNodeRef,
+  style,
+  isDragging,
+  className,
+  children,
+}: {
+  setNodeRef: SortableListItem["setNodeRef"];
+  style: React.CSSProperties;
+  isDragging: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(isDragging && "opacity-50 z-10", className)}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Grip that activates drag; must stay the `setActivatorNodeRef` target. */
+export function SortableDragHandle({
+  setActivatorNodeRef,
+  attributes,
+  listeners,
+  ariaLabel = "Reorder",
+  className,
+}: {
+  setActivatorNodeRef: SortableListItem["setActivatorNodeRef"];
+  attributes: SortableListItem["attributes"];
+  listeners: SortableListItem["listeners"];
+  ariaLabel?: string;
+  className?: string;
+}) {
+  return (
+    <span
+      ref={setActivatorNodeRef}
+      className={cn(
+        "flex items-center justify-center rounded touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground shrink-0",
+        TOUCH_TARGET,
+        className,
+      )}
+      {...attributes}
+      {...listeners}
+      aria-label={ariaLabel}
+    >
+      <GripVertical size={20} aria-hidden />
+    </span>
+  );
+}
+
 /**
- * Provider for drag-to-reorder lists. Wrap a list of SortableRow and handle reorder via onReorder.
+ * Provider for drag-to-reorder lists. Wrap sortable rows and handle reorder via onReorder.
  */
 export function SortableListProvider<T>({
   items,
@@ -41,7 +104,7 @@ export function SortableListProvider<T>({
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -70,7 +133,7 @@ export function SortableListProvider<T>({
 }
 
 /**
- * A single sortable row. Renders a grip handle and children. Use inside SortableListProvider.
+ * Default horizontal row: grip + children. For custom layouts, use useSortableListItem + SortableItemRoot + SortableDragHandle.
  */
 export function SortableRow({
   id,
@@ -83,44 +146,29 @@ export function SortableRow({
   className?: string;
   dragHandleAriaLabel?: string;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    setActivatorNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
-
+  const sortable = useSortableListItem(id);
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+    transform: CSS.Transform.toString(sortable.transform),
+    transition: sortable.transition,
   };
 
   return (
-    <div
-      ref={setNodeRef}
+    <SortableItemRoot
+      setNodeRef={sortable.setNodeRef}
       style={style}
+      isDragging={sortable.isDragging}
       className={cn(
         "flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap",
-        isDragging && "opacity-50 z-10",
-        className
+        className,
       )}
     >
-      <span
-        ref={setActivatorNodeRef}
-        className={cn(
-          "flex items-center justify-center rounded touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground shrink-0",
-          TOUCH_TARGET
-        )}
-        {...attributes}
-        {...listeners}
-        aria-label={dragHandleAriaLabel}
-      >
-        <GripVertical size={20} aria-hidden />
-      </span>
+      <SortableDragHandle
+        setActivatorNodeRef={sortable.setActivatorNodeRef}
+        attributes={sortable.attributes}
+        listeners={sortable.listeners}
+        ariaLabel={dragHandleAriaLabel}
+      />
       <div className="min-w-0 flex-1">{children}</div>
-    </div>
+    </SortableItemRoot>
   );
 }
