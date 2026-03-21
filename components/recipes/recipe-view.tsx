@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Callout } from "@/components/ui/callout";
 import { NumberedList } from "@/components/ui/numbered-list";
 import { AnimatedSection } from "@/components/ui/animated-section";
+import { SanitizedHtmlContent } from "@/components/ui/sanitized-html-content";
 import { DeleteRecipeButton } from "@/components/recipes/delete-recipe-button";
 import { DuplicateRecipeButton } from "@/components/recipes/duplicate-recipe-button";
 import { formatIngredientLine } from "@/lib/ingredientLineFormat";
@@ -63,11 +64,14 @@ export function RecipeView({
   recipe,
   cookingView = false,
   scale = 1,
+  notesHtml,
 }: {
   recipe: Recipe;
   cookingView?: boolean;
   /** Scale factor for ingredient quantities (0.5 = half, 1 = original, 2 = double, 3 = triple). */
   scale?: 0.5 | 1 | 2 | 3;
+  /** Sanitized HTML from server (`renderMarkdownToHtml`); when set, notes render as Markdown. */
+  notesHtml?: string | null;
 }) {
   const ingredients = recipe.recipeIngredients ?? [];
   const ingredientsEnhanced = ingredients.some(
@@ -368,9 +372,15 @@ export function RecipeView({
         {recipe.notes && (
           <section>
             <h2 className="text-lg font-medium text-foreground">Notes</h2>
-            <p className="mt-2 whitespace-pre-wrap text-foreground">
-              {recipe.notes}
-            </p>
+            {notesHtml != null && notesHtml.trim() !== "" ? (
+              <div className="mt-2">
+                <SanitizedHtmlContent html={notesHtml} />
+              </div>
+            ) : (
+              <p className="mt-2 whitespace-pre-wrap text-foreground">
+                {recipe.notes}
+              </p>
+            )}
           </section>
         )}
       </AnimatedSection>

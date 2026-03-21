@@ -15,6 +15,7 @@ import { PageTitle } from "@/components/ui/page-title";
 import { GroceryActions } from "@/components/grocery/grocery-actions";
 import { GroceryListDisplay } from "@/components/orders/grocery-list-display";
 import { OrderDetailSkeleton } from "@/components/orders/order-detail-skeleton";
+import { MarkdownContent } from "@/components/ui/markdown-content";
 
 function formatDollars(cents: number): string {
   return new Intl.NumberFormat("en-US", {
@@ -91,9 +92,14 @@ async function OrderDetailPageData({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <PageTitle>{order.name?.trim() || "Untitled order"}</PageTitle>
-          {order.notes && (
-            <p className="mt-1 text-muted-foreground">{order.notes}</p>
-          )}
+          {order.notes?.trim() ? (
+            <div className="mt-1 text-muted-foreground">
+              <MarkdownContent
+                source={order.notes}
+                className="text-muted-foreground prose-headings:text-muted-foreground prose-p:text-muted-foreground prose-li:text-muted-foreground prose-strong:text-muted-foreground prose-code:text-muted-foreground"
+              />
+            </div>
+          ) : null}
         </div>
         <Link
           href={`/orders/${order.id}/edit`}

@@ -494,8 +494,11 @@ export function RecipeForm(props: Props) {
                 name="notes"
                 rows={3}
                 defaultValue={initial?.notes}
-                placeholder="Optional notes"
+                placeholder="Optional notes (Markdown supported)"
               />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Markdown is supported: **bold**, lists, links, and `inline code`.
+              </p>
             </div>
           </div>
         </CardContent>

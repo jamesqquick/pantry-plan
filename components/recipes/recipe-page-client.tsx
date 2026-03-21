@@ -20,10 +20,12 @@ export function RecipePageClient({
   recipe,
   initialCookingView,
   weekStart,
+  notesHtml,
 }: {
   recipe: RecipeWithIngredientsSerialized;
   initialCookingView: boolean;
   weekStart: string;
+  notesHtml?: string | null;
 }) {
   const [cookingView, setCookingView] = useState(initialCookingView);
   const [scale, setScale] = useState<RecipeScale>(1);
@@ -75,7 +77,12 @@ export function RecipePageClient({
           ))}
         </div>
       </div>
-      <RecipeView recipe={recipe} cookingView={cookingView} scale={scale} />
+      <RecipeView
+        recipe={recipe}
+        cookingView={cookingView}
+        scale={scale}
+        notesHtml={notesHtml}
+      />
     </div>
   );
 }

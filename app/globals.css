@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* Class-based dark mode (shadcn pattern) — add class="dark" to html to toggle */
 @custom-variant dark (&:where(.dark, .dark *));

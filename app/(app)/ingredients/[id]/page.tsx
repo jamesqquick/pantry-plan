@@ -12,6 +12,7 @@ import { DeleteIngredientButton } from "@/components/ingredients/delete-ingredie
 import { IngredientViewSkeleton } from "@/components/ingredients/ingredient-view-skeleton";
 import type { IngredientDisplayUnit, IngredientUnit } from "@/generated/prisma/client";
 import { COST_BASIS_LABELS } from "@/lib/grocery/cost-basis-units";
+import { MarkdownContent } from "@/components/ui/markdown-content";
 
 const DISPLAY_UNIT_LABELS: Record<IngredientDisplayUnit, string> = {
   AUTO: "Auto",
@@ -153,13 +154,13 @@ async function IngredientViewData({
             )}
             <div className="border-b border-border pb-3 sm:col-span-2">
               <span className={labelClass}>Notes</span>
-              <p
-                className={`whitespace-pre-wrap ${
-                  notesValue ? valueClass : valueEmptyClass
-                }`}
-              >
-                {notesValue ?? "—"}
-              </p>
+              {notesValue ? (
+                <div className={valueClass}>
+                  <MarkdownContent source={ingredient.notes ?? ""} />
+                </div>
+              ) : (
+                <p className={valueEmptyClass}>—</p>
+              )}
             </div>
           </div>
         </CardContent>

@@ -195,8 +195,11 @@ export function RecipeMetadataCard({
             onChange={(e) =>
               setMetadataForm((p) => ({ ...p, notes: e.target.value }))
             }
-            placeholder="Optional notes"
+            placeholder="Optional notes (Markdown supported)"
           />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Markdown is supported: **bold**, lists, links, and `inline code`.
+          </p>
         </div>
       </CardContent>
     </Card>
