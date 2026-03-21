@@ -148,11 +148,11 @@ export function OrderItemsEditor({
               >
                 <SelectTrigger
                   aria-label="Batches"
-                  className="h-14 min-w-[7rem] shrink-0 rounded-input border border-input bg-background pl-3 pr-8 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background [&_svg]:ml-1"
+                  className="min-w-[7rem] shrink-0"
                 >
                   <SelectValue
                     placeholder="Batches"
-                    className="!block !min-w-[2.5ch] !shrink-0 !grow-0 !overflow-visible !text-clip"
+                    className="tabular-nums"
                   />
                 </SelectTrigger>
                 <SelectContent>

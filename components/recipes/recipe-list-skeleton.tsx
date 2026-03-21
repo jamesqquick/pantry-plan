@@ -46,7 +46,7 @@ export function RecipeListSkeleton() {
   );
 }
 
-/** Single dropdown trigger skeleton matching SelectTrigger size (h-14 from ui/select). */
+/** Single dropdown trigger skeleton matching SelectTrigger (h-14, full width + min-w-0 from ui/select). */
 function DropdownTriggerSkeleton({
   className,
 }: {
@@ -66,9 +66,13 @@ function DropdownTriggerSkeleton({
 /** Skeletons for sort and tags dropdowns until toolbar data is ready. Matches final trigger dimensions. */
 export function ToolbarDropdownsSkeleton() {
   return (
-    <div className="flex w-full items-center gap-2 sm:w-auto" aria-busy aria-live="polite">
-      <DropdownTriggerSkeleton className="min-w-44 w-full sm:w-auto sm:min-w-44" />
-      <DropdownTriggerSkeleton className="min-w-28 w-full sm:w-auto sm:min-w-28" />
+    <div
+      className="flex min-w-0 w-full flex-1 flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-2"
+      aria-busy
+      aria-live="polite"
+    >
+      <DropdownTriggerSkeleton className="min-w-0 flex-1" />
+      <DropdownTriggerSkeleton className="min-w-0 flex-1" />
     </div>
   );
 }

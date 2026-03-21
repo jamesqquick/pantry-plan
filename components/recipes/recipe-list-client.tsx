@@ -19,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/cn";
 import { Toast } from "@/components/ui/toast";
 import { RecipeListRecipeCard, type RecipeListRecipe } from "./recipe-list-recipe-card";
 import { RecipeListTagsDropdown } from "./recipe-list-tags-dropdown";
@@ -32,9 +31,6 @@ const SORT_OPTIONS = [
 ] as const;
 
 export type SortValue = (typeof SORT_OPTIONS)[number]["value"];
-
-const SORT_TRIGGER_CLASS =
-  "rounded-input border border-input bg-background pl-3 pr-8 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 type RecipeListContextValue = {
   searchQuery: string;
@@ -104,7 +100,7 @@ export function RecipeListWrapper({
   return (
     <RecipeListContext.Provider value={contextValue}>
       <div className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-stretch">
           {toolbarSlot}
           {tagsSlot}
         </div>
@@ -128,7 +124,7 @@ export function RecipeListSearch() {
   const { searchQuery, setSearchQuery } = useRecipeListContext();
 
   return (
-    <div className="relative w-full flex-1 sm:max-w-xs">
+    <div className="relative min-w-0 w-full flex-1 sm:max-w-xs">
       <label htmlFor="recipe-search" className="sr-only">
         Search recipes
       </label>
@@ -161,8 +157,8 @@ export function RecipeListSortAndTags({
 }: RecipeListSortAndTagsProps) {
   const { sortOption, setSortOption } = useRecipeListContext();
   return (
-    <div className="flex w-full flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
-      <div className="flex w-full items-center gap-2 sm:w-auto">
+    <div className="flex min-w-0 w-full flex-1 flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-2">
+      <div className="min-w-0 flex-1">
         <label htmlFor="recipe-sort" className="sr-only">
           Sort recipes
         </label>
@@ -170,10 +166,7 @@ export function RecipeListSortAndTags({
           value={sortOption}
           onValueChange={(v) => setSortOption(v as SortValue)}
         >
-          <SelectTrigger
-            id="recipe-sort"
-            className={cn("w-full sm:w-auto", SORT_TRIGGER_CLASS)}
-          >
+          <SelectTrigger id="recipe-sort" className="min-w-0">
             <SelectValue placeholder="Sort" />
           </SelectTrigger>
           <SelectContent>

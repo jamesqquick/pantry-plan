@@ -183,8 +183,9 @@ export function AddOrEditMealModal({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <Label htmlFor="meal-date">Day</Label>
+              <div className="mt-2">
               <Select value={date} onValueChange={setDate}>
-                <SelectTrigger id="meal-date" className="mt-2 w-full">
+                <SelectTrigger id="meal-date" className="min-w-0">
                   <SelectValue placeholder="Day" />
                 </SelectTrigger>
                 <SelectContent>
@@ -199,11 +200,13 @@ export function AddOrEditMealModal({
                   ))}
                 </SelectContent>
               </Select>
+              </div>
             </div>
             <div>
               <Label htmlFor="meal-slot">Meal</Label>
+              <div className="mt-2">
               <Select value={mealSlot} onValueChange={setMealSlot}>
-                <SelectTrigger id="meal-slot" className="mt-2 w-full">
+                <SelectTrigger id="meal-slot" className="min-w-0">
                   <SelectValue placeholder="Meal" />
                 </SelectTrigger>
                 <SelectContent>
@@ -214,6 +217,7 @@ export function AddOrEditMealModal({
                   ))}
                 </SelectContent>
               </Select>
+              </div>
             </div>
           </div>
 

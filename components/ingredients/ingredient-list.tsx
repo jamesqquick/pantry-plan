@@ -72,7 +72,7 @@ export function IngredientList({
           ref={formRef}
           method="get"
           action="/ingredients"
-          className="flex w-full min-w-0 items-center gap-2 sm:w-auto"
+          className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-2"
         >
           {search?.trim() && (
             <input type="hidden" name="search" value={search.trim()} />
@@ -92,50 +92,54 @@ export function IngredientList({
             ref={categoryInputRef}
             defaultValue={category ?? ""}
           />
-          <Select
-            value={category ?? "__none__"}
-            onValueChange={(v) => {
-              if (categoryInputRef.current)
-                categoryInputRef.current.value = v === "__none__" ? "" : v;
-              formRef.current?.requestSubmit();
-            }}
-          >
-            <SelectTrigger
-              id="category-filter"
-              className="w-full rounded-input border border-input bg-background pl-3 pr-8 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-fit"
-              aria-label="Filter by category"
+          <div className="min-w-0 flex-1 sm:min-w-[10rem]">
+            <Select
+              value={category ?? "__none__"}
+              onValueChange={(v) => {
+                if (categoryInputRef.current)
+                  categoryInputRef.current.value = v === "__none__" ? "" : v;
+                formRef.current?.requestSubmit();
+              }}
             >
-              <SelectValue placeholder="All categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">All categories</SelectItem>
-              {categories.map((name) => (
-                <SelectItem key={name} value={name}>
-                  {name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={source}
-            onValueChange={(v) => {
-              if (sourceInputRef.current) sourceInputRef.current.value = v;
-              formRef.current?.requestSubmit();
-            }}
-          >
-            <SelectTrigger
-              id="source-filter"
-              className="w-full rounded-input border border-input bg-background pl-3 pr-8 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-fit"
-              aria-label="Filter by ingredient source"
+              <SelectTrigger
+                id="category-filter"
+                className="min-w-0"
+                aria-label="Filter by category"
+              >
+                <SelectValue placeholder="All categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">All categories</SelectItem>
+                {categories.map((name) => (
+                  <SelectItem key={name} value={name}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="min-w-0 flex-1 sm:min-w-[10rem]">
+            <Select
+              value={source}
+              onValueChange={(v) => {
+                if (sourceInputRef.current) sourceInputRef.current.value = v;
+                formRef.current?.requestSubmit();
+              }}
             >
-              <SelectValue placeholder="All sources" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All ingredients</SelectItem>
-              <SelectItem value="global">Global ingredients</SelectItem>
-              <SelectItem value="mine">My ingredients</SelectItem>
-            </SelectContent>
-          </Select>
+              <SelectTrigger
+                id="source-filter"
+                className="min-w-0"
+                aria-label="Filter by ingredient source"
+              >
+                <SelectValue placeholder="All sources" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All ingredients</SelectItem>
+                <SelectItem value="global">Global ingredients</SelectItem>
+                <SelectItem value="mine">My ingredients</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </form>
       </div>
       {ingredients.length === 0 ? (

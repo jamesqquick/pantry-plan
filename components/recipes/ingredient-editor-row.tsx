@@ -125,7 +125,7 @@ export function IngredientEditorRow({
               onUnitChange((v === "__none__" ? null : v) as IngredientUnit | null)
             }
           >
-            <SelectTrigger className="min-w-28 w-full" aria-label="Unit">
+            <SelectTrigger className="min-w-28" aria-label="Unit">
               <SelectValue placeholder="—" />
             </SelectTrigger>
             <SelectContent className="min-w-32">
@@ -236,7 +236,7 @@ export function IngredientEditorRow({
               }
             >
               <SelectTrigger
-                className={cn("min-w-28 w-full", outlineUnit && borderWarningClass)}
+                className={cn("min-w-28", outlineUnit && borderWarningClass)}
                 aria-label="Unit"
               >
                 <SelectValue placeholder="—" />
