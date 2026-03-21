@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState, useCallback } from "react";
+import { useActionState, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   createIngredientAction,
@@ -22,13 +22,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { INGREDIENT_UNITS, UNIT_LABELS } from "@/lib/ingredients/units";
-import type { CostBasisUnit, IngredientUnit } from "@/generated/prisma/client";
+import type {
+  CostBasisUnit,
+  IngredientDisplayUnit,
+  IngredientUnit,
+} from "@/generated/prisma/client";
 import type { IngredientCategoryOption } from "@/lib/ingredients/category-options";
 import {
   IngredientCategoryCombobox,
   normalizeToCatalogName,
 } from "@/components/ingredients/ingredient-category-combobox";
 import { COST_BASIS_UNITS } from "@/lib/grocery/cost-basis-units";
+import { DeleteIngredientButton } from "@/components/ingredients/delete-ingredient-button";
 
 const COST_BASIS_OPTIONS: { value: CostBasisUnit; label: string; hint: string }[] =
   COST_BASIS_UNITS.map((value) => ({
@@ -37,6 +42,15 @@ const COST_BASIS_OPTIONS: { value: CostBasisUnit; label: string; hint: string }[
     hint: `Cost (cents per ${UNIT_LABELS[value]})`,
   }));
 
+const DISPLAY_UNIT_OPTIONS: { value: IngredientDisplayUnit; label: string }[] = [
+  { value: "AUTO", label: "Auto (smart choice)" },
+  { value: "GRAM", label: "Gram (g)" },
+  { value: "CUP", label: "Cup" },
+  { value: "EACH", label: "Each (ea)" },
+  { value: "TBSP", label: "Tablespoon (tbsp)" },
+  { value: "TSP", label: "Teaspoon (tsp)" },
+];
+
 type CreateProps = {
   mode: "create";
 };
@@ -44,6 +58,7 @@ type CreateProps = {
 type EditProps = {
   mode: "edit";
   ingredientId: string;
+  initialPreferredDisplayUnit: IngredientDisplayUnit;
   initialValues: {
     name: string;
     category?: string;
@@ -78,20 +93,16 @@ export function IngredientForm(props: Props) {
   const [costBasisUnit, setCostBasisUnit] = useState(
     initial?.costBasisUnit ?? "G",
   );
+  const [preferredDisplayUnit, setPreferredDisplayUnit] = useState<
+    IngredientDisplayUnit
+  >(() =>
+    isEdit
+      ? (props as EditProps).initialPreferredDisplayUnit
+      : "AUTO",
+  );
   const [createState, createFormAction] = useActionState(createIngredientAction, null);
   const [updateState, updateFormAction] = useActionState(updateIngredientAction, null);
   const state = isEdit ? updateState : createState;
-
-  useEffect(() => {
-    if (state && state.ok && "data" in state && state.data?.id) {
-      if (isEdit) {
-        router.refresh();
-        router.push("/ingredients");
-      } else {
-        router.push(`/ingredients/${state.data.id}`);
-      }
-    }
-  }, [state, isEdit, router]);
 
   const formAction = isEdit ? updateFormAction : createFormAction;
   const fieldErrors = state && !state.ok ? state.error?.fieldErrors ?? {} : {};
@@ -292,7 +303,7 @@ export function IngredientForm(props: Props) {
                 name="estimatedCentsPerBasisUnit"
                 type="number"
                 min={0}
-                step={0.01}
+                step="any"
                 placeholder="e.g. 0.5 (cents per gram) or 25 (cents per egg)"
                 defaultValue={initial?.estimatedCentsPerBasisUnit ?? ""}
               />
@@ -302,7 +313,7 @@ export function IngredientForm(props: Props) {
                 name="estimatedCentsPerBasisUnit"
                 type="number"
                 min={0}
-                step={0.01}
+                step="any"
                 placeholder="e.g. 0.5 (cents per gram) or 25 (cents per egg)"
                 value={estimatedStr}
                 onChange={(e) => setEstimatedStr(e.target.value)}
@@ -313,6 +324,50 @@ export function IngredientForm(props: Props) {
               Grocery totals use this unit; recipe lines convert using density when needed.
             </p>
           </div>
+          {isEdit && (
+            <div>
+              <label
+                htmlFor="preferredDisplayUnit"
+                className="mb-1 block text-sm font-medium text-foreground"
+              >
+                Preferred display unit
+              </label>
+              <input
+                type="hidden"
+                name="preferredDisplayUnit"
+                value={preferredDisplayUnit}
+              />
+              <Select
+                value={preferredDisplayUnit}
+                onValueChange={(v) =>
+                  setPreferredDisplayUnit(v as IngredientDisplayUnit)
+                }
+              >
+                <SelectTrigger
+                  id="preferredDisplayUnit"
+                  className="w-full max-w-xs"
+                >
+                  <SelectValue placeholder="Preferred display unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DISPLAY_UNIT_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-xs text-muted-foreground">
+                How this ingredient appears on order grocery lists (Shopper mode).
+                Cost is always calculated from the cost basis unit.
+              </p>
+              {fieldErrors.preferredDisplayUnit && (
+                <p className="mt-1 text-sm text-destructive" role="alert">
+                  {fieldErrors.preferredDisplayUnit[0]}
+                </p>
+              )}
+            </div>
+          )}
           <div>
             <label
               htmlFor="notes"
@@ -344,20 +399,28 @@ export function IngredientForm(props: Props) {
               {state.error.message}
             </p>
           )}
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
             <FormSubmitButton
+              className="w-full sm:w-auto"
               pendingLabel={isEdit ? "Saving…" : "Creating…"}
             >
               {isEdit ? "Save changes" : "Create ingredient"}
             </FormSubmitButton>
-            {isEdit && (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => router.push("/ingredients")}
-              >
-                Cancel
-              </Button>
+            {props.mode === "edit" && (
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full sm:w-auto"
+                  onClick={() => router.push("/ingredients")}
+                >
+                  Cancel
+                </Button>
+                <DeleteIngredientButton
+                  ingredientId={props.ingredientId}
+                  className="w-full sm:w-auto"
+                />
+              </>
             )}
           </div>
         </form>

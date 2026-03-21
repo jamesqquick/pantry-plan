@@ -1,7 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
-/** Skeleton for the ingredient edit page. Matches layout: back link, title + badge, form card, display preference card, delete. */
+/** Skeleton for the ingredient edit page. Matches layout: back link, title + badge, single form card, delete. */
 export function IngredientEditSkeleton() {
   return (
     <div className="space-y-6">
@@ -21,6 +21,7 @@ export function IngredientEditSkeleton() {
               { labelW: "w-24", valueW: "w-20" },
               { labelW: "w-28", valueW: "w-24" },
               { labelW: "w-40", valueW: "w-36" },
+              { labelW: "w-44", valueW: "w-28" },
               { labelW: "w-12", valueW: "w-full" },
             ].map(({ labelW, valueW }, i) => (
               <div key={i}>
@@ -35,18 +36,6 @@ export function IngredientEditSkeleton() {
               </div>
             ))}
             <Skeleton className="h-10 w-24 rounded-input" aria-hidden />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-5 w-44 rounded-input" aria-hidden />
-        </CardHeader>
-        <CardContent>
-          <div>
-            <Skeleton className="mb-2 h-4 w-36 rounded-input" aria-hidden />
-            <Skeleton className="h-10 w-28 rounded-input" aria-hidden />
           </div>
         </CardContent>
       </Card>
