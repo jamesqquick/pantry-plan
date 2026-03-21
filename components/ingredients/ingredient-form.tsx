@@ -33,6 +33,7 @@ import {
   normalizeToCatalogName,
 } from "@/components/ingredients/ingredient-category-combobox";
 import { COST_BASIS_UNITS } from "@/lib/grocery/cost-basis-units";
+import { DeleteIngredientButton } from "@/components/ingredients/delete-ingredient-button";
 
 const COST_BASIS_OPTIONS: { value: CostBasisUnit; label: string; hint: string }[] =
   COST_BASIS_UNITS.map((value) => ({
@@ -398,20 +399,28 @@ export function IngredientForm(props: Props) {
               {state.error.message}
             </p>
           )}
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
             <FormSubmitButton
+              className="w-full sm:w-auto"
               pendingLabel={isEdit ? "Saving…" : "Creating…"}
             >
               {isEdit ? "Save changes" : "Create ingredient"}
             </FormSubmitButton>
-            {isEdit && (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => router.push("/ingredients")}
-              >
-                Cancel
-              </Button>
+            {props.mode === "edit" && (
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full sm:w-auto"
+                  onClick={() => router.push("/ingredients")}
+                >
+                  Cancel
+                </Button>
+                <DeleteIngredientButton
+                  ingredientId={props.ingredientId}
+                  className="w-full sm:w-auto"
+                />
+              </>
             )}
           </div>
         </form>

@@ -6,8 +6,15 @@ import { deleteIngredientAction } from "@/app/actions/ingredients.actions";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { AppIcon, ICON_LABEL_GAP_CLASS } from "@/components/ui/icons";
+import { cn } from "@/lib/utils";
 
-export function DeleteIngredientButton({ ingredientId }: { ingredientId: string }) {
+export function DeleteIngredientButton({
+  ingredientId,
+  className,
+}: {
+  ingredientId: string;
+  className?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +42,7 @@ export function DeleteIngredientButton({ ingredientId }: { ingredientId: string 
     <>
       <Button
         variant="danger"
-        className={ICON_LABEL_GAP_CLASS}
+        className={cn(ICON_LABEL_GAP_CLASS, className)}
         onClick={() => {
           setOpen(true);
           setError(null);

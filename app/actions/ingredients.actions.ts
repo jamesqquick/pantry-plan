@@ -247,7 +247,7 @@ export async function updateIngredientAction(
   revalidatePath(`/ingredients/${parsed.data.id}/edit`);
   revalidatePath("/orders");
   updateTag("ingredients");
-  redirect("/ingredients");
+  redirect(`/ingredients/${parsed.data.id}`);
 }
 
 export async function deleteIngredientAction(

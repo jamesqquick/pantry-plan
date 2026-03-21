@@ -6,7 +6,6 @@ import { getIngredient } from "@/lib/queries/ingredients";
 import { getIngredientCategoryOptions } from "@/lib/ingredients/category-options";
 import { PageTitle } from "@/components/ui/page-title";
 import { IngredientForm } from "@/components/ingredients/ingredient-form";
-import { DeleteIngredientButton } from "@/components/ingredients/delete-ingredient-button";
 import { IngredientEditSkeleton } from "@/components/ingredients/ingredient-edit-skeleton";
 
 async function EditIngredientPageData({
@@ -69,7 +68,6 @@ async function EditIngredientPageData({
           notes: ingredient.notes ?? undefined,
         }}
       />
-      <DeleteIngredientButton ingredientId={id} />
     </div>
   );
 }
