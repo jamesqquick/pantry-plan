@@ -23,6 +23,11 @@ import {
 } from "@/components/ui/select";
 import { INGREDIENT_UNITS, UNIT_LABELS } from "@/lib/ingredients/units";
 import type { CostBasisUnit, IngredientUnit } from "@/generated/prisma/client";
+import type { IngredientCategoryOption } from "@/lib/ingredients/category-options";
+import {
+  IngredientCategoryCombobox,
+  normalizeToCatalogName,
+} from "@/components/ingredients/ingredient-category-combobox";
 
 const COST_BASIS_OPTIONS: { value: CostBasisUnit; label: string; hint: string }[] = [
   { value: "GRAM", label: "Gram", hint: "Cost (cents per gram)" },
@@ -48,16 +53,23 @@ type EditProps = {
   };
 };
 
-type Props = CreateProps | EditProps;
+type Props = (CreateProps | EditProps) & {
+  categories: IngredientCategoryOption[];
+};
 
 export function IngredientForm(props: Props) {
   const router = useRouter();
   const isEdit = props.mode === "edit";
   const initial = isEdit ? props.initialValues : null;
+  const { categories } = props;
 
   const [baseIngredientId, setBaseIngredientId] = useState("");
   const [baseIngredientName, setBaseIngredientName] = useState("");
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState(() =>
+    isEdit
+      ? normalizeToCatalogName(initial?.category, categories)
+      : "",
+  );
   const [subcategory, setSubcategory] = useState("");
   const [notes, setNotes] = useState("");
   const [estimatedStr, setEstimatedStr] = useState("");
@@ -95,7 +107,7 @@ export function IngredientForm(props: Props) {
     const res = await getGlobalIngredientBasePrefillAction({ id });
     if (!res.ok) return;
     const d = res.data;
-    setCategory(d.category?.trim() ?? "");
+    setCategory(normalizeToCatalogName(d.category, categories));
     setSubcategory(d.subcategory?.trim() ?? "");
     setNotes(d.notes?.trim() ?? "");
     setEstimatedStr(
@@ -105,7 +117,7 @@ export function IngredientForm(props: Props) {
     );
     setDefaultUnit(d.defaultUnit ?? "");
     setCostBasisUnit(d.costBasisUnit);
-  }, []);
+  }, [categories]);
 
   const clearBaseIngredient = useCallback(() => {
     setBaseIngredientId("");
@@ -189,26 +201,28 @@ export function IngredientForm(props: Props) {
           </div>
           <div>
             <label
-              htmlFor="category"
+              htmlFor="ingredient-category"
               className="mb-1 block text-sm font-medium text-foreground"
             >
               Category
             </label>
-            {isEdit ? (
-              <Input
-                id="category"
-                name="category"
-                placeholder="e.g. Dairy, Produce"
-                defaultValue={initial?.category}
-              />
-            ) : (
-              <Input
-                id="category"
-                name="category"
-                placeholder="e.g. Dairy, Produce"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              />
+            <IngredientCategoryCombobox
+              id="ingredient-category"
+              name="category"
+              categories={categories}
+              value={category}
+              onValueChange={setCategory}
+              error={!!fieldErrors.category}
+            />
+            {isEdit && initial?.category && category === "" && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Previous category is not in the catalog; choose a category below or leave as none.
+              </p>
+            )}
+            {fieldErrors.category && (
+              <p className="mt-1 text-sm text-destructive" role="alert">
+                {fieldErrors.category[0]}
+              </p>
             )}
           </div>
           <div>

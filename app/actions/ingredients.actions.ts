@@ -30,6 +30,25 @@ export type GlobalIngredientBasePrefillData = {
   notes: string | null;
 };
 
+async function resolveCategoryFromCatalog(
+  raw: string | undefined | null,
+): Promise<
+  | { ok: true; value: string | null }
+  | { ok: false; fieldErrors: { category: string[] } }
+> {
+  const db = getDb();
+  const t = typeof raw === "string" ? raw.trim() : "";
+  if (!t) return { ok: true, value: null };
+  const row = await db.ingredientCategory.findFirst({ where: { name: t } });
+  if (!row) {
+    return {
+      ok: false,
+      fieldErrors: { category: ["Select a valid category from the list."] },
+    };
+  }
+  return { ok: true, value: row.name };
+}
+
 export async function createIngredientAction(
   _prev: unknown,
   formData: FormData
@@ -62,6 +81,18 @@ export async function createIngredientAction(
         code: "VALIDATION_ERROR",
         message: "Invalid input",
         fieldErrors: zodToFieldErrors(parsed.error.issues),
+      },
+    };
+  }
+
+  const categoryResolved = await resolveCategoryFromCatalog(parsed.data.category);
+  if (!categoryResolved.ok) {
+    return {
+      ok: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid input",
+        fieldErrors: categoryResolved.fieldErrors,
       },
     };
   }
@@ -105,7 +136,7 @@ export async function createIngredientAction(
       userId: user.id,
       name: parsed.data.name.trim(),
       normalizedName,
-      category: parsed.data.category?.trim() || null,
+      category: categoryResolved.value,
       subcategory: parsed.data.subcategory?.trim() ?? "",
       defaultUnit: parsed.data.defaultUnit ?? null,
       costBasisUnit: parsed.data.costBasisUnit,
@@ -151,6 +182,18 @@ export async function updateIngredientAction(
     };
   }
 
+  const categoryResolved = await resolveCategoryFromCatalog(parsed.data.category);
+  if (!categoryResolved.ok) {
+    return {
+      ok: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid input",
+        fieldErrors: categoryResolved.fieldErrors,
+      },
+    };
+  }
+
   const db = getDb();
   const existing = await db.ingredient.findUnique({
     where: { id: parsed.data.id },
@@ -190,7 +233,7 @@ export async function updateIngredientAction(
     data: {
       name: parsed.data.name.trim(),
       normalizedName,
-      category: parsed.data.category?.trim() ?? null,
+      category: categoryResolved.value,
       subcategory: parsed.data.subcategory?.trim() ?? "",
       defaultUnit: parsed.data.defaultUnit ?? null,
       ...(parsed.data.costBasisUnit != null && { costBasisUnit: parsed.data.costBasisUnit }),
