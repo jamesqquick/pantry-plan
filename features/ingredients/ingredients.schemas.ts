@@ -25,7 +25,6 @@ export const globalIngredientByIdSchema = z.object({
 export const ingredientCreateSchema = z.object({
   name: z.string().min(1, "Name is required").max(500),
   category: z.string().max(100).optional(),
-  subcategory: z.string().max(200).optional(),
   defaultUnit: ingredientUnitSchema.optional(),
   costBasisUnit: costBasisUnitSchema,
   estimatedCentsPerBasisUnit: z.coerce.number().min(0).nullable().optional(),

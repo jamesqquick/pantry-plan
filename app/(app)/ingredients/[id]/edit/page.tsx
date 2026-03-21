@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getIngredient } from "@/lib/queries/ingredients";
+import { getIngredientCategoryOptions } from "@/lib/ingredients/category-options";
 import { PageTitle } from "@/components/ui/page-title";
 import { IngredientForm } from "@/components/ingredients/ingredient-form";
 import { IngredientDisplayPreferenceForm } from "@/components/ingredients/ingredient-display-preference-form";
@@ -17,7 +18,10 @@ async function EditIngredientPageData({
   const session = await auth();
   if (!session?.user?.id) return null;
   const { id } = await params;
-  const ingredient = await getIngredient(id);
+  const [ingredient, categoryOptions] = await Promise.all([
+    getIngredient(id),
+    getIngredientCategoryOptions(),
+  ]);
   if (!ingredient) notFound();
   const isGlobal = ingredient.userId === null;
   const canEdit =
@@ -55,10 +59,10 @@ async function EditIngredientPageData({
       <IngredientForm
         mode="edit"
         ingredientId={id}
+        categories={categoryOptions.categories}
         initialValues={{
           name: ingredient.name,
           category: ingredient.category ?? undefined,
-          subcategory: ingredient.subcategory || undefined,
           defaultUnit: ingredient.defaultUnit ?? undefined,
           costBasisUnit: ingredient.costBasisUnit,
           estimatedCentsPerBasisUnit: ingredient.estimatedCentsPerBasisUnit ?? undefined,

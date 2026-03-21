@@ -1,3 +1,4 @@
+import { cacheLife, cacheTag } from "next/cache";
 import { getDb } from "@/lib/db";
 
 export type IngredientCategoryOption = { id: string; name: string };
@@ -12,9 +13,17 @@ export type IngredientCategoryOptionsResult = {
 
 /**
  * Returns all ingredient category and subcategory options (e.g. for LLM prompts when creating new ingredients).
- * Server-only; uses db.
+ * Server-only; uses db. Cached with ~60s server revalidation (relatively static catalog data).
  */
 export async function getIngredientCategoryOptions(): Promise<IngredientCategoryOptionsResult> {
+  "use cache";
+  cacheTag("ingredient-categories");
+  cacheLife({
+    stale: 60,
+    revalidate: 60,
+    expire: 3600,
+  });
+
   const db = getDb();
   const [categories, subcategories] = await Promise.all([
     db.ingredientCategory.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),

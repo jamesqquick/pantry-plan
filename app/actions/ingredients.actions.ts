@@ -23,12 +23,30 @@ import type { CostBasisUnit, IngredientUnit } from "@/generated/prisma/client";
 
 export type GlobalIngredientBasePrefillData = {
   category: string | null;
-  subcategory: string;
   defaultUnit: IngredientUnit | null;
   costBasisUnit: CostBasisUnit;
   estimatedCentsPerBasisUnit: number | null;
   notes: string | null;
 };
+
+async function resolveCategoryFromCatalog(
+  raw: string | undefined | null,
+): Promise<
+  | { ok: true; value: string | null }
+  | { ok: false; fieldErrors: { category: string[] } }
+> {
+  const db = getDb();
+  const t = typeof raw === "string" ? raw.trim() : "";
+  if (!t) return { ok: true, value: null };
+  const row = await db.ingredientCategory.findFirst({ where: { name: t } });
+  if (!row) {
+    return {
+      ok: false,
+      fieldErrors: { category: ["Select a valid category from the list."] },
+    };
+  }
+  return { ok: true, value: row.name };
+}
 
 export async function createIngredientAction(
   _prev: unknown,
@@ -46,7 +64,6 @@ export async function createIngredientAction(
   const raw = {
     name: formData.get("name"),
     category: formData.get("category") || undefined,
-    subcategory: formData.get("subcategory") || undefined,
     defaultUnit: formData.get("defaultUnit") || undefined,
     costBasisUnit: formData.get("costBasisUnit") || "GRAM",
     estimatedCentsPerBasisUnit:
@@ -66,12 +83,25 @@ export async function createIngredientAction(
     };
   }
 
+  const categoryResolved = await resolveCategoryFromCatalog(parsed.data.category);
+  if (!categoryResolved.ok) {
+    return {
+      ok: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid input",
+        fieldErrors: categoryResolved.fieldErrors,
+      },
+    };
+  }
+
   const db = getDb();
 
+  let subcategoryForCreate = "";
   if (parsed.data.baseIngredientId) {
     const base = await db.ingredient.findFirst({
       where: { id: parsed.data.baseIngredientId, userId: null },
-      select: { id: true },
+      select: { id: true, subcategory: true },
     });
     if (!base) {
       return {
@@ -83,6 +113,7 @@ export async function createIngredientAction(
         },
       };
     }
+    subcategoryForCreate = base.subcategory?.trim() ?? "";
   }
 
   const normalizedName = normalizeIngredientName(parsed.data.name);
@@ -105,8 +136,8 @@ export async function createIngredientAction(
       userId: user.id,
       name: parsed.data.name.trim(),
       normalizedName,
-      category: parsed.data.category?.trim() || null,
-      subcategory: parsed.data.subcategory?.trim() ?? "",
+      category: categoryResolved.value,
+      subcategory: subcategoryForCreate,
       defaultUnit: parsed.data.defaultUnit ?? null,
       costBasisUnit: parsed.data.costBasisUnit,
       estimatedCentsPerBasisUnit: parsed.data.estimatedCentsPerBasisUnit ?? null,
@@ -132,7 +163,6 @@ export async function updateIngredientAction(
     id: formData.get("id"),
     name: formData.get("name"),
     category: formData.get("category") || undefined,
-    subcategory: formData.get("subcategory") || undefined,
     defaultUnit: formData.get("defaultUnit") || undefined,
     costBasisUnit: formData.get("costBasisUnit") || undefined,
     estimatedCentsPerBasisUnit:
@@ -147,6 +177,18 @@ export async function updateIngredientAction(
         code: "VALIDATION_ERROR",
         message: "Invalid input",
         fieldErrors: zodToFieldErrors(parsed.error.issues),
+      },
+    };
+  }
+
+  const categoryResolved = await resolveCategoryFromCatalog(parsed.data.category);
+  if (!categoryResolved.ok) {
+    return {
+      ok: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid input",
+        fieldErrors: categoryResolved.fieldErrors,
       },
     };
   }
@@ -190,8 +232,7 @@ export async function updateIngredientAction(
     data: {
       name: parsed.data.name.trim(),
       normalizedName,
-      category: parsed.data.category?.trim() ?? null,
-      subcategory: parsed.data.subcategory?.trim() ?? "",
+      category: categoryResolved.value,
       defaultUnit: parsed.data.defaultUnit ?? null,
       ...(parsed.data.costBasisUnit != null && { costBasisUnit: parsed.data.costBasisUnit }),
       estimatedCentsPerBasisUnit: parsed.data.estimatedCentsPerBasisUnit ?? null,
@@ -436,7 +477,6 @@ export async function getGlobalIngredientBasePrefillAction(
     where: { id: parsed.data.id, userId: null },
     select: {
       category: true,
-      subcategory: true,
       defaultUnit: true,
       costBasisUnit: true,
       estimatedCentsPerBasisUnit: true,
@@ -455,7 +495,6 @@ export async function getGlobalIngredientBasePrefillAction(
     ok: true,
     data: {
       category: base.category,
-      subcategory: base.subcategory ?? "",
       defaultUnit: base.defaultUnit,
       costBasisUnit: base.costBasisUnit,
       estimatedCentsPerBasisUnit: base.estimatedCentsPerBasisUnit,
