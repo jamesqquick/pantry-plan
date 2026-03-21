@@ -46,7 +46,7 @@ export function RecipeListSkeleton() {
   );
 }
 
-/** Single dropdown trigger skeleton matching SelectTrigger size (h-14 from ui/select). */
+/** Single dropdown trigger skeleton matching SelectTrigger size="sm" (h-10 from ui/select). */
 function DropdownTriggerSkeleton({
   className,
 }: {
@@ -55,7 +55,7 @@ function DropdownTriggerSkeleton({
   return (
     <Skeleton
       className={cn(
-        "h-14 rounded-input border border-input",
+        "h-10 rounded-input border border-input",
         className
       )}
       aria-hidden
