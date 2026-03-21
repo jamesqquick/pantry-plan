@@ -61,10 +61,16 @@ enum IngredientUnit {
   PINCH
 }
 
+/** Matches IngredientUnit except PINCH (not a cost basis). Legacy: GRAM→G, EACH→COUNT in migration. */
 enum CostBasisUnit {
-  GRAM
+  G
+  KG
+  LB
+  OZ
+  TSP
+  TBSP
   CUP
-  EACH
+  COUNT
 }
 
 enum IngredientDisplayUnit {

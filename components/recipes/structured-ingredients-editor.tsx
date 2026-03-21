@@ -92,7 +92,7 @@ export function StructuredIngredientsEditor({
     async (name: string): Promise<{ id: string; name: string } | null> => {
       const formData = new FormData();
       formData.set("name", name.trim());
-      formData.set("costBasisUnit", "GRAM");
+      formData.set("costBasisUnit", "G");
       const result = await createIngredientAction(null, formData);
       if (result.ok) {
         const newItem = { id: result.data.id, name: name.trim() };

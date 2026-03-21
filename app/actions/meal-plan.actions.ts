@@ -22,6 +22,8 @@ import {
   type CanonicalUnitLabel,
 } from "@/lib/grocery/display-units";
 import type { GroceryLine } from "@/lib/grocery/format";
+import { costBasisToCanonicalDisplay } from "@/lib/grocery/cost-basis-units";
+import type { CostBasisUnit } from "@/generated/prisma/client";
 
 export async function upsertPlannedMealAction(
   _prev: unknown,
@@ -317,7 +319,7 @@ export async function getMealPlanWeekDataAction(
       ingredientId: t.ingredientId,
       name: t.name,
       basisUnit: t.basisUnit,
-      basisUnitLabel: t.basisUnitLabel as CanonicalUnitLabel,
+      basisUnitLabel: t.basisUnitLabel,
       totalBasisQty: t.totalBasisQty,
       estimatedCostCents: t.estimatedCostCents,
       anyOptional: t.anyOptional,
@@ -335,8 +337,9 @@ export async function getMealPlanWeekDataAction(
 
   const groceryLines: GroceryLine[] = grocery
     ? grocery.totals.map((t) => {
-        const canonicalUnit: CanonicalUnit =
-          t.basisUnit === "CUP" ? "CUP" : t.basisUnit === "EACH" ? "EACH" : "GRAM";
+        const canonicalUnit: CanonicalUnit = costBasisToCanonicalDisplay(
+          t.basisUnit as CostBasisUnit,
+        );
         const display = toDisplayUnits({
           canonicalQty: t.totalBasisQty,
           canonicalUnit,

@@ -126,7 +126,7 @@ export async function saveImportedRecipeWithMappingsAction(
                 userId: user.id,
                 name: createName,
                 normalizedName,
-                costBasisUnit: "GRAM",
+                costBasisUnit: "G",
               },
             });
             ingredientId = created.id;

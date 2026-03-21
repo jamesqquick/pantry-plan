@@ -28,12 +28,18 @@ import {
   IngredientCategoryCombobox,
   normalizeToCatalogName,
 } from "@/components/ingredients/ingredient-category-combobox";
+import {
+  COST_BASIS_LABELS,
+  COST_BASIS_LABELS_TITLE,
+  COST_BASIS_UNITS,
+} from "@/lib/grocery/cost-basis-units";
 
-const COST_BASIS_OPTIONS: { value: CostBasisUnit; label: string; hint: string }[] = [
-  { value: "GRAM", label: "Gram", hint: "Cost (cents per gram)" },
-  { value: "CUP", label: "Cup", hint: "Cost (cents per cup)" },
-  { value: "EACH", label: "Each", hint: "Cost (cents per item)" },
-];
+const COST_BASIS_OPTIONS: { value: CostBasisUnit; label: string; hint: string }[] =
+  COST_BASIS_UNITS.map((value) => ({
+    value,
+    label: COST_BASIS_LABELS_TITLE[value],
+    hint: `Cost (cents per ${COST_BASIS_LABELS[value]})`,
+  }));
 
 type CreateProps = {
   mode: "create";
@@ -74,7 +80,7 @@ export function IngredientForm(props: Props) {
 
   const [defaultUnit, setDefaultUnit] = useState(initial?.defaultUnit ?? "");
   const [costBasisUnit, setCostBasisUnit] = useState(
-    initial?.costBasisUnit ?? "GRAM"
+    initial?.costBasisUnit ?? "G",
   );
   const [createState, createFormAction] = useActionState(createIngredientAction, null);
   const [updateState, updateFormAction] = useActionState(updateIngredientAction, null);
@@ -307,7 +313,8 @@ export function IngredientForm(props: Props) {
               />
             )}
             <p className="mt-1 text-xs text-muted-foreground">
-              GRAM → cents per gram; CUP → cents per cup; EACH → cents per item
+              Choose the unit your price is expressed in (e.g. per pound, per teaspoon).
+              Grocery totals use this unit; recipe lines convert using density when needed.
             </p>
           </div>
           <div>

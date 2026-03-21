@@ -7,8 +7,9 @@ import { auth } from "@/lib/auth";
 import { getOrderWithGroceryData } from "@/lib/queries/orders";
 import { getRecipesWithIngredientsForUser } from "@/lib/queries/recipes";
 import { buildGroceryList } from "@/lib/grocery/aggregate";
-import { toDisplayUnits, formatCanonicalForKitchen } from "@/lib/grocery/display-units";
+import { toDisplayUnits } from "@/lib/grocery/display-units";
 import type { CanonicalUnit, CanonicalUnitLabel } from "@/lib/grocery/display-units";
+import { costBasisToCanonicalDisplay } from "@/lib/grocery/cost-basis-units";
 import { type GroceryLine } from "@/lib/grocery/format";
 import { PageTitle } from "@/components/ui/page-title";
 import { GroceryActions } from "@/components/grocery/grocery-actions";
@@ -61,7 +62,7 @@ async function OrderDetailPageData({
         ? {
             id: ri.ingredient.id,
             name: ri.ingredient.name,
-            costBasisUnit: ri.ingredient.costBasisUnit ?? "GRAM",
+            costBasisUnit: ri.ingredient.costBasisUnit ?? "G",
             estimatedCentsPerBasisUnit: ri.ingredient.estimatedCentsPerBasisUnit ?? null,
             gramsPerCup: ri.ingredient.gramsPerCup ?? null,
             cupsPerEach: ri.ingredient.cupsPerEach ?? null,
@@ -165,8 +166,9 @@ async function OrderDetailPageData({
               grocery.totals.length > 0 ? (
                 <GroceryActions
                   lines={grocery.totals.map((t): GroceryLine => {
-                    const canonicalUnit: CanonicalUnit =
-                      t.basisUnit === "CUP" ? "CUP" : t.basisUnit === "EACH" ? "EACH" : "GRAM";
+                    const canonicalUnit: CanonicalUnit = costBasisToCanonicalDisplay(
+                      t.basisUnit as CostBasisUnit,
+                    );
                     const display = toDisplayUnits({
                       canonicalQty: t.totalBasisQty,
                       canonicalUnit,

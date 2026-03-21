@@ -10,17 +10,11 @@ import { AppIcon, ICON_LABEL_GAP_CLASS } from "@/components/ui/icons";
 import { UNIT_LABELS } from "@/lib/ingredients/units";
 import { DeleteIngredientButton } from "@/components/ingredients/delete-ingredient-button";
 import { IngredientViewSkeleton } from "@/components/ingredients/ingredient-view-skeleton";
-import type {
-  CostBasisUnit,
-  IngredientDisplayUnit,
-  IngredientUnit,
-} from "@/generated/prisma/client";
-
-const COST_BASIS_LABELS: Record<CostBasisUnit, string> = {
-  GRAM: "gram",
-  CUP: "cup",
-  EACH: "each",
-};
+import type { IngredientDisplayUnit, IngredientUnit } from "@/generated/prisma/client";
+import {
+  COST_BASIS_LABELS,
+  COST_BASIS_LABELS_TITLE,
+} from "@/lib/grocery/cost-basis-units";
 
 const DISPLAY_UNIT_LABELS: Record<IngredientDisplayUnit, string> = {
   AUTO: "Auto",
@@ -58,7 +52,7 @@ async function IngredientViewData({
 
   const costValue =
     ingredient.estimatedCentsPerBasisUnit != null
-      ? `${ingredient.estimatedCentsPerBasisUnit}¢ per ${COST_BASIS_LABELS[ingredient.costBasisUnit as CostBasisUnit]}`
+      ? `${ingredient.estimatedCentsPerBasisUnit}¢ per ${COST_BASIS_LABELS[ingredient.costBasisUnit]}`
       : null;
   const notesValue = ingredient.notes?.trim() || null;
 
@@ -129,7 +123,7 @@ async function IngredientViewData({
             <div className="border-b border-border pb-3">
               <span className={labelClass}>Cost basis unit</span>
               <p className={valueClass}>
-                {COST_BASIS_LABELS[ingredient.costBasisUnit as CostBasisUnit]}
+                {COST_BASIS_LABELS_TITLE[ingredient.costBasisUnit]}
               </p>
             </div>
             <div className="border-b border-border pb-3">

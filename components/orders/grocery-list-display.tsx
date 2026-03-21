@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import type { CostBasisUnit } from "@/generated/prisma/client";
+import { costBasisToCanonicalDisplay } from "@/lib/grocery/cost-basis-units";
 import { GroceryDisplayToggle } from "./grocery-display-toggle";
 import {
   toDisplayUnits,
@@ -44,10 +46,8 @@ export function GroceryListDisplay({
 }) {
   const [mode, setMode] = useState<"shopper" | "kitchen">("shopper");
 
-  const canonicalUnit = (u: string): CanonicalUnit => {
-    if (u === "CUP" || u === "GRAM" || u === "EACH") return u;
-    return "GRAM";
-  };
+  const canonicalUnit = (u: string): CanonicalUnit =>
+    costBasisToCanonicalDisplay(u as CostBasisUnit);
 
   const listItems = useMemo((): PrimaryListItem[] => {
     return totals.map((row) => {

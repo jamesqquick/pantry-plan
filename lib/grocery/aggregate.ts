@@ -136,7 +136,7 @@ export function buildGroceryList(params: {
           displayText: ri.displayText,
           quantity: ri.quantity,
           unit: ri.unit,
-          basisUnit: "GRAM",
+          basisUnit: "G",
           reason: "Ingredient relation missing",
         });
         continue;
