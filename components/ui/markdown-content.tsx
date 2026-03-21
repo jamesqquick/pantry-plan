@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { renderMarkdownToHtml } from "@/features/markdown/render-markdown";
 
 const proseNotes =
-  "prose prose-sm max-w-none text-foreground prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-a:text-primary dark:prose-invert";
+  "prose prose-sm max-w-none text-foreground prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-a:text-primary dark:prose-invert dark:prose-a:text-white dark:prose-a:hover:text-white/90";
 
 type MarkdownContentProps = {
   source: string;

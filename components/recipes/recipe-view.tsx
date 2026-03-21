@@ -370,18 +370,22 @@ export function RecipeView({
 
       <AnimatedSection show={showFullSections && !!recipe.notes}>
         {recipe.notes && (
-          <section>
-            <h2 className="text-lg font-medium text-foreground">Notes</h2>
-            {notesHtml != null && notesHtml.trim() !== "" ? (
-              <div className="mt-2">
-                <SanitizedHtmlContent html={notesHtml} />
-              </div>
-            ) : (
-              <p className="mt-2 whitespace-pre-wrap text-foreground">
-                {recipe.notes}
-              </p>
-            )}
-          </section>
+          <Card>
+            <CardContent>
+              <section aria-label="Notes">
+                <h2 className="text-lg font-medium text-foreground border-b border-border pt-4 pb-4 mb-6">
+                  Notes
+                </h2>
+                {notesHtml != null && notesHtml.trim() !== "" ? (
+                  <SanitizedHtmlContent html={notesHtml} />
+                ) : (
+                  <p className="whitespace-pre-wrap text-foreground">
+                    {recipe.notes}
+                  </p>
+                )}
+              </section>
+            </CardContent>
+          </Card>
         )}
       </AnimatedSection>
     </article>
