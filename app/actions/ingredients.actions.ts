@@ -23,7 +23,6 @@ import type { CostBasisUnit, IngredientUnit } from "@/generated/prisma/client";
 
 export type GlobalIngredientBasePrefillData = {
   category: string | null;
-  subcategory: string;
   defaultUnit: IngredientUnit | null;
   costBasisUnit: CostBasisUnit;
   estimatedCentsPerBasisUnit: number | null;
@@ -65,7 +64,6 @@ export async function createIngredientAction(
   const raw = {
     name: formData.get("name"),
     category: formData.get("category") || undefined,
-    subcategory: formData.get("subcategory") || undefined,
     defaultUnit: formData.get("defaultUnit") || undefined,
     costBasisUnit: formData.get("costBasisUnit") || "GRAM",
     estimatedCentsPerBasisUnit:
@@ -99,10 +97,11 @@ export async function createIngredientAction(
 
   const db = getDb();
 
+  let subcategoryForCreate = "";
   if (parsed.data.baseIngredientId) {
     const base = await db.ingredient.findFirst({
       where: { id: parsed.data.baseIngredientId, userId: null },
-      select: { id: true },
+      select: { id: true, subcategory: true },
     });
     if (!base) {
       return {
@@ -114,6 +113,7 @@ export async function createIngredientAction(
         },
       };
     }
+    subcategoryForCreate = base.subcategory?.trim() ?? "";
   }
 
   const normalizedName = normalizeIngredientName(parsed.data.name);
@@ -137,7 +137,7 @@ export async function createIngredientAction(
       name: parsed.data.name.trim(),
       normalizedName,
       category: categoryResolved.value,
-      subcategory: parsed.data.subcategory?.trim() ?? "",
+      subcategory: subcategoryForCreate,
       defaultUnit: parsed.data.defaultUnit ?? null,
       costBasisUnit: parsed.data.costBasisUnit,
       estimatedCentsPerBasisUnit: parsed.data.estimatedCentsPerBasisUnit ?? null,
@@ -163,7 +163,6 @@ export async function updateIngredientAction(
     id: formData.get("id"),
     name: formData.get("name"),
     category: formData.get("category") || undefined,
-    subcategory: formData.get("subcategory") || undefined,
     defaultUnit: formData.get("defaultUnit") || undefined,
     costBasisUnit: formData.get("costBasisUnit") || undefined,
     estimatedCentsPerBasisUnit:
@@ -234,7 +233,6 @@ export async function updateIngredientAction(
       name: parsed.data.name.trim(),
       normalizedName,
       category: categoryResolved.value,
-      subcategory: parsed.data.subcategory?.trim() ?? "",
       defaultUnit: parsed.data.defaultUnit ?? null,
       ...(parsed.data.costBasisUnit != null && { costBasisUnit: parsed.data.costBasisUnit }),
       estimatedCentsPerBasisUnit: parsed.data.estimatedCentsPerBasisUnit ?? null,
@@ -479,7 +477,6 @@ export async function getGlobalIngredientBasePrefillAction(
     where: { id: parsed.data.id, userId: null },
     select: {
       category: true,
-      subcategory: true,
       defaultUnit: true,
       costBasisUnit: true,
       estimatedCentsPerBasisUnit: true,
@@ -498,7 +495,6 @@ export async function getGlobalIngredientBasePrefillAction(
     ok: true,
     data: {
       category: base.category,
-      subcategory: base.subcategory ?? "",
       defaultUnit: base.defaultUnit,
       costBasisUnit: base.costBasisUnit,
       estimatedCentsPerBasisUnit: base.estimatedCentsPerBasisUnit,

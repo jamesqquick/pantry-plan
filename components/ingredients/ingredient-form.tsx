@@ -45,7 +45,6 @@ type EditProps = {
   initialValues: {
     name: string;
     category?: string;
-    subcategory?: string;
     defaultUnit?: IngredientUnit;
     costBasisUnit: CostBasisUnit;
     estimatedCentsPerBasisUnit?: number | null;
@@ -70,7 +69,6 @@ export function IngredientForm(props: Props) {
       ? normalizeToCatalogName(initial?.category, categories)
       : "",
   );
-  const [subcategory, setSubcategory] = useState("");
   const [notes, setNotes] = useState("");
   const [estimatedStr, setEstimatedStr] = useState("");
 
@@ -108,7 +106,6 @@ export function IngredientForm(props: Props) {
     if (!res.ok) return;
     const d = res.data;
     setCategory(normalizeToCatalogName(d.category, categories));
-    setSubcategory(d.subcategory?.trim() ?? "");
     setNotes(d.notes?.trim() ?? "");
     setEstimatedStr(
       d.estimatedCentsPerBasisUnit != null && Number.isFinite(d.estimatedCentsPerBasisUnit)
@@ -223,30 +220,6 @@ export function IngredientForm(props: Props) {
               <p className="mt-1 text-sm text-destructive" role="alert">
                 {fieldErrors.category[0]}
               </p>
-            )}
-          </div>
-          <div>
-            <label
-              htmlFor="subcategory"
-              className="mb-1 block text-sm font-medium text-foreground"
-            >
-              Subcategory
-            </label>
-            {isEdit ? (
-              <Input
-                id="subcategory"
-                name="subcategory"
-                placeholder="Optional"
-                defaultValue={initial?.subcategory ?? ""}
-              />
-            ) : (
-              <Input
-                id="subcategory"
-                name="subcategory"
-                placeholder="Optional"
-                value={subcategory}
-                onChange={(e) => setSubcategory(e.target.value)}
-              />
             )}
           </div>
           <div>

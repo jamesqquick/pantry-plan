@@ -63,7 +63,6 @@ async function EditIngredientPageData({
         initialValues={{
           name: ingredient.name,
           category: ingredient.category ?? undefined,
-          subcategory: ingredient.subcategory || undefined,
           defaultUnit: ingredient.defaultUnit ?? undefined,
           costBasisUnit: ingredient.costBasisUnit,
           estimatedCentsPerBasisUnit: ingredient.estimatedCentsPerBasisUnit ?? undefined,

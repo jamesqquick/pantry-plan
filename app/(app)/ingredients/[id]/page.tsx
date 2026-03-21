@@ -115,11 +115,7 @@ async function IngredientViewData({
             {ingredient.category && (
               <div className="border-b border-border pb-3">
                 <span className={labelClass}>Category</span>
-                <p className={valueClass}>
-                  {ingredient.subcategory
-                    ? `${ingredient.category} › ${ingredient.subcategory}`
-                    : ingredient.category}
-                </p>
+                <p className={valueClass}>{ingredient.category}</p>
               </div>
             )}
             {ingredient.defaultUnit != null && (
