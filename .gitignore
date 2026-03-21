@@ -51,5 +51,8 @@ generated/
 /dev.db
 prisma/dev.db
 
+# Local git worktree directories (not tracked)
+/worktrees/
+
 # Tesseract trained data (if ever re-added)
 *.traineddata

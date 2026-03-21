@@ -1,0 +1,8 @@
+{
+    "setup": [
+      {
+        "name": "Copy root .env into worktree",
+        "command": "if [ -f \"$CURSOR_WORKTREE_ROOT/.env\" ] && [ ! -f .env ]; then cp \"$CURSOR_WORKTREE_ROOT/.env\" .env; fi"
+      }
+    ]
+  }
