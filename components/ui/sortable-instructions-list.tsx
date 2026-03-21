@@ -3,6 +3,7 @@
 import { useId, useLayoutEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { AppIcon, ICON_BUTTON_CLASS } from "@/components/ui/icons";
 import { SortableListProvider, SortableRow } from "@/components/ui/sortable-list";
 import { cn } from "@/lib/cn";
@@ -10,6 +11,12 @@ import { cn } from "@/lib/cn";
 const TOUCH_TARGET = "min-h-[44px] min-w-[44px]";
 const BADGE_CLASS =
   "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground";
+
+/** ~5 lines mobile / ~2 lines sm+ at text-base + py-3 (see plan: line-height × lines + vertical padding). */
+const INSTRUCTION_TEXTAREA_MIN_H =
+  "max-sm:min-h-36 sm:min-h-[4.5rem] leading-normal";
+
+type LineFieldElement = HTMLInputElement | HTMLTextAreaElement;
 
 export type SortableInstructionsListProps = {
   items: string[];
@@ -29,6 +36,8 @@ export type SortableInstructionsListProps = {
    * the caret stays on this row, text after (or after a selection) moves to the new row below.
    */
   splitLineAtCaretOnEnter?: boolean;
+  /** Use multiline textarea for long steps (instructions); default single-line input (e.g. ingredients). */
+  fieldVariant?: "input" | "textarea";
 };
 
 export function SortableInstructionsList({
@@ -43,11 +52,13 @@ export function SortableInstructionsList({
   onAdd,
   insertBelowOnEnter = false,
   splitLineAtCaretOnEnter = false,
+  fieldVariant = "input",
 }: SortableInstructionsListProps) {
   const lineRowScope = useId().replace(/:/g, "");
   const lineRowKey = (i: number) => `${lineRowScope}-${i}`;
   const list = items.length === 0 ? [""] : items;
   const canRemove = list.length > minItems;
+  const isTextarea = fieldVariant === "textarea";
   const pendingFocusRef = useRef<{
     key: string;
     caret?: { start: number; end: number };
@@ -68,8 +79,8 @@ export function SortableInstructionsList({
     const pending = pendingFocusRef.current;
     if (!pending) return;
     pendingFocusRef.current = null;
-    const el = document.querySelector<HTMLInputElement>(
-      `input[data-sortable-line-row="${CSS.escape(pending.key)}"]`,
+    const el = document.querySelector<LineFieldElement>(
+      `[data-sortable-line-row="${CSS.escape(pending.key)}"]`,
     );
     if (!el) return;
     el.focus();
@@ -78,16 +89,14 @@ export function SortableInstructionsList({
       try {
         el.setSelectionRange(start, end);
       } catch {
-        /* ignore invalid range for type="hidden" etc. */
+        /* ignore invalid range */
       }
     }
   }, [items]);
 
-  const handleLineEnter = (
-    rowIndex: number,
-    e: React.KeyboardEvent<HTMLInputElement>,
-  ) => {
+  const handleLineEnter = (rowIndex: number, e: React.KeyboardEvent<LineFieldElement>) => {
     if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+    if (e.shiftKey) return;
     e.preventDefault();
     e.stopPropagation();
     const input = e.currentTarget;
@@ -114,6 +123,9 @@ export function SortableInstructionsList({
     onItemsChange(base);
   };
 
+  const rowAlignClass = isTextarea ? "items-start" : "items-center";
+  const innerRowAlignClass = isTextarea ? "items-start" : "items-center";
+
   return (
     <SortableListProvider items={list} onReorder={(next) => onItemsChange(next.length === 0 ? [""] : next)}>
       <ol className="mt-2 list-none space-y-4 p-0" role="list">
@@ -124,30 +136,73 @@ export function SortableInstructionsList({
               dragHandleAriaLabel={`${removeLabel.replace("Remove ", "Reorder ")} ${i + 1}`}
               className="flex-nowrap"
             >
-              <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap min-w-0 w-full">
-                <span className={cn(BADGE_CLASS)} aria-hidden>
+              <div
+                className={cn(
+                  "flex min-w-0 w-full gap-2 sm:gap-3 flex-wrap sm:flex-nowrap",
+                  rowAlignClass,
+                )}
+              >
+                <span className={cn(BADGE_CLASS, isTextarea && "mt-2 sm:mt-0")} aria-hidden>
                   {i + 1}
                 </span>
-                <div className="min-w-0 flex-1 flex gap-2 flex-wrap sm:flex-nowrap">
+                <div
+                  className={cn(
+                    "min-w-0 flex-1 flex gap-2 flex-wrap sm:flex-nowrap",
+                    innerRowAlignClass,
+                  )}
+                >
                   {formInputName ? (
                     <>
                       <input type="hidden" name={formInputName} value={item} readOnly />
-                      <Input
-                        value={item}
-                        onChange={(e) => updateAt(i, e.target.value)}
-                        onKeyDown={
-                          insertBelowOnEnter
-                            ? (e) => handleLineEnter(i, e)
-                            : undefined
-                        }
-                        data-sortable-line-row={
-                          insertBelowOnEnter ? lineRowKey(i) : undefined
-                        }
-                        placeholder={placeholder}
-                        error={!!formInputError}
-                        className="flex-1 min-w-0"
-                      />
+                      {isTextarea ? (
+                        <Textarea
+                          value={item}
+                          onChange={(e) => updateAt(i, e.target.value)}
+                          onKeyDown={
+                            insertBelowOnEnter
+                              ? (e) => handleLineEnter(i, e)
+                              : undefined
+                          }
+                          data-sortable-line-row={
+                            insertBelowOnEnter ? lineRowKey(i) : undefined
+                          }
+                          placeholder={placeholder}
+                          error={!!formInputError}
+                          className={cn("flex-1 min-w-0 resize-y", INSTRUCTION_TEXTAREA_MIN_H)}
+                        />
+                      ) : (
+                        <Input
+                          value={item}
+                          onChange={(e) => updateAt(i, e.target.value)}
+                          onKeyDown={
+                            insertBelowOnEnter
+                              ? (e) => handleLineEnter(i, e)
+                              : undefined
+                          }
+                          data-sortable-line-row={
+                            insertBelowOnEnter ? lineRowKey(i) : undefined
+                          }
+                          placeholder={placeholder}
+                          error={!!formInputError}
+                          className="flex-1 min-w-0"
+                        />
+                      )}
                     </>
+                  ) : isTextarea ? (
+                    <Textarea
+                      value={item}
+                      onChange={(e) => updateAt(i, e.target.value)}
+                      onKeyDown={
+                        insertBelowOnEnter
+                          ? (e) => handleLineEnter(i, e)
+                          : undefined
+                      }
+                      data-sortable-line-row={
+                        insertBelowOnEnter ? lineRowKey(i) : undefined
+                      }
+                      placeholder={placeholder}
+                      className={cn("flex-1 min-w-0 resize-y", INSTRUCTION_TEXTAREA_MIN_H)}
+                    />
                   ) : (
                     <Input
                       value={item}
@@ -167,7 +222,7 @@ export function SortableInstructionsList({
                   <Button
                     type="button"
                     variant="ghost"
-                    className={cn(ICON_BUTTON_CLASS, TOUCH_TARGET)}
+                    className={cn(ICON_BUTTON_CLASS, TOUCH_TARGET, isTextarea && "mt-1")}
                     onClick={() => removeAt(i)}
                     aria-label={removeLabel}
                     disabled={!canRemove}
