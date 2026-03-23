@@ -28,6 +28,13 @@ const labelClass = "mb-1 block text-xs font-medium text-muted-foreground";
 const valueClass = "text-base font-semibold text-foreground";
 const valueEmptyClass = "text-base text-muted-foreground";
 
+function formatDollars(cents: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(cents / 100);
+}
+
 async function IngredientViewData({
   params,
 }: {
@@ -50,7 +57,7 @@ async function IngredientViewData({
 
   const costValue =
     ingredient.estimatedCentsPerBasisUnit != null
-      ? `${ingredient.estimatedCentsPerBasisUnit}¢ per ${COST_BASIS_LABELS[ingredient.costBasisUnit]}`
+      ? `${formatDollars(ingredient.estimatedCentsPerBasisUnit)} per ${COST_BASIS_LABELS[ingredient.costBasisUnit]}`
       : null;
   const notesValue = ingredient.notes?.trim() || null;
 
@@ -138,7 +145,7 @@ async function IngredientViewData({
             </div>
             <div className="border-b border-border pb-3">
               <span className={labelClass}>
-                Estimated cost (cents per basis unit)
+                Estimated cost (dollars per basis unit)
               </span>
               <p
                 className={costValue ? valueClass : valueEmptyClass}
