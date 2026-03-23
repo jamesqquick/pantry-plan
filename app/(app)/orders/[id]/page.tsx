@@ -16,13 +16,7 @@ import { GroceryActions } from "@/components/grocery/grocery-actions";
 import { GroceryListDisplay } from "@/components/orders/grocery-list-display";
 import { OrderDetailSkeleton } from "@/components/orders/order-detail-skeleton";
 import { MarkdownContent } from "@/components/ui/markdown-content";
-
-function formatDollars(cents: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(cents / 100);
-}
+import { formatDollars } from "@/lib/money";
 
 async function OrderDetailPageData({
   params,

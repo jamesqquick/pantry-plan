@@ -1,8 +1,17 @@
 import { z } from "zod";
 import { IngredientUnit, CostBasisUnit } from "@/generated/prisma/client";
+import { dollarsToCents } from "@/lib/money";
 
 const ingredientUnitSchema = z.nativeEnum(IngredientUnit);
 const costBasisUnitSchema = z.nativeEnum(CostBasisUnit);
+
+/** Accept user input as dollars, then store internally as integer cents. */
+const dollarsToCentsSchema = z
+  .coerce
+  .number()
+  .refine((n) => Number.isFinite(n), { message: "Enter a valid dollar amount." })
+  .min(0, { message: "Estimated cost must be $0 or more." })
+  .transform(dollarsToCents);
 
 export const ingredientDisplayUnitSchema = z.enum([
   "AUTO",
@@ -22,7 +31,7 @@ export const ingredientCreateSchema = z.object({
   category: z.string().max(100).optional(),
   defaultUnit: ingredientUnitSchema.optional(),
   costBasisUnit: costBasisUnitSchema,
-  estimatedCentsPerBasisUnit: z.coerce.number().min(0).nullable().optional(),
+  estimatedCentsPerBasisUnit: dollarsToCentsSchema.nullable().optional(),
   notes: z.string().max(2000).optional(),
   /** Optional global ingredient id (validated server-side: must exist and userId null). */
   baseIngredientId: z.string().min(1).max(100).optional(),

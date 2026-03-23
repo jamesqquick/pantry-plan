@@ -35,12 +35,13 @@ import {
 } from "@/components/ingredients/ingredient-category-combobox";
 import { COST_BASIS_UNITS } from "@/lib/grocery/cost-basis-units";
 import { DeleteIngredientButton } from "@/components/ingredients/delete-ingredient-button";
+import { centsToDollarsInput } from "@/lib/money";
 
 const COST_BASIS_OPTIONS: { value: CostBasisUnit; label: string; hint: string }[] =
   COST_BASIS_UNITS.map((value) => ({
     value,
     label: UNIT_LABELS[value],
-    hint: `Cost (cents per ${UNIT_LABELS[value]})`,
+    hint: `Cost (dollars per ${UNIT_LABELS[value]})`,
   }));
 
 const DISPLAY_UNIT_OPTIONS: { value: IngredientDisplayUnit; label: string }[] = [
@@ -123,7 +124,7 @@ export function IngredientForm(props: Props) {
     setNotes(d.notes?.trim() ?? "");
     setEstimatedStr(
       d.estimatedCentsPerBasisUnit != null && Number.isFinite(d.estimatedCentsPerBasisUnit)
-        ? String(d.estimatedCentsPerBasisUnit)
+        ? centsToDollarsInput(d.estimatedCentsPerBasisUnit)
         : ""
     );
     setDefaultUnit(d.defaultUnit ?? "");
@@ -290,7 +291,7 @@ export function IngredientForm(props: Props) {
               htmlFor="estimatedCentsPerBasisUnit"
               className="mb-1 block text-sm font-medium text-foreground"
             >
-              Estimated cost (cents per basis unit)
+              Estimated cost (dollars per basis unit)
             </label>
             {isEdit ? (
               <Input
@@ -298,9 +299,14 @@ export function IngredientForm(props: Props) {
                 name="estimatedCentsPerBasisUnit"
                 type="number"
                 min={0}
-                step="any"
-                placeholder="e.g. 0.5 (cents per gram) or 25 (cents per egg)"
-                defaultValue={initial?.estimatedCentsPerBasisUnit ?? ""}
+                step="0.01"
+                placeholder="e.g. 0.50 (dollars per gram) or 0.25 (dollars per egg)"
+                defaultValue={
+                  initial?.estimatedCentsPerBasisUnit != null &&
+                  Number.isFinite(initial.estimatedCentsPerBasisUnit)
+                    ? centsToDollarsInput(initial.estimatedCentsPerBasisUnit)
+                    : ""
+                }
               />
             ) : (
               <Input
@@ -308,8 +314,8 @@ export function IngredientForm(props: Props) {
                 name="estimatedCentsPerBasisUnit"
                 type="number"
                 min={0}
-                step="any"
-                placeholder="e.g. 0.5 (cents per gram) or 25 (cents per egg)"
+                step="0.01"
+                placeholder="e.g. 0.50 (dollars per gram) or 0.25 (dollars per egg)"
                 value={estimatedStr}
                 onChange={(e) => setEstimatedStr(e.target.value)}
               />

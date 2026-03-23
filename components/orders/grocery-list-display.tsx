@@ -12,6 +12,7 @@ import {
   type CanonicalUnitLabel,
 } from "@/lib/grocery/display-units";
 import { PrimaryList, type PrimaryListItem } from "@/components/ui/primary-list";
+import { formatDollars } from "@/lib/money";
 
 type GroceryRow = {
   ingredientId: string;
@@ -24,13 +25,6 @@ type GroceryRow = {
   preferredDisplayUnit: string;
   gramsPerCup: number | null;
 };
-
-function formatDollars(cents: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(cents / 100);
-}
 
 export function GroceryListDisplay({
   totals,

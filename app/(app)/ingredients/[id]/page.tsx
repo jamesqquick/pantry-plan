@@ -13,6 +13,7 @@ import { IngredientViewSkeleton } from "@/components/ingredients/ingredient-view
 import type { IngredientDisplayUnit, IngredientUnit } from "@/generated/prisma/client";
 import { COST_BASIS_LABELS } from "@/lib/grocery/cost-basis-units";
 import { MarkdownContent } from "@/components/ui/markdown-content";
+import { formatDollars } from "@/lib/money";
 import { getRecipesUsingIngredientForUser } from "@/lib/queries/recipes";
 import { IngredientRecipesList } from "@/components/ingredients/ingredient-recipes-list";
 
@@ -52,7 +53,7 @@ async function IngredientViewData({
 
   const costValue =
     ingredient.estimatedCentsPerBasisUnit != null
-      ? `${ingredient.estimatedCentsPerBasisUnit}¢ per ${COST_BASIS_LABELS[ingredient.costBasisUnit]}`
+      ? `${formatDollars(ingredient.estimatedCentsPerBasisUnit)} per ${COST_BASIS_LABELS[ingredient.costBasisUnit]}`
       : null;
   const notesValue = ingredient.notes?.trim() || null;
   const recipesUsingIngredient = await getRecipesUsingIngredientForUser(
@@ -144,7 +145,7 @@ async function IngredientViewData({
             </div>
             <div className="border-b border-border pb-3">
               <span className={labelClass}>
-                Estimated cost (cents per basis unit)
+                Estimated cost (dollars per basis unit)
               </span>
               <p
                 className={costValue ? valueClass : valueEmptyClass}
