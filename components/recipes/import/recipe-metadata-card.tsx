@@ -198,17 +198,15 @@ export function RecipeMetadataCard({
             placeholder="Optional notes (Markdown supported)"
           />
           <p className="mt-1 text-xs text-muted-foreground">
-            Markdown is supported: **bold**, lists, links, and `inline code`.
-            {" "}
             <a
               href="https://www.markdownguide.org/basic-syntax/"
               target="_blank"
               rel="noreferrer"
               className="underline hover:no-underline"
             >
-              Markdown docs
-            </a>
-            .
+              Markdown
+            </a>{" "}
+            is supported: **bold**, lists, links, and `inline code`.
           </p>
         </div>
       </CardContent>
