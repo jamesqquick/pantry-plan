@@ -3,6 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { MarkdownInputHelp } from "@/components/ui/markdown-input-help";
 import {
   RecipeTagPicker,
   type TagOption,
@@ -197,9 +198,7 @@ export function RecipeMetadataCard({
             }
             placeholder="Optional notes (Markdown supported)"
           />
-          <p className="mt-1 text-xs text-muted-foreground">
-            Markdown is supported: **bold**, lists, links, and `inline code`.
-          </p>
+          <MarkdownInputHelp />
         </div>
       </CardContent>
     </Card>
