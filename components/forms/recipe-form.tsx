@@ -30,6 +30,7 @@ import { AppIcon, ICON_BUTTON_CLASS } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Textarea } from "@/components/ui/textarea";
+import { MarkdownInputHelp } from "@/components/ui/markdown-input-help";
 import { Card, CardContent } from "@/components/ui/card";
 import { SortableInstructionsList } from "@/components/ui/sortable-instructions-list";
 import { SortableListProvider, SortableRow } from "@/components/ui/sortable-list";
@@ -496,17 +497,7 @@ export function RecipeForm(props: Props) {
                 defaultValue={initial?.notes}
                 placeholder="Optional notes (Markdown supported)"
               />
-              <p className="mt-1 text-xs text-muted-foreground">
-                <a
-                  href="https://www.markdownguide.org/basic-syntax/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline hover:no-underline"
-                >
-                  Markdown
-                </a>{" "}
-                is supported: **bold**, lists, links, and `inline code`.
-              </p>
+              <MarkdownInputHelp />
             </div>
           </div>
         </CardContent>

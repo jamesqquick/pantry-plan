@@ -15,6 +15,7 @@ import { AppIcon, ICON_LABEL_GAP_CLASS } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MarkdownInputHelp } from "@/components/ui/markdown-input-help";
 
 type CreateProps = {
   mode: "create";
@@ -97,17 +98,7 @@ export function OrderForm(props: Props) {
               rows={2}
               placeholder="Optional notes (Markdown supported)"
             />
-            <p className="mt-1 text-xs text-muted-foreground">
-              <a
-                href="https://www.markdownguide.org/basic-syntax/"
-                target="_blank"
-                rel="noreferrer"
-                className="underline hover:no-underline"
-              >
-                Markdown
-              </a>{" "}
-              is supported: **bold**, lists, links, and `inline code`.
-            </p>
+            <MarkdownInputHelp />
           </div>
           <OrderItemsEditor
             recipeOptions={props.recipeOptions}

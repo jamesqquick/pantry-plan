@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { Input } from "@/components/ui/input";
+import { MarkdownInputHelp } from "@/components/ui/markdown-input-help";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ImportIngredientPicker } from "@/components/recipes/import/import-ingredient-picker";
@@ -384,17 +385,7 @@ export function IngredientForm(props: Props) {
                 placeholder="Optional notes (Markdown supported)"
               />
             )}
-            <p className="mt-1 text-xs text-muted-foreground">
-              <a
-                href="https://www.markdownguide.org/basic-syntax/"
-                target="_blank"
-                rel="noreferrer"
-                className="underline hover:no-underline"
-              >
-                Markdown
-              </a>{" "}
-              is supported: **bold**, lists, links, and `inline code`.
-            </p>
+            <MarkdownInputHelp />
           </div>
           {state && !state.ok && state.error?.message && !state.error?.fieldErrors && (
             <p className="text-sm text-destructive" role="alert">
