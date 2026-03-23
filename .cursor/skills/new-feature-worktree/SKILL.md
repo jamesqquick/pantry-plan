@@ -56,7 +56,7 @@ If this fails, stop and report.
 Derive:
 
 - `REPO_NAME` = basename of `REPO_ROOT`
-- `WORKTREE_PARENT` = dirname of `REPO_ROOT`
+- `WORKTREE_PARENT` = `${REPO_ROOT}/worktrees` (repo-local worktrees directory)
 
 ---
 
@@ -73,6 +73,8 @@ WORKTREE_PATH="${WORKTREE_PARENT}/${REPO_NAME}--${FEATURE_BRANCH#feature/}"
 
 Example: repo `pantry-plan`, branch `feature/order-export` → `.../pantry-plan--order-export`.
 
+With the repo-local worktrees layout, the full path becomes `.../pantry-plan/worktrees/pantry-plan--order-export`.
+
 ---
 
 ## 3) Create branch and worktree
@@ -80,12 +82,14 @@ Example: repo `pantry-plan`, branch `feature/order-export` → `.../pantry-plan-
 - If **`FEATURE_BRANCH` does not exist** locally:
 
   ```bash
+  mkdir -p "$WORKTREE_PARENT"
   git worktree add -b "$FEATURE_BRANCH" "$WORKTREE_PATH" "$BASE_REF"
   ```
 
 - If it **already exists**:
 
   ```bash
+  mkdir -p "$WORKTREE_PARENT"
   git worktree add "$WORKTREE_PATH" "$FEATURE_BRANCH"
   ```
 
