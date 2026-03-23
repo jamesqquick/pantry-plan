@@ -13,7 +13,7 @@
 |---|--------|--------|-------------------|
 | 1 | **Raw zinc/slate/gray everywhere** | Breaks token-only rule; inconsistent with theme | 30+ files: labels, borders, inputs, lists, nav |
 | 2 | **Raw red/green/amber for errors and status** | Loud; not muted tokens | `text-red-600`, `bg-green-50`, `text-amber-600` in forms, toasts, alerts |
-| 3 | **Custom inputs/selects not using UI tokens** | Inconsistent focus and borders | ingredient-form, ingredient-list, recipe-list-client, QuantityInput, import-wizard |
+| 3 | **Custom inputs/selects not using UI tokens** | Inconsistent focus and borders | ingredient-list, recipe-list-client, QuantityInput, import-wizard (ingredient form uses tokens; see inventory row) |
 | 4 | **App layout and header use zinc/white** | Page chrome not themed | `app/(app)/layout.tsx`: bg-zinc-50, bg-white, border-zinc-* |
 | 5 | **Toast uses raw green/red** | Status not using success/destructive tokens | `components/ui/toast.tsx` |
 | 6 | **Button danger uses `text-white`** | Should use `text-destructive-foreground` | `components/ui/button.tsx` |
@@ -43,7 +43,7 @@
 | **SmartQuantityInput** | components/forms/smart-quantity-input.tsx | Ingredients | (A) red error → text-destructive |
 | **RecipeListClient** | components/recipes/recipe-list-client.tsx | Recipes page | (A) zinc headings, select, empty state; (E) focus ring |
 | **IngredientList** | components/ingredients/ingredient-list.tsx | Ingredients page | (A) zinc throughout; (E) focus/hover; (B) list padding |
-| **IngredientForm** | components/ingredients/ingredient-form.tsx | Ingredient edit | (A) zinc labels, inputs, red error; (E) focus ring |
+| **IngredientForm** | components/ingredients/ingredient-form.tsx | Ingredient create/edit | Token-based labels/errors. **Selects:** default unit, cost basis, preferred display unit (edit only). Category: **IngredientCategoryCombobox** (not Select). Former **IngredientDisplayPreferenceForm** removed—display prefs live in this form. |
 | **IngredientPicker** | components/recipes/ingredient-picker.tsx | Recipe form | (A) zinc input; (E) focus |
 | **OrderItemsEditor** | components/orders/order-items-editor.tsx | Orders | (A) zinc labels, input, red error |
 | **QuantityInput** | components/QuantityInput.tsx | Legacy | (A) zinc inputs; (E) focus |
@@ -121,9 +121,11 @@
 - Recipe list card, recipe view, ingredient list, orders, ingredients pages, user menu, dialogs, dropdowns: all aligned to tokens.
 - Primitives added: SectionHeader, PageContainer, CardShell, FormField, TotalsPanel, Divider.
 - UI showcase page added at `/dev/ui-showcase` for visual regression.
+- Ingredient edit: grocery display preference merged into **`IngredientForm`**; **`IngredientDisplayPreferenceForm`** removed (single save, shared Selects).
 
 **Follow-ups (optional):**
 
+- **Select / combobox pass (ingredients):** Re-audit only `IngredientForm` for Radix Select triggers/content (default unit, cost basis, preferred display on edit). Category control is `IngredientCategoryCombobox`. Ingredient **detail** page is read-only grid (no selects).
 - Consider migrating more pages to use PageContainer/SectionHeader/CardShell from primitives for consistency.
 - If adding new shadcn components, ensure they use theme tokens (no zinc/slate) and match focus ring and radius rules.
 - Run occasional grep for `zinc-|slate-|gray-[0-9]|text-red-|text-green-` in `.tsx`/`.css` to catch regressions.

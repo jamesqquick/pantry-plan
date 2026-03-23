@@ -33,10 +33,25 @@ git rev-parse --show-toplevel
 Save as `REPO_ROOT`.
 
 ```bash
-git branch --show-current
+git fetch origin main
 ```
 
-Save as `BASE_BRANCH`. If empty, stop and explain (detached HEAD or invalid state).
+Set `BASE_BRANCH` to the starting point branch for the feature:
+
+- Default: `main`
+- If the user explicitly specifies another starting branch (for example: "starting branch: develop" or "base branch: release/1.2"), use that value instead.
+
+Create `BASE_REF="origin/${BASE_BRANCH}"` (remote ref).
+
+If `BASE_REF` does not resolve (missing remote branch), stop and explain.
+
+Always fetch the starting branch too (unless it is `main`, which was already fetched):
+
+```bash
+git fetch origin "$BASE_BRANCH"
+```
+
+If this fails, stop and report.
 
 Derive:
 
@@ -65,7 +80,7 @@ Example: repo `pantry-plan`, branch `feature/order-export` → `.../pantry-plan-
 - If **`FEATURE_BRANCH` does not exist** locally:
 
   ```bash
-  git worktree add -b "$FEATURE_BRANCH" "$WORKTREE_PATH" "$BASE_BRANCH"
+  git worktree add -b "$FEATURE_BRANCH" "$WORKTREE_PATH" "$BASE_REF"
   ```
 
 - If it **already exists**:
@@ -73,6 +88,10 @@ Example: repo `pantry-plan`, branch `feature/order-export` → `.../pantry-plan-
   ```bash
   git worktree add "$WORKTREE_PATH" "$FEATURE_BRANCH"
   ```
+
+  Before proceeding, confirm the existing `FEATURE_BRANCH` includes `BASE_REF`:
+  
+  - If not, stop and explain (or ask the user if you should recreate the feature branch from `BASE_REF`).
 
 After this, **do all file edits and commands from step 5 onward only in `WORKTREE_PATH`**, not in `REPO_ROOT`.
 

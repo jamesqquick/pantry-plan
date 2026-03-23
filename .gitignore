@@ -54,5 +54,8 @@ prisma/dev.db
 # Local git worktree directories (not tracked)
 /worktrees/
 
+# Cursor scratch plans (not part of the source-of-truth)
+/.cursor/plans/
+
 # Tesseract trained data (if ever re-added)
 *.traineddata
