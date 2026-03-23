@@ -14,6 +14,8 @@ import type { IngredientDisplayUnit, IngredientUnit } from "@/generated/prisma/c
 import { COST_BASIS_LABELS } from "@/lib/grocery/cost-basis-units";
 import { MarkdownContent } from "@/components/ui/markdown-content";
 import { formatDollars } from "@/lib/money";
+import { getRecipesUsingIngredientForUser } from "@/lib/queries/recipes";
+import { IngredientRecipesList } from "@/components/ingredients/ingredient-recipes-list";
 
 const DISPLAY_UNIT_LABELS: Record<IngredientDisplayUnit, string> = {
   AUTO: "Auto",
@@ -54,6 +56,10 @@ async function IngredientViewData({
       ? `${formatDollars(ingredient.estimatedCentsPerBasisUnit)} per ${COST_BASIS_LABELS[ingredient.costBasisUnit]}`
       : null;
   const notesValue = ingredient.notes?.trim() || null;
+  const recipesUsingIngredient = await getRecipesUsingIngredientForUser(
+    ingredient.id,
+    session.user.id,
+  );
 
   return (
     <div className="space-y-6">
@@ -164,6 +170,18 @@ async function IngredientViewData({
               )}
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Recipes using this ingredient</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <IngredientRecipesList
+            initialRecipes={recipesUsingIngredient}
+            ingredientName={ingredient.name}
+          />
         </CardContent>
       </Card>
 
