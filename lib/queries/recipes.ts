@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db";
+import type { RecipeListRecipe } from "@/components/recipes/recipe-list-recipe-card";
 
 const recipeIngredientInclude = {
   ingredient: {
@@ -23,6 +24,53 @@ export async function listRecipesForUser(userId: string) {
     orderBy: { title: "asc" },
     select: { id: true, title: true },
   });
+}
+
+export async function getRecipesUsingIngredientForUser(
+  ingredientId: string,
+  userId: string
+): Promise<RecipeListRecipe[]> {
+  const db = getDb();
+  const recipes = await db.recipe.findMany({
+    where: {
+      userId,
+      recipeIngredients: {
+        some: { ingredientId },
+      },
+    },
+    orderBy: [{ lastViewedAt: "desc" }, { updatedAt: "desc" }],
+    select: {
+      id: true,
+      title: true,
+      sourceUrl: true,
+      imageUrl: true,
+      servings: true,
+      prepTimeMinutes: true,
+      cookTimeMinutes: true,
+      totalTimeMinutes: true,
+      lastViewedAt: true,
+      createdAt: true,
+      updatedAt: true,
+      recipeTags: {
+        select: { tag: { select: { id: true, name: true } } },
+      },
+    },
+  });
+
+  return recipes.map((r) => ({
+    id: r.id,
+    title: r.title,
+    sourceUrl: r.sourceUrl,
+    imageUrl: r.imageUrl,
+    servings: r.servings,
+    prepTimeMinutes: r.prepTimeMinutes,
+    cookTimeMinutes: r.cookTimeMinutes,
+    totalTimeMinutes: r.totalTimeMinutes,
+    lastViewedAt: r.lastViewedAt,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+    tags: r.recipeTags.map((rt) => rt.tag),
+  }));
 }
 
 export async function getRecipeForUser(recipeId: string, userId: string) {
