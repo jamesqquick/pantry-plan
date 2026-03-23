@@ -1,5 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { RecipeListGridSkeleton } from "@/components/recipes/recipe-list-skeleton";
 
 /** Skeleton for the ingredient details page. Matches view layout (back link, title, detail cards, grid). */
 export function IngredientViewSkeleton() {
@@ -58,6 +59,15 @@ export function IngredientViewSkeleton() {
             <Skeleton className="mb-1 h-4 w-32 rounded-input" aria-hidden />
             <Skeleton className="h-4 w-24 rounded-input" aria-hidden />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-5 w-56 rounded-input" aria-hidden />
+        </CardHeader>
+        <CardContent>
+          <RecipeListGridSkeleton />
         </CardContent>
       </Card>
 
