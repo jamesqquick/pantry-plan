@@ -35,6 +35,7 @@ import {
 } from "@/components/ingredients/ingredient-category-combobox";
 import { COST_BASIS_UNITS } from "@/lib/grocery/cost-basis-units";
 import { DeleteIngredientButton } from "@/components/ingredients/delete-ingredient-button";
+import { centsToDollarsInput } from "@/lib/money";
 
 const COST_BASIS_OPTIONS: { value: CostBasisUnit; label: string; hint: string }[] =
   COST_BASIS_UNITS.map((value) => ({
@@ -42,12 +43,6 @@ const COST_BASIS_OPTIONS: { value: CostBasisUnit; label: string; hint: string }[
     label: UNIT_LABELS[value],
     hint: `Cost (dollars per ${UNIT_LABELS[value]})`,
   }));
-
-function centsToDollarsInput(cents: number): string {
-  const fixed = (cents / 100).toFixed(2);
-  // Keep the input tidy (e.g. 2.00 -> "2", 1.20 -> "1.2").
-  return fixed.replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
-}
 
 const DISPLAY_UNIT_OPTIONS: { value: IngredientDisplayUnit; label: string }[] = [
   { value: "AUTO", label: "Auto (smart choice)" },

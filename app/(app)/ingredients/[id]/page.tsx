@@ -13,6 +13,7 @@ import { IngredientViewSkeleton } from "@/components/ingredients/ingredient-view
 import type { IngredientDisplayUnit, IngredientUnit } from "@/generated/prisma/client";
 import { COST_BASIS_LABELS } from "@/lib/grocery/cost-basis-units";
 import { MarkdownContent } from "@/components/ui/markdown-content";
+import { formatDollars } from "@/lib/money";
 
 const DISPLAY_UNIT_LABELS: Record<IngredientDisplayUnit, string> = {
   AUTO: "Auto",
@@ -27,13 +28,6 @@ const DISPLAY_UNIT_LABELS: Record<IngredientDisplayUnit, string> = {
 const labelClass = "mb-1 block text-xs font-medium text-muted-foreground";
 const valueClass = "text-base font-semibold text-foreground";
 const valueEmptyClass = "text-base text-muted-foreground";
-
-function formatDollars(cents: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(cents / 100);
-}
 
 async function IngredientViewData({
   params,
