@@ -12,10 +12,16 @@
   },
   "observability": {
     "enabled": true
-  }
-  // Bindings will be added in later phases:
-  // - d1_databases: D1 database binding
-  // - kv_namespaces: SESSION KV for Astro sessions
-  // - ai: Workers AI binding
-  // - r2_buckets: R2 bucket for recipe images
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "pantry-plan",
+      "database_id": "c34f212d-1ce2-478a-9366-bb6f764d9f23",
+      "migrations_dir": "src/db/migrations"
+    }
+  ]
+  // Bindings still to add in later phases:
+  // - ai: Workers AI binding (Phase 12)
+  // - r2_buckets: recipe images (Phase 13)
 }

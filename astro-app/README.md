@@ -8,16 +8,23 @@ Migration target for the Pantry Plan app. See the root repo for the current Next
 - **Tailwind CSS v4** with shadcn-style design tokens (Potluck Pal)
 - **Cloudflare Workers** (via `@astrojs/cloudflare` v13 adapter)
 - **Cloudflare KV** for Astro sessions (auto-provisioned as `SESSION`)
-- Coming in later phases: **D1** (database), **Drizzle ORM**, **Better Auth**, **Workers AI**, **R2**
+- **Cloudflare D1** with **Drizzle ORM** (bound as `DB`)
+- Coming in later phases: **Better Auth**, **Workers AI**, **R2**
 
 ## Scripts
 
 ```bash
-npm run dev        # Astro dev server (workerd runtime)
-npm run build      # Build for production
-npm run preview    # Preview built output with wrangler dev
-npm run deploy     # Build + deploy to Cloudflare Workers
-npm run cf-typegen # Regenerate worker-configuration.d.ts from wrangler.jsonc
+npm run dev              # Astro dev server (workerd runtime)
+npm run build            # Build for production
+npm run preview          # Preview built output with wrangler dev
+npm run deploy           # Build + deploy to Cloudflare Workers
+npm run cf-typegen       # Regenerate worker-configuration.d.ts from wrangler.jsonc
+
+# Database (D1 + Drizzle)
+npm run db:generate      # Generate SQL migration from schema changes
+npm run db:migrate:local # Apply migrations to local D1
+npm run db:migrate:remote # Apply migrations to remote D1
+npm run db:studio        # Open Drizzle Studio (requires CLOUDFLARE_* env vars)
 ```
 
 ## Local setup
@@ -30,16 +37,21 @@ npm run cf-typegen # Regenerate worker-configuration.d.ts from wrangler.jsonc
 
 Deployed at: https://pantry-plan.jamesqquick.workers.dev
 
-Auto-provisioned bindings:
+Bindings:
 
-- `SESSION` (KV namespace) — for Astro sessions
-- `IMAGES` — Cloudflare Images binding
+- `DB` — D1 database `pantry-plan` (id: `c34f212d-1ce2-478a-9366-bb6f764d9f23`)
+- `SESSION` — KV namespace for Astro sessions
+- `IMAGES` — Cloudflare Images
 - `ASSETS` — static assets
+
+## Verification pages
+
+- `/dev/db-test` — renders ingredient catalog from D1 to prove the Drizzle → D1 pipeline works
 
 ## Migration Phases
 
 - [x] **Phase 0** — Scaffolding, design tokens, deploy
-- [ ] **Phase 1** — D1 + Drizzle ORM schema
+- [x] **Phase 1** — D1 + Drizzle ORM schema
 - [ ] **Phase 2** — Better Auth
 - [ ] **Phase 3** — Layouts & navigation
 - [ ] **Phase 4** — Query layer & utilities

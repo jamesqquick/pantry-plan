@@ -1,0 +1,119 @@
+---
+import { env } from "cloudflare:workers";
+import { asc, count, isNull } from "drizzle-orm";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import {
+  createDb,
+  ingredient,
+  ingredientCategory,
+  ingredientAlias,
+} from "@/db";
+
+export const prerender = false;
+
+const db = createDb(env.DB);
+
+const [categories, ingredients, aliases, totals] = await Promise.all([
+  db.select().from(ingredientCategory).orderBy(asc(ingredientCategory.name)),
+  db
+    .select({
+      id: ingredient.id,
+      name: ingredient.name,
+      category: ingredient.category,
+      subcategory: ingredient.subcategory,
+      costBasisUnit: ingredient.costBasisUnit,
+      estimatedCentsPerBasisUnit: ingredient.estimatedCentsPerBasisUnit,
+    })
+    .from(ingredient)
+    .where(isNull(ingredient.userId))
+    .orderBy(asc(ingredient.category), asc(ingredient.name)),
+  db
+    .select({
+      alias: ingredientAlias.aliasNormalized,
+      ingredientId: ingredientAlias.ingredientId,
+    })
+    .from(ingredientAlias)
+    .orderBy(asc(ingredientAlias.aliasNormalized)),
+  db
+    .select({
+      ingredients: count(ingredient.id),
+    })
+    .from(ingredient),
+]);
+---
+
+<BaseLayout title="DB Test — Pantry Plan">
+  <main class="min-h-screen bg-background text-foreground p-8 max-w-4xl mx-auto space-y-8">
+    <header class="space-y-2">
+      <h1 class="text-3xl font-bold text-primary-on-background">
+        D1 + Drizzle connection test
+      </h1>
+      <p class="text-muted-foreground">
+        Phase 1 verification. Pages render server-side and query Cloudflare D1 via Drizzle ORM.
+      </p>
+    </header>
+
+    <section class="rounded-lg border border-border bg-card p-6 space-y-3">
+      <h2 class="text-xl font-semibold">Summary</h2>
+      <div class="grid grid-cols-3 gap-4">
+        <div class="rounded-lg bg-panel p-4 text-center">
+          <div class="text-3xl font-bold">{totals[0]?.ingredients ?? 0}</div>
+          <div class="text-sm text-muted-foreground">Ingredients</div>
+        </div>
+        <div class="rounded-lg bg-panel p-4 text-center">
+          <div class="text-3xl font-bold">{categories.length}</div>
+          <div class="text-sm text-muted-foreground">Categories</div>
+        </div>
+        <div class="rounded-lg bg-panel p-4 text-center">
+          <div class="text-3xl font-bold">{aliases.length}</div>
+          <div class="text-sm text-muted-foreground">Aliases</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="rounded-lg border border-border bg-card p-6 space-y-3">
+      <h2 class="text-xl font-semibold">Ingredient catalog</h2>
+      <table class="w-full text-sm">
+        <thead class="text-left text-muted-foreground border-b border-border">
+          <tr>
+            <th class="py-2 pr-4">Name</th>
+            <th class="py-2 pr-4">Category</th>
+            <th class="py-2 pr-4">Subcategory</th>
+            <th class="py-2 pr-4">Basis</th>
+            <th class="py-2 pr-4">¢/unit</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            ingredients.map((i) => (
+              <tr class="border-b border-border/50 last:border-0">
+                <td class="py-2 pr-4 font-medium">{i.name}</td>
+                <td class="py-2 pr-4 text-muted-foreground">{i.category}</td>
+                <td class="py-2 pr-4 text-muted-foreground">{i.subcategory}</td>
+                <td class="py-2 pr-4">{i.costBasisUnit}</td>
+                <td class="py-2 pr-4">{i.estimatedCentsPerBasisUnit ?? "—"}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </section>
+
+    <section class="rounded-lg border border-border bg-card p-6 space-y-3">
+      <h2 class="text-xl font-semibold">Aliases</h2>
+      <div class="flex flex-wrap gap-2">
+        {
+          aliases.map((a) => (
+            <span class="inline-flex items-center rounded-input px-3 py-1 bg-secondary text-secondary-foreground text-xs font-medium">
+              {a.alias}
+            </span>
+          ))
+        }
+      </div>
+    </section>
+
+    <footer class="text-xs text-muted-foreground">
+      <p>Rendered by Astro on Cloudflare Workers. Data from D1 binding <code>env.DB</code>.</p>
+    </footer>
+  </main>
+</BaseLayout>

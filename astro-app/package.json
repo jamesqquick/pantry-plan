@@ -11,11 +11,18 @@
     "preview": "wrangler dev",
     "deploy": "astro build && wrangler deploy",
     "cf-typegen": "wrangler types",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply pantry-plan --local",
+    "db:migrate:remote": "wrangler d1 migrations apply pantry-plan --remote",
+    "db:seed:local": "tsx scripts/seed.ts --local",
+    "db:seed:remote": "tsx scripts/seed.ts --remote",
+    "db:studio": "drizzle-kit studio",
     "astro": "astro"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.1.10",
     "@astrojs/react": "^5.0.3",
+    "@paralleldrive/cuid2": "^3.3.0",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.2.2",
     "@types/react": "^19.2.14",
@@ -23,6 +30,7 @@
     "astro": "^6.1.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.8.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
@@ -34,6 +42,7 @@
     "@astrojs/check": "^0.9.8",
     "@cloudflare/workers-types": "^4.20260420.1",
     "@types/node": "^25.6.0",
+    "drizzle-kit": "^0.31.10",
     "typescript": "^5.9.3",
     "wrangler": "^4.84.0"
   }
