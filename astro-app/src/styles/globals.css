@@ -61,6 +61,9 @@
   --sidebar-ring: 22 100% 25%;
   /* Primary icon container — light enough for primary (22 100% 25%) to meet contrast */
   --primary-icon-bg: 0 63% 98%;
+  /* Foreground designed to contrast against --primary-icon-bg.
+     Light mode: deep primary on near-white blush → ~11:1. */
+  --primary-icon-fg: 22 100% 25%;
   /* Header logo: primary in light; .dark on html switches --header-logo */
   --header-logo: 22 100% 25%;
   /* Link/hover on card or popover: primary in light; in dark use card-foreground so primary is never on dark card */
@@ -112,6 +115,9 @@
   --sidebar-border: 50 5% 22%;
   --sidebar-ring: 22 100% 25%;
   --primary-icon-bg: 0 0% 86%;
+  /* Dark mode: the pill stays light (86%), so the FG must be dark to meet
+     contrast. 25% lightness + primary hue gives ~9.5:1 — passes AAA. */
+  --primary-icon-fg: 22 100% 25%;
   --header-logo: 0 0% 100%;
   --primary-on-card: 50 8% 92%;
 }
@@ -128,6 +134,7 @@
   --color-primary-foreground: hsl(var(--primary-foreground));
   --color-primary-on-background: hsl(var(--primary-on-background));
   --color-primary-icon-bg: hsl(var(--primary-icon-bg));
+  --color-primary-icon-fg: hsl(var(--primary-icon-fg));
   --color-header-logo: hsl(var(--header-logo));
   --color-primary-on-card: hsl(var(--primary-on-card));
   --color-secondary: hsl(var(--secondary));
