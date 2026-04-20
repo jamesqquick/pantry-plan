@@ -1,0 +1,14 @@
+---
+import AppLayout from "@/layouts/AppLayout.astro";
+import PhasePlaceholder from "@/components/app/PhasePlaceholder.astro";
+
+export const prerender = false;
+---
+
+<AppLayout title="Orders — Pantry Plan">
+  <PhasePlaceholder
+    heading="Orders"
+    phase="Phase 9"
+    description="Batch orders with aggregated grocery lists and cost estimates."
+  />
+</AppLayout>

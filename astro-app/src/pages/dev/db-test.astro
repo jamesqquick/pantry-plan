@@ -1,7 +1,7 @@
 ---
 import { env } from "cloudflare:workers";
 import { asc, count, isNull } from "drizzle-orm";
-import BaseLayout from "@/layouts/BaseLayout.astro";
+import AppLayout from "@/layouts/AppLayout.astro";
 import {
   createDb,
   ingredient,
@@ -42,8 +42,8 @@ const [categories, ingredients, aliases, totals] = await Promise.all([
 ]);
 ---
 
-<BaseLayout title="DB Test — Pantry Plan">
-  <main class="min-h-screen bg-background text-foreground p-8 max-w-4xl mx-auto space-y-8">
+<AppLayout title="DB Test — Pantry Plan">
+  <div class="space-y-8">
     <header class="space-y-2">
       <h1 class="text-3xl font-bold text-primary-on-background">
         D1 + Drizzle connection test
@@ -115,5 +115,5 @@ const [categories, ingredients, aliases, totals] = await Promise.all([
     <footer class="text-xs text-muted-foreground">
       <p>Rendered by Astro on Cloudflare Workers. Data from D1 binding <code>env.DB</code>.</p>
     </footer>
-  </main>
-</BaseLayout>
+  </div>
+</AppLayout>

@@ -1,46 +1,74 @@
 ---
-import BaseLayout from "@/layouts/BaseLayout.astro";
-import { SignOutButton } from "@/components/auth/SignOutButton";
+import { env } from "cloudflare:workers";
+import { count, eq } from "drizzle-orm";
+import AppLayout from "@/layouts/AppLayout.astro";
+import {
+  createDb,
+  recipe,
+  ingredient,
+  order as orderTable,
+  tag,
+} from "@/db";
 
 export const prerender = false;
 
-// Middleware guarantees a user is present here; this assert is belt-and-suspenders.
-const user = Astro.locals.user;
-if (!user) {
-  return Astro.redirect("/login");
-}
+// Middleware guarantees user. Cast handled by AppLayout; here we assume non-null.
+const user = Astro.locals.user!;
+const db = createDb(env.DB);
+
+const [[recipeCount], [ingredientCount], [orderCount], [tagCount]] = await Promise.all([
+  db.select({ n: count(recipe.id) }).from(recipe).where(eq(recipe.userId, user.id)),
+  db
+    .select({ n: count(ingredient.id) })
+    .from(ingredient)
+    .where(eq(ingredient.userId, user.id)),
+  db
+    .select({ n: count(orderTable.id) })
+    .from(orderTable)
+    .where(eq(orderTable.userId, user.id)),
+  db.select({ n: count(tag.id) }).from(tag).where(eq(tag.userId, user.id)),
+]);
 ---
 
-<BaseLayout title="Recipes — Pantry Plan">
-  <main class="min-h-screen bg-background text-foreground p-8 max-w-4xl mx-auto space-y-8">
-    <header class="flex items-center justify-between gap-4">
-      <div>
-        <h1 class="text-3xl font-bold text-primary-on-background">Recipes</h1>
-        <p class="text-sm text-muted-foreground">
-          Signed in as <strong>{user.name}</strong> ({user.email})
-          {user.role === "ADMIN" && <span class="ml-1 inline-flex items-center rounded-input px-2 py-0.5 bg-primary-icon-bg text-primary-on-card text-xs font-medium">ADMIN</span>}
-        </p>
-      </div>
-      <SignOutButton client:load />
+<AppLayout title="Recipes — Pantry Plan">
+  <div class="space-y-8">
+    <header class="space-y-1">
+      <h1 class="text-3xl font-bold text-primary-on-background">Recipes</h1>
+      <p class="text-sm text-muted-foreground">
+        Welcome back, {user.name}.
+        {user.role === "ADMIN" && (
+          <span class="ml-1 inline-flex items-center rounded-input px-2 py-0.5 bg-primary-icon-bg text-primary-on-card text-xs font-medium">
+            ADMIN
+          </span>
+        )}
+      </p>
     </header>
 
-    <section class="rounded-lg border border-border bg-card p-6 space-y-3">
-      <h2 class="text-xl font-semibold">Phase 2: Authentication — verified</h2>
-      <ul class="text-sm text-muted-foreground space-y-2 list-disc list-inside">
-        <li>Middleware populated <code>Astro.locals.user</code> and <code>Astro.locals.session</code>.</li>
-        <li>Protected routes redirect to <code>/login?next=...</code> when unauthenticated.</li>
-        <li>Authenticated users are bounced away from <code>/login</code> and <code>/register</code>.</li>
-        <li>Session is stored in D1 (<code>session</code> table) and keyed by a <code>better-auth.session_token</code> cookie.</li>
-        <li>Password hash lives in <code>account.password</code> — scrypt via <code>@noble/hashes</code> for Workers compatibility.</li>
-      </ul>
-      <p class="text-sm text-muted-foreground pt-2">
-        Full recipe CRUD arrives in Phase 6.
-      </p>
+    <section class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div class="rounded-lg border border-border bg-card p-4">
+        <div class="text-3xl font-bold">{recipeCount?.n ?? 0}</div>
+        <div class="text-sm text-muted-foreground">Recipes</div>
+      </div>
+      <div class="rounded-lg border border-border bg-card p-4">
+        <div class="text-3xl font-bold">{ingredientCount?.n ?? 0}</div>
+        <div class="text-sm text-muted-foreground">Custom ingredients</div>
+      </div>
+      <div class="rounded-lg border border-border bg-card p-4">
+        <div class="text-3xl font-bold">{orderCount?.n ?? 0}</div>
+        <div class="text-sm text-muted-foreground">Orders</div>
+      </div>
+      <div class="rounded-lg border border-border bg-card p-4">
+        <div class="text-3xl font-bold">{tagCount?.n ?? 0}</div>
+        <div class="text-sm text-muted-foreground">Tags</div>
+      </div>
     </section>
 
-    <nav class="flex gap-3 text-sm">
-      <a href="/dev/db-test" class="text-primary-on-card hover:underline">/dev/db-test</a>
-      <a href="/dev/auth-debug" class="text-primary-on-card hover:underline">/dev/auth-debug</a>
-    </nav>
-  </main>
-</BaseLayout>
+    <section class="rounded-lg border border-border bg-card p-6 space-y-3">
+      <h2 class="text-xl font-semibold">Phase 3 — layout & navigation ✓</h2>
+      <p class="text-sm text-muted-foreground">
+        Full recipe list view arrives in Phase 6. The navigation above is wired up;
+        each page shows a placeholder until its phase lands.
+      </p>
+    </section>
+  </div>
+</AppLayout>

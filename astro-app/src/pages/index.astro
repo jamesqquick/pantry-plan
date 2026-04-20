@@ -15,7 +15,7 @@ if (Astro.locals.session) {
       <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary-icon-bg">
         <span class="text-4xl" aria-hidden="true">🧑‍🍳</span>
       </div>
-      <h1 class="text-5xl font-bold tracking-tight text-primary-on-background">
+      <h1 class="font-display text-6xl tracking-tight text-primary-on-background">
         Pantry Plan
       </h1>
       <p class="text-lg text-muted-foreground">
@@ -43,22 +43,9 @@ if (Astro.locals.session) {
           <li>Phase 0 — Astro 6 on Cloudflare Workers ✓</li>
           <li>Phase 1 — D1 + Drizzle ORM schema ✓</li>
           <li>Phase 2 — Better Auth (email + password) ✓</li>
+          <li>Phase 3 — Layouts & navigation ✓</li>
         </ul>
       </div>
-
-      <button
-        id="toggle-theme"
-        class="inline-flex items-center gap-2 rounded-input px-4 py-2 text-sm font-medium bg-secondary text-secondary-foreground hover:bg-accent transition-colors"
-      >
-        Toggle theme
-      </button>
     </div>
   </main>
-  <script>
-    const btn = document.getElementById("toggle-theme");
-    btn?.addEventListener("click", () => {
-      const isDark = document.documentElement.classList.toggle("dark");
-      localStorage.setItem("theme", isDark ? "dark" : "light");
-    });
-  </script>
 </BaseLayout>

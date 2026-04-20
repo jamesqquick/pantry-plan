@@ -99,7 +99,7 @@ fails scrypt verification — they must use "forgot password" on first login.
 - [x] **Phase 1** — D1 + Drizzle ORM schema
 - [x] **Phase 2** — Better Auth (email + password, middleware protection)
 - [x] **Phase 2.5** — Data migration: import Turso snapshot into D1 (1053 rows)
-- [ ] **Phase 3** — Layouts & navigation
+- [x] **Phase 3** — Layouts & navigation (header, user menu, mobile menu, 404)
 - [ ] **Phase 4** — Query layer & utilities
 - [ ] **Phase 5** — Astro actions
 - [ ] **Phase 6** — Recipe pages

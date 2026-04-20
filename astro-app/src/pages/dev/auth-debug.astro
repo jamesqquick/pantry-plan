@@ -1,5 +1,5 @@
 ---
-import BaseLayout from "@/layouts/BaseLayout.astro";
+import AppLayout from "@/layouts/AppLayout.astro";
 import { env } from "cloudflare:workers";
 import { createDb, user, session, account } from "@/db";
 
@@ -23,8 +23,8 @@ const [users, sessions, accounts] = await Promise.all([
 ]);
 ---
 
-<BaseLayout title="Auth debug">
-  <main class="min-h-screen bg-background text-foreground p-8 max-w-4xl mx-auto space-y-6">
+<AppLayout title="Auth debug">
+  <div class="space-y-6">
     <header>
       <h1 class="text-3xl font-bold text-primary-on-background">Auth debug</h1>
       <p class="text-sm text-muted-foreground">
@@ -52,5 +52,5 @@ const [users, sessions, accounts] = await Promise.all([
       <p class="text-xs text-muted-foreground">Password hash is NOT shown — only whether it exists.</p>
       <pre class="text-xs bg-panel p-4 rounded overflow-auto"><code>{JSON.stringify(accounts.map(a => ({ ...a, hasPassword: !!a.hasPassword })), null, 2)}</code></pre>
     </section>
-  </main>
-</BaseLayout>
+  </div>
+</AppLayout>

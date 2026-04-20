@@ -23,6 +23,8 @@ const ALWAYS_PUBLIC_PATHS = new Set<string>([
 
 function isPublicPath(pathname: string): boolean {
   if (ALWAYS_PUBLIC_PATHS.has(pathname)) return true;
+  // Static 404 page served by Cloudflare (with or without trailing slash).
+  if (pathname === "/404" || pathname === "/404/") return true;
   return PUBLIC_PATH_PREFIXES.some((p) => pathname.startsWith(p));
 }
 
