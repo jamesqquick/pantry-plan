@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pantry-plan",
+  "account_id": "4426cbeacb457b1ca1b865d6c36ced0d",
+  "main": "@astrojs/cloudflare/entrypoints/server",
+  "compatibility_date": "2026-04-20",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./dist",
+    "not_found_handling": "404-page"
+  },
+  "observability": {
+    "enabled": true
+  }
+  // Bindings will be added in later phases:
+  // - d1_databases: D1 database binding
+  // - kv_namespaces: SESSION KV for Astro sessions
+  // - ai: Workers AI binding
+  // - r2_buckets: R2 bucket for recipe images
+}

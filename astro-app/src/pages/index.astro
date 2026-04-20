@@ -1,0 +1,41 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Pantry Plan">
+  <main class="min-h-screen flex items-center justify-center bg-background text-foreground">
+    <div class="text-center space-y-6 px-6 py-12 max-w-xl">
+      <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary-icon-bg">
+        <span class="text-4xl">🧑‍🍳</span>
+      </div>
+      <h1 class="text-5xl font-bold tracking-tight text-primary-on-background">
+        Pantry Plan
+      </h1>
+      <p class="text-lg text-muted-foreground">
+        Astro 6 + Cloudflare Workers
+      </p>
+      <div class="rounded-lg border border-border bg-card p-6 text-left space-y-2">
+        <p class="text-sm font-medium text-card-foreground">Phase 0 — Scaffolding</p>
+        <ul class="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+          <li>Astro 6 with React integration</li>
+          <li>Tailwind CSS v4 with design tokens</li>
+          <li>Cloudflare adapter configured</li>
+          <li>Dark mode with OS preference sync</li>
+        </ul>
+      </div>
+      <button
+        id="toggle-theme"
+        class="inline-flex items-center gap-2 rounded-input px-4 py-2 text-sm font-medium bg-secondary text-secondary-foreground hover:bg-accent transition-colors"
+      >
+        Toggle theme
+      </button>
+    </div>
+  </main>
+  <script>
+    const btn = document.getElementById("toggle-theme");
+    btn?.addEventListener("click", () => {
+      const isDark = document.documentElement.classList.toggle("dark");
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    });
+  </script>
+</BaseLayout>

@@ -1,0 +1,8 @@
+# Local development secrets for wrangler
+# Copy this to .dev.vars and fill in values
+
+# Auth (generate with: openssl rand -base64 32)
+AUTH_SECRET=""
+
+# AI providers (optional — app gracefully degrades without these)
+OPENAI_API_KEY=""
