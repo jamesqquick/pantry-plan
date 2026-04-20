@@ -6,7 +6,7 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "dev": "astro dev",
+    "dev": "astro dev --port 4321",
     "build": "astro build",
     "preview": "wrangler dev",
     "deploy": "astro build && wrangler deploy",
@@ -19,6 +19,7 @@
     "db:studio": "drizzle-kit studio",
     "snapshot:turso": "tsx --env-file=../.env scripts/snapshot-turso.ts",
     "migrate:from-snapshot": "tsx scripts/migrate-from-snapshot.ts",
+    "reset-password": "tsx scripts/reset-password.ts",
     "astro": "astro"
   },
   "dependencies": {

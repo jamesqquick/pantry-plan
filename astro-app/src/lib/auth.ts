@@ -71,14 +71,13 @@ async function verifyPassword({
  * every factory invocation; only the database binding changes per-request.
  */
 function buildOptions(db: Db, env: Env): BetterAuthOptions {
-  // Trust the configured base URL plus common local dev ports. Production
-  // should set AUTH_URL to the deployed origin (e.g. https://pantry-plan.jamesqquick.workers.dev).
+  // Trust the configured base URL plus the local dev port.
+  // Production must set AUTH_URL to the deployed origin
+  // (e.g. https://pantry-plan.jamesqquick.workers.dev).
   const trustedOrigins = [
     env.AUTH_URL,
     "http://localhost:4321",
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "http://localhost:5175",
+    "http://127.0.0.1:4321",
   ].filter(Boolean);
 
   return {

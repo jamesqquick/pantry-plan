@@ -7,8 +7,8 @@ AUTH_SECRET=""
 
 # Base URL of the app — Better Auth uses this to build cookies/redirects
 # and to validate the Origin header on mutating requests.
-# Match whichever port your dev server is on (wrangler dev often picks 5175).
-AUTH_URL="http://localhost:5175"
+# `npm run dev` pins astro to port 4321.
+AUTH_URL="http://localhost:4321"
 
 # AI providers (optional — app gracefully degrades without these)
 OPENAI_API_KEY=""
