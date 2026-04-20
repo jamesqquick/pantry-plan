@@ -1,0 +1,126 @@
+---
+import { env } from "cloudflare:workers";
+import { and, asc, eq } from "drizzle-orm";
+import AppLayout from "@/layouts/AppLayout.astro";
+import RecipeForm, {
+  type RecipeFormInitial,
+  type RecipeIngredientDraft,
+} from "@/components/recipes/RecipeForm";
+import { formatQuantity } from "@/lib/quantity/quantity";
+import {
+  createDb,
+  recipe,
+  recipeIngredient,
+  recipeInstruction,
+  recipeTag,
+  tag,
+} from "@/db";
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+const { id } = Astro.params;
+if (!id) return Astro.redirect("/recipes");
+
+const db = createDb(env.DB);
+
+const recipeRows = await db
+  .select()
+  .from(recipe)
+  .where(and(eq(recipe.id, id), eq(recipe.userId, user.id)))
+  .limit(1);
+
+if (recipeRows.length === 0) {
+  return new Response("Recipe not found", { status: 404 });
+}
+const r = recipeRows[0]!;
+
+const [ingredients, instructions, tagLinks, allTags] = await Promise.all([
+  db
+    .select({
+      displayText: recipeIngredient.displayText,
+      quantity: recipeIngredient.quantity,
+      unit: recipeIngredient.unit,
+      rawText: recipeIngredient.rawText,
+      ingredientId: recipeIngredient.ingredientId,
+      sortOrder: recipeIngredient.sortOrder,
+    })
+    .from(recipeIngredient)
+    .where(eq(recipeIngredient.recipeId, id))
+    .orderBy(asc(recipeIngredient.sortOrder)),
+  db
+    .select({ text: recipeInstruction.text, sortOrder: recipeInstruction.sortOrder })
+    .from(recipeInstruction)
+    .where(eq(recipeInstruction.recipeId, id))
+    .orderBy(asc(recipeInstruction.sortOrder)),
+  db
+    .select({ tagId: recipeTag.tagId })
+    .from(recipeTag)
+    .where(eq(recipeTag.recipeId, id)),
+  db
+    .select({ id: tag.id, name: tag.name })
+    .from(tag)
+    .where(eq(tag.userId, user.id))
+    .orderBy(asc(tag.name)),
+]);
+
+const ingredientDrafts: RecipeIngredientDraft[] = ingredients.map((i) => ({
+  displayText: i.displayText,
+  quantityText:
+    i.quantity != null && Number.isFinite(i.quantity)
+      ? formatQuantity(i.quantity)
+      : "",
+  unit: (i.unit ?? "") as RecipeIngredientDraft["unit"],
+  rawText: i.rawText,
+  ingredientId: i.ingredientId,
+}));
+
+const initial: RecipeFormInitial = {
+  id: r.id,
+  title: r.title,
+  sourceUrl: r.sourceUrl ?? "",
+  imageUrl: r.imageUrl ?? "",
+  servings: r.servings != null ? String(r.servings) : "",
+  prepTimeMinutes: r.prepTimeMinutes != null ? String(r.prepTimeMinutes) : "",
+  cookTimeMinutes: r.cookTimeMinutes != null ? String(r.cookTimeMinutes) : "",
+  totalTimeMinutes:
+    r.totalTimeMinutes != null ? String(r.totalTimeMinutes) : "",
+  notes: r.notes ?? "",
+  instructions: instructions.map((i) => i.text),
+  ingredients: ingredientDrafts,
+  tagIds: tagLinks.map((t) => t.tagId),
+};
+---
+
+<AppLayout title={`Edit ${r.title} — Pantry Plan`}>
+  <div class="space-y-6">
+    <nav class="text-sm">
+      <a
+        href={`/recipes/${r.id}`}
+        class="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="h-3.5 w-3.5"
+          aria-hidden="true"
+        >
+          <path d="m15 18-6-6 6-6"></path>
+        </svg>
+        Back to recipe
+      </a>
+    </nav>
+
+    <header class="space-y-1">
+      <h1 class="font-display text-4xl text-primary-on-background">Edit recipe</h1>
+      <p class="text-sm text-muted-foreground">{r.title}</p>
+    </header>
+
+    <RecipeForm client:load mode="edit" initial={initial} allTags={allTags} />
+  </div>
+</AppLayout>

@@ -112,12 +112,16 @@ export function ActionsPlayground() {
         date: today,
         mealSlot: "DINNER",
         customLabel: "Leftovers",
+        servings: undefined,
       })
     );
     if (!created) return;
 
     await run("mealPlan.update (servings=2)", () =>
-      actions.mealPlan.update({ id: created.id, servings: 2 })
+      actions.mealPlan.update({
+        id: created.id,
+        servings: 2,
+      })
     );
 
     const del = new FormData();

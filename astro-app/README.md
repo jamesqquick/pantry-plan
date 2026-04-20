@@ -107,6 +107,7 @@ fails scrypt verification — they must use "forgot password" on first login.
 - [x] **Phase 3** — Layouts & navigation (header, user menu, mobile menu, 404)
 - [x] **Phase 4** — Query-layer library + Zod schemas + test suite (78 tests passing)
 - [x] **Phase 5** — Astro actions: tags, ingredients, recipes, recipeIngredients, orders, mealPlan
+- [x] **Phase 6** — Recipe pages: list, detail, create, edit, delete, duplicate
 - [ ] **Phase 4** — Query layer & utilities
 - [ ] **Phase 5** — Astro actions
 - [ ] **Phase 6** — Recipe pages
