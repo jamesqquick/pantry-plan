@@ -21,6 +21,10 @@ pnpm-debug.log*
 # wrangler local state
 .wrangler/
 
+# Turso snapshot — contains real user data incl. bcrypt hashes.
+# Re-create with `npm run snapshot:turso`.
+data/turso-snapshot/
+
 # macOS-specific files
 .DS_Store
 

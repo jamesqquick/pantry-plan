@@ -48,11 +48,27 @@ Bindings:
 
 - `/dev/db-test` — renders ingredient catalog from D1 to prove the Drizzle → D1 pipeline works
 
+## Data migration from Turso
+
+We captured a one-time snapshot of the existing production Turso database
+to use as input for the D1 data migration in Phase 2.5.
+
+```bash
+# Requires ../.env with TURSO_DATABASE_URL and TURSO_AUTH_TOKEN
+npm run snapshot:turso
+```
+
+This dumps all 13 tables to `data/turso-snapshot/*.json` (gitignored —
+contains bcrypt hashes and real user data). Re-run any time for a fresh
+snapshot. The migration itself (Phase 2.5) will transform these JSON
+files into D1 inserts once the final User schema is locked in by Phase 2.
+
 ## Migration Phases
 
 - [x] **Phase 0** — Scaffolding, design tokens, deploy
 - [x] **Phase 1** — D1 + Drizzle ORM schema
 - [ ] **Phase 2** — Better Auth
+- [ ] **Phase 2.5** — Data migration: import Turso snapshot into D1
 - [ ] **Phase 3** — Layouts & navigation
 - [ ] **Phase 4** — Query layer & utilities
 - [ ] **Phase 5** — Astro actions
