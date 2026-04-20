@@ -26,6 +26,10 @@ npm run db:generate      # Generate SQL migration from schema changes
 npm run db:migrate:local # Apply migrations to local D1
 npm run db:migrate:remote # Apply migrations to remote D1
 npm run db:studio        # Open Drizzle Studio (requires CLOUDFLARE_* env vars)
+
+# Tests (Vitest)
+npm test                 # Run all tests once
+npm run test:watch       # Watch mode
 ```
 
 ## Local setup
@@ -100,6 +104,7 @@ fails scrypt verification — they must use "forgot password" on first login.
 - [x] **Phase 2** — Better Auth (email + password, middleware protection)
 - [x] **Phase 2.5** — Data migration: import Turso snapshot into D1 (1053 rows)
 - [x] **Phase 3** — Layouts & navigation (header, user menu, mobile menu, 404)
+- [x] **Phase 4** — Query-layer library + Zod schemas + test suite (78 tests passing)
 - [ ] **Phase 4** — Query layer & utilities
 - [ ] **Phase 5** — Astro actions
 - [ ] **Phase 6** — Recipe pages
