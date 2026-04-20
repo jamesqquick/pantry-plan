@@ -53,6 +53,7 @@ Bindings:
 
 - `/dev/db-test` — renders ingredient catalog from D1 to prove Drizzle → D1
 - `/dev/auth-debug` — dumps the current session, user/session/account table rows
+- `/dev/actions` — action playground: click buttons to round-trip every action
 
 ## Auth
 
@@ -105,6 +106,7 @@ fails scrypt verification — they must use "forgot password" on first login.
 - [x] **Phase 2.5** — Data migration: import Turso snapshot into D1 (1053 rows)
 - [x] **Phase 3** — Layouts & navigation (header, user menu, mobile menu, 404)
 - [x] **Phase 4** — Query-layer library + Zod schemas + test suite (78 tests passing)
+- [x] **Phase 5** — Astro actions: tags, ingredients, recipes, recipeIngredients, orders, mealPlan
 - [ ] **Phase 4** — Query layer & utilities
 - [ ] **Phase 5** — Astro actions
 - [ ] **Phase 6** — Recipe pages

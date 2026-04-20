@@ -8,6 +8,10 @@ import { createAuth } from "@/lib/auth";
  */
 const PUBLIC_PATH_PREFIXES = [
   "/api/auth/",
+  // Astro actions have their own auth checks via requireUser() — let them run
+  // so XHR callers get a proper 401 JSON payload instead of a useless 302
+  // to /login.
+  "/_actions/",
   "/_image",
   "/_astro/",
   "/favicon",

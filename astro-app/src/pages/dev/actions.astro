@@ -1,0 +1,23 @@
+---
+import AppLayout from "@/layouts/AppLayout.astro";
+import { ActionsPlayground } from "@/components/app/ActionsPlayground";
+
+export const prerender = false;
+---
+
+<AppLayout title="Actions playground — Pantry Plan">
+  <div class="space-y-6">
+    <header class="space-y-1">
+      <h1 class="font-display text-3xl text-primary-on-background">
+        Actions playground
+      </h1>
+      <p class="text-sm text-muted-foreground">
+        Phase 5 smoke test — calls every ported action namespace from the
+        client using <code>astro:actions</code>. Creates and deletes data, so
+        safe to mash.
+      </p>
+    </header>
+
+    <ActionsPlayground client:load />
+  </div>
+</AppLayout>
