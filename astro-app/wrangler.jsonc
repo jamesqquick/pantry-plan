@@ -13,6 +13,10 @@
   "observability": {
     "enabled": true
   },
+  "vars": {
+    // Public-ish config (not secrets). AUTH_URL must match the deployed origin.
+    "AUTH_URL": "https://pantry-plan.jamesqquick.workers.dev"
+  },
   "d1_databases": [
     {
       "binding": "DB",
@@ -21,7 +25,11 @@
       "migrations_dir": "src/db/migrations"
     }
   ]
-  // Bindings still to add in later phases:
+  // Secrets (set via `wrangler secret put`):
+  // - AUTH_SECRET  (Better Auth JWT/cookie signing key)
+  // - OPENAI_API_KEY (optional, Phase 7+)
+  //
+  // Still to come:
   // - ai: Workers AI binding (Phase 12)
   // - r2_buckets: recipe images (Phase 13)
 }

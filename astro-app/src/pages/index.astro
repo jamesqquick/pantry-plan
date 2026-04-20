@@ -1,28 +1,51 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
+
+export const prerender = false;
+
+// Authenticated users get bounced straight to the app.
+if (Astro.locals.session) {
+  return Astro.redirect("/recipes");
+}
 ---
 
 <BaseLayout title="Pantry Plan">
   <main class="min-h-screen flex items-center justify-center bg-background text-foreground">
     <div class="text-center space-y-6 px-6 py-12 max-w-xl">
       <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary-icon-bg">
-        <span class="text-4xl">🧑‍🍳</span>
+        <span class="text-4xl" aria-hidden="true">🧑‍🍳</span>
       </div>
       <h1 class="text-5xl font-bold tracking-tight text-primary-on-background">
         Pantry Plan
       </h1>
       <p class="text-lg text-muted-foreground">
-        Astro 6 + Cloudflare Workers
+        Import recipes, plan your week, batch your grocery list.
       </p>
-      <div class="rounded-lg border border-border bg-card p-6 text-left space-y-2">
-        <p class="text-sm font-medium text-card-foreground">Phase 0 — Scaffolding</p>
+
+      <div class="flex items-center justify-center gap-3 pt-2">
+        <a
+          href="/login"
+          class="inline-flex items-center rounded-input px-5 py-2.5 text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+        >
+          Sign in
+        </a>
+        <a
+          href="/register"
+          class="inline-flex items-center rounded-input px-5 py-2.5 text-sm font-medium bg-secondary text-secondary-foreground hover:bg-accent transition-colors"
+        >
+          Create account
+        </a>
+      </div>
+
+      <div class="rounded-lg border border-border bg-card p-6 text-left space-y-2 mt-6">
+        <p class="text-sm font-medium text-card-foreground">Migration progress</p>
         <ul class="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-          <li>Astro 6 with React integration</li>
-          <li>Tailwind CSS v4 with design tokens</li>
-          <li>Cloudflare adapter configured</li>
-          <li>Dark mode with OS preference sync</li>
+          <li>Phase 0 — Astro 6 on Cloudflare Workers ✓</li>
+          <li>Phase 1 — D1 + Drizzle ORM schema ✓</li>
+          <li>Phase 2 — Better Auth (email + password) ✓</li>
         </ul>
       </div>
+
       <button
         id="toggle-theme"
         class="inline-flex items-center gap-2 rounded-input px-4 py-2 text-sm font-medium bg-secondary text-secondary-foreground hover:bg-accent transition-colors"

@@ -1,0 +1,46 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { SignOutButton } from "@/components/auth/SignOutButton";
+
+export const prerender = false;
+
+// Middleware guarantees a user is present here; this assert is belt-and-suspenders.
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect("/login");
+}
+---
+
+<BaseLayout title="Recipes — Pantry Plan">
+  <main class="min-h-screen bg-background text-foreground p-8 max-w-4xl mx-auto space-y-8">
+    <header class="flex items-center justify-between gap-4">
+      <div>
+        <h1 class="text-3xl font-bold text-primary-on-background">Recipes</h1>
+        <p class="text-sm text-muted-foreground">
+          Signed in as <strong>{user.name}</strong> ({user.email})
+          {user.role === "ADMIN" && <span class="ml-1 inline-flex items-center rounded-input px-2 py-0.5 bg-primary-icon-bg text-primary-on-card text-xs font-medium">ADMIN</span>}
+        </p>
+      </div>
+      <SignOutButton client:load />
+    </header>
+
+    <section class="rounded-lg border border-border bg-card p-6 space-y-3">
+      <h2 class="text-xl font-semibold">Phase 2: Authentication — verified</h2>
+      <ul class="text-sm text-muted-foreground space-y-2 list-disc list-inside">
+        <li>Middleware populated <code>Astro.locals.user</code> and <code>Astro.locals.session</code>.</li>
+        <li>Protected routes redirect to <code>/login?next=...</code> when unauthenticated.</li>
+        <li>Authenticated users are bounced away from <code>/login</code> and <code>/register</code>.</li>
+        <li>Session is stored in D1 (<code>session</code> table) and keyed by a <code>better-auth.session_token</code> cookie.</li>
+        <li>Password hash lives in <code>account.password</code> — scrypt via <code>@noble/hashes</code> for Workers compatibility.</li>
+      </ul>
+      <p class="text-sm text-muted-foreground pt-2">
+        Full recipe CRUD arrives in Phase 6.
+      </p>
+    </section>
+
+    <nav class="flex gap-3 text-sm">
+      <a href="/dev/db-test" class="text-primary-on-card hover:underline">/dev/db-test</a>
+      <a href="/dev/auth-debug" class="text-primary-on-card hover:underline">/dev/auth-debug</a>
+    </nav>
+  </main>
+</BaseLayout>

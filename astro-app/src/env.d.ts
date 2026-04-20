@@ -1,18 +1,34 @@
 /// <reference types="astro/client" />
+/// <reference path="../worker-configuration.d.ts" />
 
-// Cloudflare bindings will be typed here via `wrangler types` once
-// bindings are added to wrangler.jsonc. For now we declare the shape
-// of App.Locals and App.SessionData.
+/**
+ * Cloudflare env additions that wrangler types doesn't pick up automatically:
+ * secrets set via `wrangler secret put` and locally via .dev.vars.
+ */
+declare namespace Cloudflare {
+  interface Env {
+    AUTH_SECRET: string;
+    AUTH_URL: string;
+    OPENAI_API_KEY?: string;
+  }
+}
+
+/**
+ * App-specific user shape — Better Auth's base User plus our `role` additional field.
+ */
+type AppUser = import("better-auth").User & {
+  role: "USER" | "ADMIN";
+};
 
 declare namespace App {
   interface Locals {
-    // Populated by middleware in Phase 2 (auth)
-    user: import("@/lib/auth-types").User | null;
-    session: import("@/lib/auth-types").Session | null;
+    // Populated by middleware via better-auth (src/middleware.ts)
+    user: AppUser | null;
+    session: import("better-auth").Session | null;
   }
 
   interface SessionData {
-    // Session fields declared here become typed on Astro.session / context.session
+    // Astro sessions (KV-backed) — reserved for future use
     userId?: string;
   }
 }

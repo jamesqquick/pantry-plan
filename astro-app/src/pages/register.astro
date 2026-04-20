@@ -1,0 +1,10 @@
+---
+import AuthLayout from "@/layouts/AuthLayout.astro";
+import { RegisterForm } from "@/components/auth/RegisterForm";
+
+export const prerender = false;
+---
+
+<AuthLayout title="Create account" heading="Create your account" subheading="Start planning your pantry.">
+  <RegisterForm client:load />
+</AuthLayout>

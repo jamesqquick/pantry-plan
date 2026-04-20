@@ -1,8 +1,14 @@
 # Local development secrets for wrangler
-# Copy this to .dev.vars and fill in values
+# Copy this to .dev.vars and fill in values.
+# For production, set via `wrangler secret put <NAME>`.
 
 # Auth (generate with: openssl rand -base64 32)
 AUTH_SECRET=""
+
+# Base URL of the app — Better Auth uses this to build cookies/redirects
+# and to validate the Origin header on mutating requests.
+# Match whichever port your dev server is on (wrangler dev often picks 5175).
+AUTH_URL="http://localhost:5175"
 
 # AI providers (optional — app gracefully degrades without these)
 OPENAI_API_KEY=""

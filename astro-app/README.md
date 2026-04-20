@@ -9,7 +9,8 @@ Migration target for the Pantry Plan app. See the root repo for the current Next
 - **Cloudflare Workers** (via `@astrojs/cloudflare` v13 adapter)
 - **Cloudflare KV** for Astro sessions (auto-provisioned as `SESSION`)
 - **Cloudflare D1** with **Drizzle ORM** (bound as `DB`)
-- Coming in later phases: **Better Auth**, **Workers AI**, **R2**
+- **Better Auth** (email/password) with scrypt via `@noble/hashes` (Workers-compatible)
+- Coming in later phases: **Workers AI**, **R2**
 
 ## Scripts
 
@@ -44,9 +45,29 @@ Bindings:
 - `IMAGES` — Cloudflare Images
 - `ASSETS` — static assets
 
-## Verification pages
+## Verification pages (auth-protected)
 
-- `/dev/db-test` — renders ingredient catalog from D1 to prove the Drizzle → D1 pipeline works
+- `/dev/db-test` — renders ingredient catalog from D1 to prove Drizzle → D1
+- `/dev/auth-debug` — dumps the current session, user/session/account table rows
+
+## Auth
+
+Email/password via **Better Auth** (`src/lib/auth.ts`). Sessions stored in the
+D1 `session` table, keyed by a `better-auth.session_token` cookie. Password
+hashes live in `account.password` (scrypt via `@noble/hashes`).
+
+Secrets required:
+
+```bash
+# Local: put in astro-app/.dev.vars
+AUTH_SECRET="<openssl rand -base64 32>"
+AUTH_URL="http://localhost:5175"   # match the port wrangler dev uses
+
+# Production: set via wrangler
+wrangler secret put AUTH_SECRET
+```
+
+`AUTH_URL` for production is set as a `var` in wrangler.jsonc (not a secret).
 
 ## Data migration from Turso
 
@@ -67,7 +88,7 @@ files into D1 inserts once the final User schema is locked in by Phase 2.
 
 - [x] **Phase 0** — Scaffolding, design tokens, deploy
 - [x] **Phase 1** — D1 + Drizzle ORM schema
-- [ ] **Phase 2** — Better Auth
+- [x] **Phase 2** — Better Auth (email + password, middleware protection)
 - [ ] **Phase 2.5** — Data migration: import Turso snapshot into D1
 - [ ] **Phase 3** — Layouts & navigation
 - [ ] **Phase 4** — Query layer & utilities
