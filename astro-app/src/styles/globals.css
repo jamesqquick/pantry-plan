@@ -185,6 +185,176 @@
   border-radius: var(--radius-input);
 }
 
+/* ==========================================================================
+   Decorative / atmosphere utilities
+   ========================================================================== */
+
+/* Warm ambient backdrop. Two soft radial highlights in the primary/accent
+ * hues plus a subtle vertical gradient. Use on full-page containers behind
+ * hero/landing content for depth without heavy imagery. */
+.bg-warm-wash {
+  background:
+    radial-gradient(
+      ellipse 60% 40% at 15% 10%,
+      hsl(22 100% 25% / 0.12),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 50% 40% at 90% 90%,
+      hsl(9 45% 48% / 0.1),
+      transparent 70%
+    ),
+    linear-gradient(
+      180deg,
+      hsl(var(--background)) 0%,
+      hsl(var(--panel)) 100%
+    );
+}
+.dark .bg-warm-wash {
+  background:
+    radial-gradient(
+      ellipse 60% 40% at 15% 10%,
+      hsl(22 100% 35% / 0.18),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 50% 40% at 90% 90%,
+      hsl(9 45% 45% / 0.14),
+      transparent 70%
+    ),
+    linear-gradient(
+      180deg,
+      hsl(var(--background)) 0%,
+      hsl(var(--panel)) 100%
+    );
+}
+
+/* Very subtle film grain — sells the "analog / handmade kitchen" vibe.
+ * Uses an SVG noise data URI; stays performant because it's tiled.
+ * Low opacity (3%) = atmosphere, not distraction. */
+.bg-grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+  z-index: 0;
+}
+.bg-grain > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Decorative blob — place absolute inside a relative container.
+ * Pure CSS, hardware-accelerated, respects reduced motion. */
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.35;
+  pointer-events: none;
+  animation: blob-drift 18s ease-in-out infinite;
+}
+.dark .blob {
+  opacity: 0.25;
+}
+@keyframes blob-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(20px, -20px) scale(1.05);
+  }
+  66% {
+    transform: translate(-15px, 15px) scale(0.97);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .blob {
+    animation: none;
+  }
+}
+
+/* ==========================================================================
+   Button system — consistent shadow + press feedback
+   ========================================================================== */
+
+.btn-primary {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-radius: var(--radius-input);
+  box-shadow:
+    0 1px 0 hsl(22 100% 18%) inset,
+    0 4px 12px -4px hsl(22 100% 25% / 0.4);
+  transition:
+    transform 150ms ease-out,
+    box-shadow 150ms ease-out,
+    filter 150ms ease-out;
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 0 hsl(22 100% 18%) inset,
+    0 8px 20px -4px hsl(22 100% 25% / 0.5);
+  filter: brightness(1.05);
+}
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow:
+    0 1px 0 hsl(22 100% 18%) inset,
+    0 2px 6px -2px hsl(22 100% 25% / 0.4);
+}
+.btn-primary:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+.btn-secondary {
+  background: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  border-radius: var(--radius-input);
+  border: 1px solid hsl(var(--border));
+  transition:
+    transform 150ms ease-out,
+    background-color 150ms ease-out;
+}
+.btn-secondary:hover {
+  transform: translateY(-1px);
+  background: hsl(var(--accent));
+}
+.btn-secondary:active {
+  transform: translateY(0);
+}
+.btn-secondary:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Stat card — tinted surface, hover lift
+   ========================================================================== */
+
+.stat-card {
+  background: hsl(var(--panel));
+  border: 1px solid hsl(var(--divider));
+  border-radius: var(--radius-lg);
+  transition:
+    transform 200ms ease-out,
+    box-shadow 200ms ease-out,
+    border-color 200ms ease-out;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px -10px hsl(22 100% 15% / 0.2);
+  border-color: hsl(var(--ring) / 0.4);
+}
+.dark .stat-card:hover {
+  box-shadow: 0 10px 30px -10px hsl(0 0% 0% / 0.5);
+}
+
 body {
   background: hsl(var(--background));
   color: hsl(var(--foreground));

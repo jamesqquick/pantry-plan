@@ -75,7 +75,7 @@ export function LoginForm({ next }: Props) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-input bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-opacity"
+        className="btn-primary w-full px-4 py-2.5 text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {pending ? "Signing in…" : "Sign in"}
       </button>

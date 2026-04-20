@@ -109,7 +109,7 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
           role="dialog"
           aria-modal="true"
           aria-label="Main menu"
-          className="fixed inset-0 z-50 bg-background mobile-menu-slide-panel"
+          className="fixed inset-0 z-50 mobile-menu-slide-panel bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80"
           data-state={
             phase === "open"
               ? "open"
