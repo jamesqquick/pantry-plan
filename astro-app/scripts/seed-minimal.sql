@@ -1,6 +1,7 @@
 -- Minimal Phase 1 seed for D1 verification.
--- A richer seed (users, recipes, orders, 100+ ingredients) lands in Phase 4
--- once the ingredient normalization library is ported.
+-- NOTE: Superseded by data/turso-snapshot/load.sql (Phase 2.5) which imports
+-- 525 real ingredients. Keep this file as a fallback for a fresh DB when
+-- the snapshot isn't available.
 
 DELETE FROM IngredientAlias;
 DELETE FROM IngredientSubcategory;

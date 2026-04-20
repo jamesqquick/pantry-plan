@@ -71,25 +71,34 @@ wrangler secret put AUTH_SECRET
 
 ## Data migration from Turso
 
-We captured a one-time snapshot of the existing production Turso database
-to use as input for the D1 data migration in Phase 2.5.
+Two-step process: snapshot the live Turso DB to local JSON, then transform
+that into a D1-compatible SQL file and apply it.
 
 ```bash
-# Requires ../.env with TURSO_DATABASE_URL and TURSO_AUTH_TOKEN
+# 1. Capture snapshot (read-only; requires ../.env with TURSO_* vars)
 npm run snapshot:turso
+
+# 2. Generate load.sql from the snapshot
+npm run migrate:from-snapshot
+
+# 3. Apply to local D1
+npx wrangler d1 execute pantry-plan --local --file=data/turso-snapshot/load.sql
+
+# 4. Apply to remote D1 (production)
+npx wrangler d1 execute pantry-plan --remote --file=data/turso-snapshot/load.sql
 ```
 
-This dumps all 13 tables to `data/turso-snapshot/*.json` (gitignored —
-contains bcrypt hashes and real user data). Re-run any time for a fresh
-snapshot. The migration itself (Phase 2.5) will transform these JSON
-files into D1 inserts once the final User schema is locked in by Phase 2.
+The snapshot dir and `load.sql` are both gitignored (they contain real user
+data). Every migrated user gets a sentinel `account.password` that always
+fails scrypt verification — they must use "forgot password" on first login.
+(bcrypt hashes from Turso can't be re-wrapped as scrypt.)
 
 ## Migration Phases
 
 - [x] **Phase 0** — Scaffolding, design tokens, deploy
 - [x] **Phase 1** — D1 + Drizzle ORM schema
 - [x] **Phase 2** — Better Auth (email + password, middleware protection)
-- [ ] **Phase 2.5** — Data migration: import Turso snapshot into D1
+- [x] **Phase 2.5** — Data migration: import Turso snapshot into D1 (1053 rows)
 - [ ] **Phase 3** — Layouts & navigation
 - [ ] **Phase 4** — Query layer & utilities
 - [ ] **Phase 5** — Astro actions

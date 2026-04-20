@@ -18,6 +18,7 @@
     "db:seed:remote": "tsx scripts/seed.ts --remote",
     "db:studio": "drizzle-kit studio",
     "snapshot:turso": "tsx --env-file=../.env scripts/snapshot-turso.ts",
+    "migrate:from-snapshot": "tsx scripts/migrate-from-snapshot.ts",
     "astro": "astro"
   },
   "dependencies": {
