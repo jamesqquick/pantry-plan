@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { signIn } from "@/lib/auth-client";
+import { Button } from "@/components/ui/Button";
 
 interface Props {
   /** Optional post-login redirect target. */
@@ -72,13 +73,9 @@ export function LoginForm({ next }: Props) {
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="btn-primary w-full px-4 py-2.5 text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
-      >
+      <Button type="submit" disabled={pending} className="w-full py-2.5">
         {pending ? "Signing in…" : "Sign in"}
-      </button>
+      </Button>
 
       <p className="text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{" "}

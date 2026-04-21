@@ -283,6 +283,13 @@
    ========================================================================== */
 
 .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.5rem 1rem; /* py-2 px-4 */
+  font-size: 0.875rem;  /* text-sm  */
+  line-height: 1.25rem;
+  font-weight: 600;     /* font-semibold */
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   border-radius: var(--radius-input);
@@ -293,6 +300,10 @@
     transform 150ms ease-out,
     box-shadow 150ms ease-out,
     filter 150ms ease-out;
+}
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 .btn-primary:hover {
   transform: translateY(-1px);
@@ -313,6 +324,13 @@
 }
 
 .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.5rem 1rem; /* py-2 px-4 */
+  font-size: 0.875rem;  /* text-sm  */
+  line-height: 1.25rem;
+  font-weight: 600;     /* font-semibold */
   background: hsl(var(--secondary));
   color: hsl(var(--secondary-foreground));
   border-radius: var(--radius-input);
@@ -320,6 +338,10 @@
   transition:
     transform 150ms ease-out,
     background-color 150ms ease-out;
+}
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 .btn-secondary:hover {
   transform: translateY(-1px);
@@ -437,4 +459,20 @@ body {
 
 .animate-chef-float {
   animation: chef-float 2.5s ease-in-out infinite;
+}
+
+/* Tab content fade + slide-up on switch */
+@keyframes tab-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-tab-in {
+  animation: tab-in 200ms ease-out both;
 }

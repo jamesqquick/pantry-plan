@@ -2,9 +2,7 @@
 import { env } from "cloudflare:workers";
 import { asc, eq } from "drizzle-orm";
 import AppLayout from "@/layouts/AppLayout.astro";
-import RecipeForm, {
-  type RecipeFormInitial,
-} from "@/components/recipes/RecipeForm";
+import { ImportWizard } from "@/components/recipes/import/ImportWizard";
 import { createDb, tag } from "@/db";
 
 export const prerender = false;
@@ -17,20 +15,6 @@ const allTags = await db
   .from(tag)
   .where(eq(tag.userId, user.id))
   .orderBy(asc(tag.name));
-
-const initial: RecipeFormInitial = {
-  title: "",
-  sourceUrl: "",
-  imageUrl: "",
-  servings: "",
-  prepTimeMinutes: "",
-  cookTimeMinutes: "",
-  totalTimeMinutes: "",
-  notes: "",
-  instructions: [],
-  ingredients: [],
-  tagIds: [],
-};
 ---
 
 <AppLayout title="New recipe — Pantry Plan">
@@ -62,10 +46,10 @@ const initial: RecipeFormInitial = {
         New recipe
       </h1>
       <p class="text-sm text-muted-foreground">
-        Add title, times, ingredients, and steps. You can edit everything later.
+        Import from a URL, photo, or create from scratch.
       </p>
     </header>
 
-    <RecipeForm client:load mode="create" initial={initial} allTags={allTags} />
+    <ImportWizard client:load allTags={allTags} />
   </div>
 </AppLayout>

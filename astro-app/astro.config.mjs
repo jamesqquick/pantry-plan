@@ -37,5 +37,13 @@ export default defineConfig({
         "@": "/src",
       },
     },
+    ssr: {
+      // Ensure React is resolved once during SSR so the dispatcher is
+      // never null when islands call hooks. Without this, Vite's SSR
+      // dep-optimization can occasionally create a stale chunk where
+      // ReactSharedInternals.H is null, causing the intermittent
+      // "Cannot read properties of null (reading 'useState')" error.
+      noExternal: ["better-auth"],
+    },
   },
 });

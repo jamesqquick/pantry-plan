@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { actions } from "astro:actions";
+import { Button } from "@/components/ui/Button";
 
 /**
  * Phase 5 verification: exercises every action namespace end-to-end so
@@ -129,31 +130,32 @@ export function ActionsPlayground() {
     await run("mealPlan.delete", () => actions.mealPlan.delete(del));
   }
 
-  const Button = ({
+  const ActionBtn = ({
     label,
     onClick,
   }: {
     label: string;
     onClick: () => void;
   }) => (
-    <button
-      type="button"
+    <Button
+      variant="secondary"
+      size="sm"
       onClick={onClick}
       disabled={!!pending}
-      className="btn-secondary px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+      className="text-xs"
     >
       {pending === label ? "…" : label}
-    </button>
+    </Button>
   );
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        <Button label="Tags round-trip" onClick={tagsRoundTrip} />
-        <Button label="Ingredients search" onClick={ingredientsSearch} />
-        <Button label="Recipes round-trip" onClick={recipesRoundTrip} />
-        <Button label="Meal plan round-trip" onClick={mealPlanRoundTrip} />
-        <Button label="Clear log" onClick={() => setLog([])} />
+        <ActionBtn label="Tags round-trip" onClick={tagsRoundTrip} />
+        <ActionBtn label="Ingredients search" onClick={ingredientsSearch} />
+        <ActionBtn label="Recipes round-trip" onClick={recipesRoundTrip} />
+        <ActionBtn label="Meal plan round-trip" onClick={mealPlanRoundTrip} />
+        <ActionBtn label="Clear log" onClick={() => setLog([])} />
       </div>
       {log.length === 0 ? (
         <p className="text-sm text-muted-foreground">

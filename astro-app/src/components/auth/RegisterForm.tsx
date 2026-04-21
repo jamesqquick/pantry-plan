@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { signUp } from "@/lib/auth-client";
+import { Button } from "@/components/ui/Button";
 
 export function RegisterForm() {
   const [name, setName] = useState("");
@@ -88,13 +89,9 @@ export function RegisterForm() {
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="btn-primary w-full px-4 py-2.5 text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
-      >
+      <Button type="submit" disabled={pending} className="w-full py-2.5">
         {pending ? "Creating account…" : "Create account"}
-      </button>
+      </Button>
 
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{" "}

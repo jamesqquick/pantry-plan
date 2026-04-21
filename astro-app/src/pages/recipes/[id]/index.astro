@@ -3,6 +3,7 @@ import { env } from "cloudflare:workers";
 import { and, asc, eq } from "drizzle-orm";
 import AppLayout from "@/layouts/AppLayout.astro";
 import RecipeActions from "@/components/recipes/RecipeActions";
+import { TagBadge } from "@/components/ui/TagBadge";
 import { renderMarkdownToHtml } from "@/features/markdown/render-markdown";
 import { formatQuantity } from "@/lib/quantity/quantity";
 import { formatUnitForDisplay } from "@/lib/units";
@@ -127,66 +128,69 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
       </a>
     </nav>
 
-    <header class="flex flex-col gap-6 sm:flex-row sm:items-start">
-      {r.imageUrl && (
-        <img
-          src={r.imageUrl}
-          alt=""
-          class="h-48 w-48 shrink-0 rounded-2xl object-cover"
-          loading="lazy"
-        />
-      )}
-      <div class="min-w-0 flex-1 space-y-3">
-        <h1 class="font-display text-4xl leading-tight text-primary-on-background sm:text-5xl">
-          {r.title}
-        </h1>
+    <header class="space-y-5">
+      {/* Image + title row: stacked on mobile, side-by-side on md+ */}
+      <div class="flex flex-col gap-5 md:flex-row md:items-start">
+        {r.imageUrl && (
+          <img
+            src={r.imageUrl}
+            alt=""
+            class="w-full max-w-xs rounded-2xl object-cover aspect-[4/3] md:w-48 md:h-48 md:aspect-square"
+            loading="lazy"
+          />
+        )}
+        <div class="min-w-0 flex-1 space-y-3">
+          <h1 class="font-display text-3xl leading-tight text-primary-on-background sm:text-4xl">
+            {r.title}
+          </h1>
         {tags.length > 0 && (
           <div class="flex flex-wrap gap-1.5">
             {tags.map((t) => (
-              <span class="inline-flex items-center rounded-full bg-primary-icon-bg px-2.5 py-0.5 text-xs font-semibold text-primary-icon-fg">
-                {t.name}
-              </span>
+              <TagBadge name={t.name} />
             ))}
           </div>
         )}
-        {meta.length > 0 && (
-          <dl class="flex flex-wrap gap-x-6 gap-y-2 pt-1 text-sm">
-            {meta.map((m) => (
-              <div class="flex items-baseline gap-1.5">
-                <dt class="text-muted-foreground">{m.label}</dt>
-                <dd class="font-semibold tabular-nums">{m.value}</dd>
-              </div>
-            ))}
-          </dl>
-        )}
-        {r.sourceUrl && (
-          <p class="text-sm">
-            <a
-              href={r.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex items-center gap-1 text-muted-foreground underline-offset-4 hover:text-primary-on-card hover:underline"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="h-3.5 w-3.5"
-                aria-hidden="true"
+          {meta.length > 0 && (
+            <dl class="flex flex-wrap gap-x-6 gap-y-2 pt-1 text-sm">
+              {meta.map((m) => (
+                <div class="flex items-baseline gap-1.5">
+                  <dt class="text-muted-foreground">{m.label}</dt>
+                  <dd class="font-semibold tabular-nums">{m.value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          {r.sourceUrl && (
+            <p class="text-sm">
+              <a
+                href={r.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-1 text-muted-foreground underline-offset-4 hover:text-primary-on-card hover:underline"
               >
-                <path d="M15 3h6v6"></path>
-                <path d="M10 14 21 3"></path>
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-              </svg>
-              View source
-            </a>
-          </p>
-        )}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-3.5 w-3.5"
+                  aria-hidden="true"
+                >
+                  <path d="M15 3h6v6"></path>
+                  <path d="M10 14 21 3"></path>
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                </svg>
+                View source
+              </a>
+            </p>
+          )}
+        </div>
       </div>
+
+      {/* Actions on their own row so they never squeeze the title */}
       <RecipeActions client:load recipeId={r.id} />
     </header>
 
@@ -200,9 +204,8 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
         ) : (
           <ul class="mt-4 space-y-1 text-sm">
             {ingredients.map((i) => (
-              <li class="flex items-start gap-3 rounded-lg bg-panel px-3 py-2">
-                <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" aria-hidden="true"></span>
-                <span class="leading-relaxed">{formatIngredientLine(i)}</span>
+              <li class="rounded-input bg-panel px-3 py-2 leading-relaxed">
+                {formatIngredientLine(i)}
               </li>
             ))}
           </ul>

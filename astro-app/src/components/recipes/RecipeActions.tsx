@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { actions } from "astro:actions";
+import { Button } from "@/components/ui/Button";
 
 export interface RecipeActionsProps {
   recipeId: string;
@@ -46,11 +47,13 @@ export default function RecipeActions({ recipeId }: RecipeActionsProps) {
   }
 
   return (
-    <div className="flex shrink-0 flex-col items-end gap-2">
+    <div className="flex flex-col items-start gap-2">
       <div className="flex flex-wrap gap-2">
-        <a
+        <Button
+          variant="secondary"
+          size="sm"
           href={`/recipes/${recipeId}/edit`}
-          className="btn-secondary inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold"
+          className="gap-1.5"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -67,12 +70,13 @@ export default function RecipeActions({ recipeId }: RecipeActionsProps) {
             <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
           </svg>
           Edit
-        </a>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={handleDuplicate}
           disabled={pending !== null}
-          className="btn-secondary inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold disabled:opacity-60"
+          className="gap-1.5"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -89,31 +93,32 @@ export default function RecipeActions({ recipeId }: RecipeActionsProps) {
             <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
           </svg>
           {pending === "duplicate" ? "Copying…" : "Duplicate"}
-        </button>
+        </Button>
         {confirmingDelete ? (
           <>
-            <button
-              type="button"
+            <Button
+              variant="danger"
+              size="sm"
               onClick={handleDelete}
               disabled={pending !== null}
-              className="inline-flex items-center rounded-input border border-destructive bg-destructive px-3 py-1.5 text-sm font-semibold text-destructive-foreground transition-colors hover:opacity-90 disabled:opacity-60"
             >
               {pending === "delete" ? "Deleting…" : "Yes, delete"}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setConfirmingDelete(false)}
               disabled={pending !== null}
-              className="btn-secondary inline-flex items-center px-3 py-1.5 text-sm font-semibold"
             >
               Cancel
-            </button>
+            </Button>
           </>
         ) : (
-          <button
-            type="button"
+          <Button
+            variant="ghost-danger"
+            size="sm"
             onClick={() => setConfirmingDelete(true)}
-            className="inline-flex items-center gap-1.5 rounded-input border border-destructive/30 bg-transparent px-3 py-1.5 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10"
+            className="gap-1.5"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -131,7 +136,7 @@ export default function RecipeActions({ recipeId }: RecipeActionsProps) {
               <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
             </svg>
             Delete
-          </button>
+          </Button>
         )}
       </div>
       {error && (

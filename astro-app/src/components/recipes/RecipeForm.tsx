@@ -3,6 +3,8 @@ import { actions } from "astro:actions";
 import { INGREDIENT_UNITS, type IngredientUnit } from "@/db/schema/enums";
 import { parseQuantityText } from "@/lib/quantity/quantity";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
+import { TagToggle } from "@/components/ui/TagToggle";
 
 export type RecipeFormMode = "create" | "edit";
 
@@ -289,7 +291,7 @@ export default function RecipeForm({
           {ingredients.map((row, idx) => (
             <li
               key={idx}
-              className="grid grid-cols-[70px_96px_1fr_auto] items-center gap-2 rounded-lg border border-border bg-card p-2"
+              className="grid grid-cols-[70px_96px_1fr_auto] items-center gap-2 rounded-input border border-border bg-card p-2"
             >
               <input
                 type="text"
@@ -407,25 +409,15 @@ export default function RecipeForm({
         <section className="space-y-3">
           <h2 className="font-display text-xl text-primary-on-background">Tags</h2>
           <div className="flex flex-wrap gap-2">
-            {allTags.map((t) => {
-              const selected = tagIds.has(t.id);
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => toggleTag(t.id)}
-                  aria-pressed={selected}
-                  className={cn(
-                    "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
-                    selected
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground hover:bg-accent"
-                  )}
-                >
-                  {t.name}
-                </button>
-              );
-            })}
+            {allTags.map((t) => (
+              <TagToggle
+                key={t.id}
+                selected={tagIds.has(t.id)}
+                onClick={() => toggleTag(t.id)}
+              >
+                {t.name}
+              </TagToggle>
+            ))}
           </div>
         </section>
       )}
@@ -446,23 +438,20 @@ export default function RecipeForm({
       </section>
 
       {error && (
-        <div className="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div className="rounded-input border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       )}
 
       <div className="flex items-center justify-end gap-3">
-        <a
+        <Button
+          variant="secondary"
           href={mode === "edit" && initial.id ? `/recipes/${initial.id}` : "/recipes"}
-          className="btn-secondary inline-flex items-center px-4 py-2 text-sm font-semibold"
         >
           Cancel
-        </a>
-        <button
-          type="submit"
-          disabled={pending}
-          className="btn-primary inline-flex items-center px-5 py-2 text-sm font-semibold disabled:opacity-60"
-        >
+        </Button>
+        <Button type="submit" disabled={pending} className="px-5">
+        
           {pending
             ? mode === "create"
               ? "Creating…"
@@ -470,7 +459,7 @@ export default function RecipeForm({
             : mode === "create"
               ? "Create recipe"
               : "Save changes"}
-        </button>
+        </Button>
       </div>
     </form>
   );

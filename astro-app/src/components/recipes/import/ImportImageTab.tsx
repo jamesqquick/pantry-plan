@@ -1,0 +1,170 @@
+/**
+ * Image import tab: upload a photo of a recipe, parse via OpenAI Vision, review/edit, save.
+ */
+
+import { useState, useRef } from "react";
+import { actions } from "astro:actions";
+import {
+  MAX_RECIPE_IMAGE_BYTES,
+  ALLOWED_RECIPE_IMAGE_TYPES,
+} from "@/features/parse/parse.schemas";
+import { RecipeDraftEditor, type RecipeDraft } from "./RecipeDraftEditor";
+
+export function ImportImageTab({
+  allTags,
+}: {
+  allTags: { id: string; name: string }[];
+}) {
+  const [parsing, setParsing] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [draft, setDraft] = useState<RecipeDraft | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleFileSelect(file: File) {
+    setParseError(null);
+    setFileName(file.name);
+
+    if (file.size > MAX_RECIPE_IMAGE_BYTES) {
+      setParseError("Image must be 4 MB or smaller.");
+      return;
+    }
+    if (
+      !ALLOWED_RECIPE_IMAGE_TYPES.includes(
+        file.type as (typeof ALLOWED_RECIPE_IMAGE_TYPES)[number],
+      )
+    ) {
+      setParseError("Image must be JPEG, PNG, or WebP.");
+      return;
+    }
+
+    setParsing(true);
+
+    // Convert file to base64 for the action
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+
+    const { data, error } = await actions.parse.parseFromImage({
+      imageBase64: base64,
+      mimeType: file.type as "image/jpeg" | "image/png" | "image/webp",
+    });
+    setParsing(false);
+
+    if (error) {
+      setParseError(error.message || "Failed to extract recipe from image.");
+      return;
+    }
+
+    setDraft({
+      title: data.title,
+      sourceUrl: "",
+      imageUrl: "",
+      servings: data.servings,
+      prepTimeMinutes: data.prepTimeMinutes,
+      cookTimeMinutes: data.cookTimeMinutes,
+      totalTimeMinutes: data.totalTimeMinutes,
+      ingredients: data.ingredients,
+      instructions: data.instructions,
+      notes: data.notes ?? "",
+    });
+  }
+
+  if (draft) {
+    return (
+      <RecipeDraftEditor
+        draft={draft}
+        onBack={() => setDraft(null)}
+        allTags={allTags}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-foreground">
+          Recipe photo
+        </label>
+        <div
+          className="flex cursor-pointer flex-col items-center gap-2 rounded-input border-2 border-dashed border-input p-8 text-center transition-colors hover:border-primary"
+          onClick={() => fileRef.current?.click()}
+        >
+          {/* Upload icon (Lucide Upload) */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-8 w-8 text-muted-foreground"
+            aria-hidden="true"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" x2="12" y1="3" y2="15" />
+          </svg>
+          <span className="text-sm text-muted-foreground">
+            {parsing
+              ? "Extracting recipe..."
+              : fileName
+                ? fileName
+                : "Click to upload a recipe photo"}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            JPEG, PNG, or WebP. Max 4 MB.
+          </span>
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleFileSelect(file);
+          }}
+          disabled={parsing}
+        />
+      </div>
+
+      {parsing && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <svg
+            className="h-4 w-4 animate-spin"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
+          </svg>
+          Analyzing image with AI... this may take a moment.
+        </div>
+      )}
+
+      {parseError && (
+        <div className="rounded-input bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">
+          {parseError}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { fuzzyFilterRecipes } from "@/lib/search/fuzzy-recipe";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
+import { TagBadge } from "@/components/ui/TagBadge";
+import { TagToggle } from "@/components/ui/TagToggle";
 
 export type RecipeCardData = {
   id: string;
@@ -80,20 +82,17 @@ export default function RecipeList({ recipes, allTags }: RecipeListProps) {
         <p className="mt-1 text-sm text-muted-foreground">
           Create your first recipe to start planning meals.
         </p>
-        <a
-          href="/recipes/new"
-          className="btn-primary mt-6 inline-flex items-center px-4 py-2 text-sm font-semibold"
-        >
+        <Button href="/recipes/new" className="mt-6">
           New recipe
-        </a>
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <label className="relative block flex-1">
+      <div className="flex flex-col gap-3">
+        <label className="relative block w-full">
           <span className="sr-only">Search recipes</span>
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -120,36 +119,23 @@ export default function RecipeList({ recipes, allTags }: RecipeListProps) {
 
         {allTags.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
-            <button
-              type="button"
+            <TagToggle
+              selected={selectedTagId === null}
               onClick={() => setSelectedTagId(null)}
-              className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                selectedTagId === null
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-accent"
-              )}
             >
               All
-            </button>
+            </TagToggle>
             {allTags.map((t) => (
-              <button
+              <TagToggle
                 key={t.id}
-                type="button"
+                selected={selectedTagId === t.id}
                 onClick={() =>
                   setSelectedTagId((prev) => (prev === t.id ? null : t.id))
                 }
-                className={cn(
-                  "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                  selectedTagId === t.id
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-secondary-foreground hover:bg-accent"
-                )}
-                aria-pressed={selectedTagId === t.id}
               >
                 {t.name}{" "}
                 <span className="opacity-60">· {t.n}</span>
-              </button>
+              </TagToggle>
             ))}
           </div>
         )}
@@ -205,12 +191,7 @@ export default function RecipeList({ recipes, allTags }: RecipeListProps) {
                   {r.tags.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1">
                       {r.tags.slice(0, 3).map((t) => (
-                        <span
-                          key={t.id}
-                          className="inline-flex items-center rounded-full bg-primary-icon-bg px-2 py-0.5 text-[10px] font-semibold text-primary-icon-fg"
-                        >
-                          {t.name}
-                        </span>
+                        <TagBadge key={t.id} name={t.name} size="sm" />
                       ))}
                       {r.tags.length > 3 && (
                         <span className="text-[10px] text-muted-foreground">
