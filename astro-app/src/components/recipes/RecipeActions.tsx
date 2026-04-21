@@ -4,16 +4,24 @@ import { Button } from "@/components/ui/Button";
 
 export interface RecipeActionsProps {
   recipeId: string;
+  /** True when the recipe has ingredient lines without an ingredientId mapping. */
+  hasUnmappedIngredients?: boolean;
 }
 
 /**
  * Detail-page action cluster: edit link + duplicate + delete.
  * Duplicate and delete both go to the recipes.* actions we shipped in Phase 5.
  */
-export default function RecipeActions({ recipeId }: RecipeActionsProps) {
-  const [pending, setPending] = useState<"duplicate" | "delete" | null>(null);
+export default function RecipeActions({
+  recipeId,
+  hasUnmappedIngredients = false,
+}: RecipeActionsProps) {
+  const [pending, setPending] = useState<
+    "duplicate" | "delete" | "enhance" | null
+  >(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [enhanceResult, setEnhanceResult] = useState<string | null>(null);
 
   async function handleDuplicate() {
     setPending("duplicate");
@@ -29,6 +37,25 @@ export default function RecipeActions({ recipeId }: RecipeActionsProps) {
     if (data) {
       window.location.href = `/recipes/${data.id}`;
     }
+  }
+
+  async function handleEnhance() {
+    setPending("enhance");
+    setError(null);
+    setEnhanceResult(null);
+    const { data, error: err } = await actions.enhance.recipeIngredients({
+      recipeId,
+    });
+    if (err) {
+      setError(err.message || "Could not enhance ingredients");
+      setPending(null);
+      return;
+    }
+    const mapped = data.items.filter((i) => i.ingredientId).length;
+    setEnhanceResult(`${mapped}/${data.items.length} ingredients mapped`);
+    setPending(null);
+    // Reload to show updated ingredient data
+    window.location.reload();
   }
 
   async function handleDelete() {
@@ -71,6 +98,35 @@ export default function RecipeActions({ recipeId }: RecipeActionsProps) {
           </svg>
           Edit
         </Button>
+        {hasUnmappedIngredients && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleEnhance}
+            disabled={pending !== null}
+            className="gap-1.5"
+          >
+            {/* Lucide Sparkles */}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-3.5 w-3.5"
+              aria-hidden="true"
+            >
+              <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+              <path d="M20 3v4" />
+              <path d="M22 5h-4" />
+              <path d="M4 17v2" />
+              <path d="M5 18H3" />
+            </svg>
+            {pending === "enhance" ? "Mapping..." : "Map ingredients"}
+          </Button>
+        )}
         <Button
           variant="secondary"
           size="sm"
@@ -142,6 +198,11 @@ export default function RecipeActions({ recipeId }: RecipeActionsProps) {
       {error && (
         <p role="alert" className="text-xs text-destructive">
           {error}
+        </p>
+      )}
+      {enhanceResult && !error && (
+        <p className="text-xs text-green-700 dark:text-green-300">
+          {enhanceResult}
         </p>
       )}
     </div>

@@ -82,6 +82,8 @@ const notesHtml = r.notes?.trim()
   ? await renderMarkdownToHtml(r.notes)
   : null;
 
+const hasUnmappedIngredients = ingredients.some((i) => !i.ingredientId);
+
 /** Format a single ingredient line from structured fields. */
 function formatIngredientLine(i: (typeof ingredients)[number]): string {
   const parts: string[] = [];
@@ -191,7 +193,7 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
       </div>
 
       {/* Actions on their own row so they never squeeze the title */}
-      <RecipeActions client:load recipeId={r.id} />
+      <RecipeActions client:load recipeId={r.id} hasUnmappedIngredients={hasUnmappedIngredients} />
     </header>
 
     <div class="grid gap-8 lg:grid-cols-5">
