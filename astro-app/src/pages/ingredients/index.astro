@@ -1,14 +1,115 @@
 ---
+import { env } from "cloudflare:workers";
+import { and, asc, count, eq, isNull, like, or } from "drizzle-orm";
 import AppLayout from "@/layouts/AppLayout.astro";
-import PhasePlaceholder from "@/components/app/PhasePlaceholder.astro";
+import IngredientList from "@/components/ingredients/IngredientList";
+import { createDb, ingredient, ingredientCategory } from "@/db";
 
 export const prerender = false;
+
+const user = Astro.locals.user!;
+const db = createDb(env.DB);
+
+// Parse URL search params for filtering/pagination.
+const url = new URL(Astro.request.url);
+const search = url.searchParams.get("search")?.trim() ?? "";
+const category = url.searchParams.get("category")?.trim() ?? "";
+const source = url.searchParams.get("source")?.trim() || "all"; // "all" | "global" | "mine"
+const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10) || 1);
+const limit = Math.min(100, Math.max(10, parseInt(url.searchParams.get("limit") ?? "25", 10) || 25));
+const offset = (page - 1) * limit;
+
+// Build WHERE conditions.
+// Base: global rows + user's own rows (unless filtering by source).
+const conditions = [];
+if (source === "global") {
+  conditions.push(isNull(ingredient.userId));
+} else if (source === "mine") {
+  conditions.push(eq(ingredient.userId, user.id));
+} else {
+  // "all" — global + user's own
+  conditions.push(or(isNull(ingredient.userId), eq(ingredient.userId, user.id)));
+}
+if (search) {
+  const pattern = `%${search}%`;
+  conditions.push(
+    or(like(ingredient.name, pattern), like(ingredient.normalizedName, pattern))
+  );
+}
+if (category) {
+  conditions.push(eq(ingredient.category, category));
+}
+
+const where = conditions.length > 1 ? and(...conditions) : conditions[0];
+
+// Run paginated query + total count + categories in parallel.
+const [ingredients, [{ total }], categories] = await Promise.all([
+  db
+    .select({
+      id: ingredient.id,
+      name: ingredient.name,
+      userId: ingredient.userId,
+      category: ingredient.category,
+    })
+    .from(ingredient)
+    .where(where)
+    .orderBy(asc(ingredient.name))
+    .limit(limit)
+    .offset(offset),
+  db
+    .select({ total: count(ingredient.id) })
+    .from(ingredient)
+    .where(where),
+  db
+    .select({ name: ingredientCategory.name })
+    .from(ingredientCategory)
+    .orderBy(asc(ingredientCategory.name)),
+]);
+
+const totalPages = Math.max(1, Math.ceil(total / limit));
+const categoryNames = categories.map((c) => c.name);
 ---
 
 <AppLayout title="Ingredients — Pantry Plan">
-  <PhasePlaceholder
-    heading="Ingredients"
-    phase="Phase 8"
-    description="Your ingredient catalog with cost tracking, categories, and unit conversions."
-  />
+  <div class="space-y-8">
+    <header class="flex items-start justify-between gap-4">
+      <div class="space-y-1">
+        <h1 class="font-display text-4xl text-primary-on-background">Ingredients</h1>
+        <p class="text-sm text-muted-foreground">
+          Browse the shared catalog or manage your own custom ingredients.
+        </p>
+      </div>
+      <a href="/ingredients/new" class="btn-primary shrink-0 gap-2">
+        {/* Lucide Plus */}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="h-4 w-4"
+          aria-hidden="true"
+        >
+          <path d="M12 5v14"></path>
+          <path d="M5 12h14"></path>
+        </svg>
+        New ingredient
+      </a>
+    </header>
+
+    <IngredientList
+      client:load
+      ingredients={ingredients}
+      search={search}
+      category={category}
+      source={source}
+      categories={categoryNames}
+      totalCount={total}
+      page={page}
+      limit={limit}
+      totalPages={totalPages}
+    />
+  </div>
 </AppLayout>
