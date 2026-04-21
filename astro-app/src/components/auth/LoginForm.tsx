@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { signIn } from "@/lib/auth-client";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface Props {
   /** Optional post-login redirect target. */
@@ -36,7 +37,7 @@ export function LoginForm({ next }: Props) {
         <label htmlFor="email" className="block text-sm font-medium">
           Email
         </label>
-        <input
+        <Input
           id="email"
           name="email"
           type="email"
@@ -44,7 +45,6 @@ export function LoginForm({ next }: Props) {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-input border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
           aria-invalid={!!error}
         />
       </div>
@@ -53,7 +53,7 @@ export function LoginForm({ next }: Props) {
         <label htmlFor="password" className="block text-sm font-medium">
           Password
         </label>
-        <input
+        <Input
           id="password"
           name="password"
           type="password"
@@ -62,7 +62,6 @@ export function LoginForm({ next }: Props) {
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-input border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
           aria-invalid={!!error}
         />
       </div>

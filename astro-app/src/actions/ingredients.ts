@@ -1,5 +1,5 @@
 import { ActionError, defineAction } from "astro:actions";
-import { and, asc, count, eq, isNull, like, ne, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, isNull, like, ne, or } from "drizzle-orm";
 import { z } from "zod";
 import {
   ingredientCreateSchema,
@@ -347,9 +347,9 @@ export const ingredients = {
             )
           )
         )
-        // user-owned first (treat NULL as lowest via the `userId desc nulls last` pattern);
-        // D1/SQLite: NULLs are lowest by default in ASC, so DESC puts them last.
-        .orderBy(asc(ingredient.userId), asc(ingredient.normalizedName))
+        // user-owned first: in SQLite NULLs sort before non-NULLs in ASC,
+        // so DESC puts non-NULL userId (user-owned) first, NULLs (global) last.
+        .orderBy(desc(ingredient.userId), asc(ingredient.normalizedName))
         .limit(PICKER_SEARCH_TAKE);
 
       return rows.map((r) => ({

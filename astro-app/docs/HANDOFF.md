@@ -23,7 +23,9 @@ You are continuing a multi-phase migration of the **Pantry Plan** recipe/meal-pl
 - **Better Auth** (email + password, scrypt via `@noble/hashes` for Workers compatibility)
 - **Tailwind CSS v4** with custom design tokens (Potluck Pal warm neutrals + rust primary)
 - Fonts: Be Vietnam Pro (body), Lilita One (display) via Astro's built-in Fonts API
-- **Vitest** for tests (78 passing)
+- **shadcn-style form primitives** (hand-ported `Input`, `Textarea`, `Select` in `src/components/ui/`)
+- **Radix UI** for `Tabs` and `Select` (no CLI — components copied into the repo)
+- **Vitest** for tests (85 passing)
 - **Zod 4** for validation
 - Deferred: Workers AI (Phase 12), R2 (Phase 13)
 
@@ -37,8 +39,8 @@ You are continuing a multi-phase migration of the **Pantry Plan** recipe/meal-pl
 - [x] **Phase 4** — Query-layer library + Zod schemas + 78 Vitest tests
 - [x] **Phase 5** — Astro actions: tags, ingredients, recipes, recipeIngredients, orders, mealPlan
 - [x] **Phase 6** — Recipe pages (list, detail, create, edit, delete, duplicate)
-- [ ] **Phase 7** — Recipe import (URL parsing + AI vision for photo imports) ← **NEXT**
-- [ ] **Phase 8** — Ingredients catalog pages
+- [x] **Phase 7** — Recipe import (URL parse + AI vision photo import) + ingredient mapping + shadcn form components
+- [ ] **Phase 8** — Ingredients catalog pages ← **NEXT**
 - [ ] **Phase 9** — Orders + cost estimation
 - [ ] **Phase 10** — Weekly meal planning calendar
 - [ ] **Phase 11** — Profile + password reset flow
@@ -111,6 +113,9 @@ Local secrets live in `astro-app/.dev.vars` (gitignored). Production secrets via
 - **Layouts**: `BaseLayout.astro` (HTML shell, dark mode, fonts) → `AppLayout.astro` (auth-gated + AppHeader) → page.
 - **Middleware**: `/_actions/*` is a public prefix so XHR auth errors are proper 401 JSON instead of 302 redirects. `requireUser` inside the action handles the real auth check.
 - **Design system**: use `btn-primary`/`btn-secondary`/`stat-card` utilities from `globals.css`. Badges use `bg-primary-icon-bg` + `text-primary-icon-fg` (not `text-primary-on-card` — that was the a11y bug we fixed). Display font via `.font-display` for headings.
+- **Form primitives**: use `Input` / `Textarea` / `Select` from `@/components/ui/`. Never write raw `<input>` / `<textarea>` / `<select>` (except the hidden `type="file"` in ImportImageTab). The `Select` is Radix-based — use `<Select value onValueChange>` with `SelectTrigger` + `SelectValue` + `SelectContent` + `SelectItem`, not the native API.
+- **Cursor/hover**: every interactive element gets `cursor-pointer`. Buttons with hover backgrounds use `hover:bg-primary/10` (subtle rust tint) rather than underlines.
+- **Responsive forms**: on mobile all inputs stack full-width; on `sm+` they condense into their intended layout. Pattern: `flex flex-col gap-2 sm:flex-row` with `w-full sm:w-16 sm:shrink-0` sizing per field. Remove buttons become labeled full-width buttons on mobile (with `<span className="sm:hidden">` for the label).
 - **Commit messages**: write substantial bodies explaining the WHY, not just the what. Look at `git log` for the house style.
 - **No emojis as icons** — use Lucide SVGs inline (copy path data into the page for zero-dep icons). Emojis OK only as decorative accents.
 
@@ -118,9 +123,23 @@ Local secrets live in `astro-app/.dev.vars` (gitignored). Production secrets via
 
 1. `git status` — should be clean
 2. Confirm on `migrate/astro-cloudflare` branch
-3. `npm test` — 78 passing
+3. `npm test` — 85 passing
 4. `npx astro check` — 0 errors / 0 warnings (13 Zod-v4 deprecation hints are acceptable)
 5. Decide scope: **what lands now, what defers to later phases**. Be explicit about deferrals in the commit message.
+
+## What shipped after the original Phase 7 commit
+
+Phase 7 landed in `19b7550` and was immediately followed by a stack of UX fixes:
+
+- **`enhance.recipeIngredients` wired to UI** — "Map ingredients" button on recipe detail page (only shows when some lines are unmapped)
+- **`enhance.ingredientLines` wired to UI** — draft editor runs it on mount, shows per-line mapping badges (Exact / Alias / Fuzzy / AI / New / Unmapped) and saves via `saveWithMappings` when mappings are fresh
+- **Mapping visibility** — recipe detail page and edit page show green "Mapped: X" or amber "Unmapped" badges per ingredient; detail page header shows "N/M mapped" count
+- **Interactive `IngredientMapper` component** — click any mapping badge in the edit form to search the ingredient catalog (uses `ingredients.searchForPicker`), select a different ingredient, or clear the mapping entirely. Your ingredients sort before global (`desc(userId)` — NULLs sort last in SQLite DESC).
+- **SSR fix on `/recipes/new`** — Radix Tabs' `useContext` crashes in Astro SSR; the page uses `client:only="react"`
+- **Vite cache hygiene** — if React hooks fail with "Cannot read properties of null", delete `astro-app/node_modules/.vite` and restart dev
+- **Responsive forms** — all ingredient/instruction rows stack full-width on mobile with labeled remove buttons, collapse to a row on `sm+`. Servings/Prep/Cook/Total wrap to one-per-row on mobile.
+- **shadcn-style form primitives** in `src/components/ui/`: `Input`, `Textarea`, and a full Radix `Select` (`SelectTrigger`/`SelectValue`/`SelectContent`/`SelectItem`). Number inputs have browser-native spinners hidden via webkit/moz appearance rules.
+- **Cursor pointer + hover affordances** on every interactive element
 
 ## What to do first in the new session
 
@@ -135,15 +154,13 @@ cat astro-app/README.md                      # phase checklist
 cat astro-app/docs/HANDOFF.md                # this file
 ```
 
-Then ask me which phase to tackle next. Default is **Phase 7 (recipe import)**, which should:
+Then ask me which phase to tackle next. Default is **Phase 8 (ingredients catalog pages)**, which should:
 
-1. Port `lib/parse/` (fetch-html, extract-jsonld, normalize-recipe, parse-recipe, iso8601-duration) — the URL parse pipeline. Keep `extract-recipe-from-image-openai.ts` and `map-url-draft-to-structured-openai.ts` for Phase 7 too, gated on `env.OPENAI_API_KEY`.
-2. Port the deferred `lib/ingredients/` files: `compute-suggestions.ts`, `llm-ingredient-mapping.ts`, `mapping.ts` — rewrite their DB queries on Drizzle.
-3. Port `parse` + `import` + `enhance` + `ingredient-mapping` actions from the Next.js app. Each rewrite from Prisma → Drizzle, `revalidatePath` removed, JSON payloads where nested.
-4. Add a URL/image import flow to `/recipes/new`: tabs for "From URL" / "From photo" / "Manual". URL tab: paste URL → call `parse.parseFromUrl` action → show editable draft with suggested ingredient mappings → save. Photo tab: upload image (4MB body limit fine on CF paid plan; 100MB max on free Workers) → `parse.parseFromImage` → same draft UX.
-5. Defer **Workers AI fallback** to Phase 12 — OpenAI only for now.
-6. Port `parse/normalize-recipe.test.ts` (the 7th test file we deferred in Phase 4).
-7. SSRF protection: the existing `fetch-html.ts` blocks localhost/private networks — verify it still works inside `workerd` since DNS resolution is delegated to CF's network.
+1. Port the Next.js ingredients UI from `app/(authenticated)/ingredients/` — list, detail, create, edit pages.
+2. The `ingredients.*` actions already exist (`create`, `update`, `delete`, `upsertFromName`, `searchForPicker`, `searchGlobalForBase`, `getGlobalBasePrefill`). Query helpers in `src/lib/queries/` may need to be ported.
+3. Respect the global-vs-user-owned split: users see all global + their own; only admins can edit global rows.
+4. Reuse the `IngredientMapper`/search patterns from the recipe form where it makes sense.
+5. Use the shadcn form primitives (`Input`, `Textarea`, `Select` from `@/components/ui/`) throughout — no raw `<input>`.
 
 Always:
 

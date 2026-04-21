@@ -11,6 +11,8 @@ import { useState, useEffect, useCallback } from "react";
 import { actions } from "astro:actions";
 
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
 import { TagToggle } from "@/components/ui/TagToggle";
 import type { IngredientUnit } from "@/db/schema/enums";
 
@@ -303,75 +305,64 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label className="mb-1 block text-sm font-medium">Title</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-input border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          />
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">Source URL</label>
-          <input
+          <Input
             type="url"
             value={sourceUrl}
             onChange={(e) => setSourceUrl(e.target.value)}
-            className="w-full rounded-input border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">Image URL</label>
-          <input
+          <Input
             type="url"
             value={imageUrl}
             onChange={(e) => setImageUrl(e.target.value)}
-            className="w-full rounded-input border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">Servings</label>
-          <input
+          <Input
             type="number"
             value={servings}
             onChange={(e) => setServings(e.target.value)}
             min="0"
-            className="w-full rounded-input border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">
             Prep time (min)
           </label>
-          <input
+          <Input
             type="number"
             value={prepTime}
             onChange={(e) => setPrepTime(e.target.value)}
             min="0"
-            className="w-full rounded-input border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">
             Cook time (min)
           </label>
-          <input
+          <Input
             type="number"
             value={cookTime}
             onChange={(e) => setCookTime(e.target.value)}
             min="0"
-            className="w-full rounded-input border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">
             Total time (min)
           </label>
-          <input
+          <Input
             type="number"
             value={totalTime}
             onChange={(e) => setTotalTime(e.target.value)}
             min="0"
-            className="w-full rounded-input border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
       </div>
@@ -436,20 +427,19 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
             return (
               <div key={idx} className="space-y-0.5">
                 <div className="flex gap-2">
-                  <input
-                    type="text"
+                  <Input
                     value={line}
                     onChange={(e) =>
                       handleIngredientChange(idx, e.target.value)
                     }
                     placeholder={`Ingredient ${idx + 1}`}
-                    className="flex-1 rounded-input border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="flex-1"
                   />
                   {ingredients.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeIngredient(idx)}
-                      className="rounded-input px-2 py-1 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                      className="cursor-pointer rounded-input px-2 py-1 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
                       title="Remove ingredient"
                     >
                       <svg
@@ -500,18 +490,18 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
               <span className="mt-2.5 text-xs text-muted-foreground">
                 {idx + 1}.
               </span>
-              <textarea
+              <Textarea
                 value={step}
                 onChange={(e) => updateInstruction(idx, e.target.value)}
                 placeholder={`Step ${idx + 1}`}
                 rows={2}
-                className="flex-1 rounded-input border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="flex-1"
               />
               {instructions.length > 1 && (
                 <button
                   type="button"
                   onClick={() => removeInstruction(idx)}
-                  className="self-start rounded-input px-2 py-1 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                  className="cursor-pointer self-start rounded-input px-2 py-1 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
                   title="Remove step"
                 >
                   <svg
@@ -547,11 +537,10 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
       {/* Notes */}
       <div>
         <label className="mb-1 block text-sm font-medium">Notes</label>
-        <textarea
+        <Textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
-          className="w-full rounded-input border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
 

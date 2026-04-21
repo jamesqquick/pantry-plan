@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { signUp } from "@/lib/auth-client";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 export function RegisterForm() {
   const [name, setName] = useState("");
@@ -32,15 +33,13 @@ export function RegisterForm() {
         <label htmlFor="name" className="block text-sm font-medium">
           Name
         </label>
-        <input
+        <Input
           id="name"
           name="name"
-          type="text"
           autoComplete="name"
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full rounded-input border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
           aria-invalid={!!error}
         />
       </div>
@@ -49,7 +48,7 @@ export function RegisterForm() {
         <label htmlFor="email" className="block text-sm font-medium">
           Email
         </label>
-        <input
+        <Input
           id="email"
           name="email"
           type="email"
@@ -57,7 +56,6 @@ export function RegisterForm() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-input border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
           aria-invalid={!!error}
         />
       </div>
@@ -66,7 +64,7 @@ export function RegisterForm() {
         <label htmlFor="password" className="block text-sm font-medium">
           Password
         </label>
-        <input
+        <Input
           id="password"
           name="password"
           type="password"
@@ -75,7 +73,6 @@ export function RegisterForm() {
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-input border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
           aria-invalid={!!error}
         />
         <p className="text-xs text-muted-foreground">

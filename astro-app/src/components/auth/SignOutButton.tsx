@@ -16,7 +16,7 @@ export function SignOutButton() {
       type="button"
       onClick={handleClick}
       disabled={pending}
-      className="rounded-input bg-secondary px-3 py-1.5 text-sm font-medium text-secondary-foreground hover:bg-accent disabled:opacity-60 transition-colors"
+      className="cursor-pointer rounded-input bg-secondary px-3 py-1.5 text-sm font-medium text-secondary-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
     >
       {pending ? "Signing out…" : "Sign out"}
     </button>

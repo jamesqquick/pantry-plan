@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { fuzzyFilterRecipes } from "@/lib/search/fuzzy-recipe";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { TagBadge } from "@/components/ui/TagBadge";
 import { TagToggle } from "@/components/ui/TagToggle";
 
@@ -108,12 +109,12 @@ export default function RecipeList({ recipes, allTags }: RecipeListProps) {
             <circle cx="11" cy="11" r="8" />
             <path d="m21 21-4.3-4.3" />
           </svg>
-          <input
+          <Input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by title…"
-            className="w-full rounded-input border border-input bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="pl-9"
           />
         </label>
 

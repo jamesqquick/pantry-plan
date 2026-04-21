@@ -2,9 +2,18 @@ import { useState } from "react";
 import { actions } from "astro:actions";
 import { INGREDIENT_UNITS, type IngredientUnit } from "@/db/schema/enums";
 import { parseQuantityText } from "@/lib/quantity/quantity";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 import { TagToggle } from "@/components/ui/TagToggle";
+import { IngredientMapper } from "@/components/recipes/IngredientMapper";
 
 export type RecipeFormMode = "create" | "edit";
 
@@ -14,6 +23,7 @@ export type RecipeIngredientDraft = {
   unit: IngredientUnit | "";
   rawText: string | null;
   ingredientId: string | null;
+  ingredientName?: string | null;
 };
 
 export interface RecipeFormInitial {
@@ -193,9 +203,6 @@ export default function RecipeForm({
     }
   }
 
-  const inputClass =
-    "w-full rounded-input border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring";
-
   return (
     <form onSubmit={handleSubmit} className="space-y-8" noValidate>
       <section className="space-y-4">
@@ -203,14 +210,12 @@ export default function RecipeForm({
           <label htmlFor="title" className="mb-1 block text-sm font-medium">
             Title
           </label>
-          <input
+          <Input
             id="title"
             name="title"
-            type="text"
             required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className={inputClass}
             aria-invalid={!!fieldErrors.title}
           />
           {fieldErrors.title?.[0] && (
@@ -224,13 +229,12 @@ export default function RecipeForm({
               Source URL
               <span className="ml-1 text-muted-foreground">(optional)</span>
             </label>
-            <input
+            <Input
               id="sourceUrl"
               name="sourceUrl"
               type="url"
               value={sourceUrl}
               onChange={(e) => setSourceUrl(e.target.value)}
-              className={inputClass}
               placeholder="https://example.com/recipe"
             />
           </div>
@@ -239,19 +243,18 @@ export default function RecipeForm({
               Image URL
               <span className="ml-1 text-muted-foreground">(optional)</span>
             </label>
-            <input
+            <Input
               id="imageUrl"
               name="imageUrl"
               type="url"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
-              className={inputClass}
               placeholder="https://example.com/image.jpg"
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           {[
             { id: "servings", label: "Servings", value: servings, setter: setServings },
             { id: "prepTime", label: "Prep (min)", value: prepTime, setter: setPrepTime },
@@ -262,14 +265,13 @@ export default function RecipeForm({
               <label htmlFor={field.id} className="mb-1 block text-sm font-medium">
                 {field.label}
               </label>
-              <input
+              <Input
                 id={field.id}
                 type="number"
                 min={0}
                 inputMode="numeric"
                 value={field.value}
                 onChange={(e) => field.setter(e.target.value)}
-                className={inputClass}
               />
             </div>
           ))}
@@ -282,7 +284,7 @@ export default function RecipeForm({
           <button
             type="button"
             onClick={addIngredient}
-            className="text-xs font-semibold text-primary-on-card hover:underline"
+            className="cursor-pointer rounded-input px-2 py-1 text-xs font-semibold text-primary-on-card transition-colors hover:bg-primary/10"
           >
             + Add ingredient
           </button>
@@ -291,62 +293,80 @@ export default function RecipeForm({
           {ingredients.map((row, idx) => (
             <li
               key={idx}
-              className="grid grid-cols-[70px_96px_1fr_auto] items-center gap-2 rounded-input border border-border bg-card p-2"
+              className="rounded-input border border-border bg-card p-2"
             >
-              <input
-                type="text"
-                value={row.quantityText}
-                onChange={(e) => setIngredient(idx, { quantityText: e.target.value })}
-                placeholder="Qty"
-                aria-label="Quantity"
-                className="rounded-input border border-input bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              <select
-                value={row.unit}
-                onChange={(e) =>
-                  setIngredient(idx, {
-                    unit: (e.target.value || "") as IngredientUnit | "",
-                  })
-                }
-                aria-label="Unit"
-                className="rounded-input border border-input bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="">Unit</option>
-                {INGREDIENT_UNITS.map((u) => (
-                  <option key={u} value={u}>
-                    {u.toLowerCase()}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="text"
-                value={row.displayText}
-                onChange={(e) => setIngredient(idx, { displayText: e.target.value })}
-                placeholder="Ingredient (e.g. all-purpose flour)"
-                aria-label="Ingredient name"
-                className="rounded-input border border-input bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              <button
-                type="button"
-                onClick={() => removeIngredient(idx)}
-                aria-label="Remove ingredient"
-                className="flex h-8 w-8 items-center justify-center rounded-input text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-3.5 w-3.5"
-                  aria-hidden="true"
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Input
+                  value={row.quantityText}
+                  onChange={(e) => setIngredient(idx, { quantityText: e.target.value })}
+                  placeholder="Qty"
+                  aria-label="Quantity"
+                  className="sm:w-16 sm:shrink-0"
+                />
+                <Select
+                  value={row.unit}
+                  onValueChange={(value) =>
+                    setIngredient(idx, {
+                      unit: (value || "") as IngredientUnit | "",
+                    })
+                  }
                 >
-                  <path d="M18 6 6 18" />
-                  <path d="m6 6 12 12" />
-                </svg>
-              </button>
+                  <SelectTrigger
+                    aria-label="Unit"
+                    className="sm:w-24 sm:shrink-0"
+                  >
+                    <SelectValue placeholder="Unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INGREDIENT_UNITS.map((u) => (
+                      <SelectItem key={u} value={u}>
+                        {u.toLowerCase()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  value={row.displayText}
+                  onChange={(e) => setIngredient(idx, { displayText: e.target.value })}
+                  placeholder="Ingredient (e.g. all-purpose flour)"
+                  aria-label="Ingredient name"
+                  className="min-w-0 sm:flex-1"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeIngredient(idx)}
+                  aria-label="Remove ingredient"
+                  className="flex h-8 w-full cursor-pointer items-center justify-center gap-1 rounded-input text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:w-8 sm:shrink-0"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-3.5 w-3.5"
+                    aria-hidden="true"
+                  >
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
+                  </svg>
+                  <span className="sm:hidden">Remove ingredient</span>
+                </button>
+              </div>
+              <div className="mt-1">
+                <IngredientMapper
+                  ingredientId={row.ingredientId}
+                  ingredientName={row.ingredientName}
+                  onMap={(id, name) =>
+                    setIngredient(idx, { ingredientId: id, ingredientName: name })
+                  }
+                  onClear={() =>
+                    setIngredient(idx, { ingredientId: null, ingredientName: null })
+                  }
+                />
+              </div>
             </li>
           ))}
         </ul>
@@ -358,29 +378,32 @@ export default function RecipeForm({
           <button
             type="button"
             onClick={addInstruction}
-            className="text-xs font-semibold text-primary-on-card hover:underline"
+            className="cursor-pointer rounded-input px-2 py-1 text-xs font-semibold text-primary-on-card transition-colors hover:bg-primary/10"
           >
             + Add step
           </button>
         </div>
         <ol className="space-y-2">
           {instructions.map((text, idx) => (
-            <li key={idx} className="flex items-start gap-2">
-              <span className="mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+            <li
+              key={idx}
+              className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-2"
+            >
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground sm:mt-2">
                 {idx + 1}
               </span>
-              <textarea
+              <Textarea
                 value={text}
                 onChange={(e) => setInstruction(idx, e.target.value)}
                 rows={2}
                 placeholder={`Step ${idx + 1}`}
-                className="min-h-[2.5rem] flex-1 rounded-input border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="min-h-[2.5rem] min-w-0 sm:flex-1"
               />
               <button
                 type="button"
                 onClick={() => removeInstruction(idx)}
                 aria-label="Remove step"
-                className="mt-1 flex h-8 w-8 items-center justify-center rounded-input text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                className="flex h-8 w-full cursor-pointer items-center justify-center gap-1 rounded-input text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:mt-1 sm:w-8 sm:shrink-0"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -396,6 +419,7 @@ export default function RecipeForm({
                   <path d="M18 6 6 18" />
                   <path d="m6 6 12 12" />
                 </svg>
+                <span className="sm:hidden">Remove step</span>
               </button>
             </li>
           ))}
@@ -427,13 +451,13 @@ export default function RecipeForm({
           Notes
           <span className="ml-1 text-muted-foreground">(markdown supported)</span>
         </label>
-        <textarea
+        <Textarea
           id="notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={5}
           placeholder="Anything else worth remembering — substitutions, timing, serving ideas…"
-          className={cn(inputClass, "min-h-[7rem]")}
+          className="min-h-[7rem]"
         />
       </section>
 

@@ -9,6 +9,7 @@ import RecipeForm, {
 import { formatQuantity } from "@/lib/quantity/quantity";
 import {
   createDb,
+  ingredient,
   recipe,
   recipeIngredient,
   recipeInstruction,
@@ -43,9 +44,11 @@ const [ingredients, instructions, tagLinks, allTags] = await Promise.all([
       unit: recipeIngredient.unit,
       rawText: recipeIngredient.rawText,
       ingredientId: recipeIngredient.ingredientId,
+      ingredientName: ingredient.name,
       sortOrder: recipeIngredient.sortOrder,
     })
     .from(recipeIngredient)
+    .leftJoin(ingredient, eq(recipeIngredient.ingredientId, ingredient.id))
     .where(eq(recipeIngredient.recipeId, id))
     .orderBy(asc(recipeIngredient.sortOrder)),
   db
@@ -73,6 +76,7 @@ const ingredientDrafts: RecipeIngredientDraft[] = ingredients.map((i) => ({
   unit: (i.unit ?? "") as RecipeIngredientDraft["unit"],
   rawText: i.rawText,
   ingredientId: i.ingredientId,
+  ingredientName: i.ingredientName,
 }));
 
 const initial: RecipeFormInitial = {

@@ -50,6 +50,6 @@ const allTags = await db
       </p>
     </header>
 
-    <ImportWizard client:load allTags={allTags} />
+    <ImportWizard client:only="react" allTags={allTags} />
   </div>
 </AppLayout>

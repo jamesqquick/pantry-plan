@@ -52,10 +52,10 @@ export default function RecipeActions({
       return;
     }
     const mapped = data.items.filter((i) => i.ingredientId).length;
-    setEnhanceResult(`${mapped}/${data.items.length} ingredients mapped`);
+    setEnhanceResult(`${mapped}/${data.items.length} ingredients mapped. Reloading...`);
     setPending(null);
-    // Reload to show updated ingredient data
-    window.location.reload();
+    // Brief pause so the user sees the result, then reload
+    setTimeout(() => window.location.reload(), 800);
   }
 
   async function handleDelete() {

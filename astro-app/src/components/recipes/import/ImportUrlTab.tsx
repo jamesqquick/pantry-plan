@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { actions } from "astro:actions";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { RecipeDraftEditor, type RecipeDraft } from "./RecipeDraftEditor";
 
 export function ImportUrlTab({
@@ -65,7 +66,7 @@ export function ImportUrlTab({
           Recipe URL
         </label>
         <div className="flex gap-2">
-          <input
+          <Input
             id="import-url"
             type="url"
             value={url}
@@ -77,7 +78,7 @@ export function ImportUrlTab({
               }
             }}
             placeholder="https://www.allrecipes.com/recipe/..."
-            className="flex-1 rounded-input border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            className="flex-1"
             disabled={parsing}
           />
           <Button
