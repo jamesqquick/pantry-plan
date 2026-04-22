@@ -40,9 +40,9 @@ You are continuing a multi-phase migration of the **Pantry Plan** recipe/meal-pl
 - [x] **Phase 5** — Astro actions: tags, ingredients, recipes, recipeIngredients, orders, mealPlan
 - [x] **Phase 6** — Recipe pages (list, detail, create, edit, delete, duplicate)
 - [x] **Phase 7** — Recipe import (URL parse + AI vision photo import) + ingredient mapping + shadcn form components
-- [ ] **Phase 8** — Ingredients catalog pages ← **NEXT**
-- [ ] **Phase 9** — Orders + cost estimation
-- [ ] **Phase 10** — Weekly meal planning calendar
+- [x] **Phase 8** — Ingredients catalog pages (list, detail, create, edit, delete)
+- [x] **Phase 9** — Orders + cost estimation (list, detail with grocery aggregation, create, edit, delete)
+- [ ] **Phase 10** — Weekly meal planning calendar ← **NEXT**
 - [ ] **Phase 11** — Profile + password reset flow
 - [ ] **Phase 12** — Workers AI integration (replace OpenAI with Llama 4 Scout primary, OpenAI fallback)
 - [ ] **Phase 13** — R2 for recipe image uploads (optional enhancement)
@@ -154,13 +154,12 @@ cat astro-app/README.md                      # phase checklist
 cat astro-app/docs/HANDOFF.md                # this file
 ```
 
-Then ask me which phase to tackle next. Default is **Phase 8 (ingredients catalog pages)**, which should:
+Then ask me which phase to tackle next. Default is **Phase 9 (orders + cost estimation)**, which should:
 
-1. Port the Next.js ingredients UI from `app/(authenticated)/ingredients/` — list, detail, create, edit pages.
-2. The `ingredients.*` actions already exist (`create`, `update`, `delete`, `upsertFromName`, `searchForPicker`, `searchGlobalForBase`, `getGlobalBasePrefill`). Query helpers in `src/lib/queries/` may need to be ported.
-3. Respect the global-vs-user-owned split: users see all global + their own; only admins can edit global rows.
-4. Reuse the `IngredientMapper`/search patterns from the recipe form where it makes sense.
-5. Use the shadcn form primitives (`Input`, `Textarea`, `Select` from `@/components/ui/`) throughout — no raw `<input>`.
+1. Port the Next.js orders/shopping-list UI from `app/(authenticated)/orders/` — list, detail, create, edit pages.
+2. The `orders.*` actions already exist (`create`, `update`, `delete`). Check `src/actions/orders.ts` for the full list.
+3. Show per-order cost estimates using ingredient `estimatedCentsPerBasisUnit` data from the catalog.
+4. Use the shadcn form primitives (`Input`, `Textarea`, `Select` from `@/components/ui/`) throughout — no raw `<input>`.
 
 Always:
 

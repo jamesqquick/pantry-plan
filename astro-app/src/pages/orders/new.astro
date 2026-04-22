@@ -1,0 +1,75 @@
+---
+import { env } from "cloudflare:workers";
+import { asc, eq } from "drizzle-orm";
+import AppLayout from "@/layouts/AppLayout.astro";
+import OrderForm from "@/components/orders/OrderForm";
+import { createDb, recipe } from "@/db";
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+const db = createDb(env.DB);
+
+const recipes = await db
+  .select({ id: recipe.id, title: recipe.title })
+  .from(recipe)
+  .where(eq(recipe.userId, user.id))
+  .orderBy(asc(recipe.title));
+---
+
+<AppLayout title="New order — Pantry Plan">
+  <div class="space-y-6">
+    <nav class="text-sm">
+      <a
+        href="/orders"
+        class="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+      >
+        {/* Lucide ChevronLeft */}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="h-3.5 w-3.5"
+          aria-hidden="true"
+        >
+          <path d="m15 18-6-6 6-6"></path>
+        </svg>
+        All orders
+      </a>
+    </nav>
+
+    <header class="space-y-1">
+      <h1 class="font-display text-4xl text-primary-on-background">
+        New order
+      </h1>
+      <p class="text-sm text-muted-foreground">
+        Select recipes, set batch sizes, and we'll build your grocery list with cost estimates.
+      </p>
+    </header>
+
+    {recipes.length === 0 ? (
+      <div class="rounded-lg border border-dashed border-border bg-card/50 p-8 text-center">
+        <p class="text-sm text-muted-foreground">
+          You need at least one recipe before creating an order.
+        </p>
+        <a href="/recipes/new" class="btn-primary mt-4 inline-flex">
+          Create a recipe
+        </a>
+      </div>
+    ) : (
+      <div class="space-y-4">
+        <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-800/30 dark:bg-blue-900/10 dark:text-blue-300">
+          <strong>Tip:</strong> Ingredients with cost estimates and unit conversions produce better grocery lists.
+          <a href="/ingredients" class="ml-1 underline underline-offset-2 hover:text-blue-600 dark:hover:text-blue-200">
+            Review your ingredient catalog
+          </a> to fill in missing data.
+        </div>
+        <OrderForm client:load mode="create" recipeOptions={recipes} />
+      </div>
+    )}
+  </div>
+</AppLayout>

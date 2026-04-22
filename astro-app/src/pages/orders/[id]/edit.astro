@@ -1,0 +1,86 @@
+---
+import { env } from "cloudflare:workers";
+import { and, asc, eq } from "drizzle-orm";
+import AppLayout from "@/layouts/AppLayout.astro";
+import OrderForm from "@/components/orders/OrderForm";
+import { createDb, order, orderItem, recipe } from "@/db";
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+const { id } = Astro.params;
+if (!id) return Astro.redirect("/orders");
+
+const db = createDb(env.DB);
+
+// Load order.
+const orderRows = await db
+  .select()
+  .from(order)
+  .where(and(eq(order.id, id), eq(order.userId, user.id)))
+  .limit(1);
+
+if (orderRows.length === 0) {
+  return new Response("Order not found", { status: 404 });
+}
+const o = orderRows[0]!;
+
+// Load existing items + recipe options in parallel.
+const [existingItems, recipes] = await Promise.all([
+  db
+    .select({
+      recipeId: orderItem.recipeId,
+      batches: orderItem.batches,
+    })
+    .from(orderItem)
+    .where(eq(orderItem.orderId, id)),
+  db
+    .select({ id: recipe.id, title: recipe.title })
+    .from(recipe)
+    .where(eq(recipe.userId, user.id))
+    .orderBy(asc(recipe.title)),
+]);
+---
+
+<AppLayout title={`Edit ${o.name || "order"} — Pantry Plan`}>
+  <div class="space-y-6">
+    <nav class="text-sm">
+      <a
+        href={`/orders/${id}`}
+        class="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+      >
+        {/* Lucide ChevronLeft */}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="h-3.5 w-3.5"
+          aria-hidden="true"
+        >
+          <path d="m15 18-6-6 6-6"></path>
+        </svg>
+        Back to {o.name || "order"}
+      </a>
+    </nav>
+
+    <header class="space-y-1">
+      <h1 class="font-display text-4xl text-primary-on-background">
+        Edit order
+      </h1>
+    </header>
+
+    <OrderForm
+      client:load
+      mode="edit"
+      orderId={id}
+      recipeOptions={recipes}
+      initialName={o.name ?? ""}
+      initialNotes={o.notes ?? ""}
+      initialItems={existingItems}
+    />
+  </div>
+</AppLayout>
