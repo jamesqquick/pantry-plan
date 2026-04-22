@@ -87,7 +87,7 @@ npm run db:migrate:local
 npm run db:migrate:remote
 
 # Tests
-npm test             # 78 passing
+npm test             # 85 passing
 
 # One-off helpers
 npm run reset-password -- --email <email> --password <pw> [--remote]
@@ -127,19 +127,23 @@ Local secrets live in `astro-app/.dev.vars` (gitignored). Production secrets via
 4. `npx astro check` — 0 errors / 0 warnings (13 Zod-v4 deprecation hints are acceptable)
 5. Decide scope: **what lands now, what defers to later phases**. Be explicit about deferrals in the commit message.
 
-## What shipped after the original Phase 7 commit
+## What shipped in Phases 8–9 (latest session)
 
-Phase 7 landed in `19b7550` and was immediately followed by a stack of UX fixes:
+Phase 8 (`fc7be88`) — Ingredients catalog pages:
+- `/ingredients` — server-side paginated list with search, category filter, source filter (All/Global/Mine). `IngredientList` React island with debounced search + Radix Select dropdowns.
+- `/ingredients/new` — create form with optional "start from global ingredient" picker that prefills fields from a catalog entry.
+- `/ingredients/[id]` — detail page showing all fields, Global/Custom badge, "Based on" link, "Recipes using this ingredient" grid, permission-gated Edit/Delete.
+- `/ingredients/[id]/edit` — pre-populated edit form, gated to owner or admin.
+- Components: `IngredientList`, `IngredientForm` (dual-mode create/edit with CategoryCombobox + BaseIngredientPicker), `DeleteIngredientButton`.
+- No new actions — the 7 existing `ingredients.*` actions covered all operations.
 
-- **`enhance.recipeIngredients` wired to UI** — "Map ingredients" button on recipe detail page (only shows when some lines are unmapped)
-- **`enhance.ingredientLines` wired to UI** — draft editor runs it on mount, shows per-line mapping badges (Exact / Alias / Fuzzy / AI / New / Unmapped) and saves via `saveWithMappings` when mappings are fresh
-- **Mapping visibility** — recipe detail page and edit page show green "Mapped: X" or amber "Unmapped" badges per ingredient; detail page header shows "N/M mapped" count
-- **Interactive `IngredientMapper` component** — click any mapping badge in the edit form to search the ingredient catalog (uses `ingredients.searchForPicker`), select a different ingredient, or clear the mapping entirely. Your ingredients sort before global (`desc(userId)` — NULLs sort last in SQLite DESC).
-- **SSR fix on `/recipes/new`** — Radix Tabs' `useContext` crashes in Astro SSR; the page uses `client:only="react"`
-- **Vite cache hygiene** — if React hooks fail with "Cannot read properties of null", delete `astro-app/node_modules/.vite` and restart dev
-- **Responsive forms** — all ingredient/instruction rows stack full-width on mobile with labeled remove buttons, collapse to a row on `sm+`. Servings/Prep/Cook/Total wrap to one-per-row on mobile.
-- **shadcn-style form primitives** in `src/components/ui/`: `Input`, `Textarea`, and a full Radix `Select` (`SelectTrigger`/`SelectValue`/`SelectContent`/`SelectItem`). Number inputs have browser-native spinners hidden via webkit/moz appearance rules.
-- **Cursor pointer + hover affordances** on every interactive element
+Phase 9 (`d05b0c9`) — Orders + cost estimation:
+- `/orders` — list page with recipe count and last-updated date.
+- `/orders/new` — create form with recipe picker (searchable dropdown, deduplication), batch selector (½–10×), info tip about ingredient catalog quality.
+- `/orders/[id]` — detail page with recipe items table, full grocery list aggregation via `buildGroceryList()`, shopper/kitchen toggle, copy/share, per-item and total cost estimates, issues section (unmapped, missing qty/unit, conversion failures, missing cost).
+- `/orders/[id]/edit` — pre-populated edit form.
+- Components: `OrderForm`, `OrderItemsEditor`, `GroceryListDisplay`, `DeleteOrderButton`.
+- Grocery library (`src/lib/grocery/`) was already ported; no new actions needed.
 
 ## What to do first in the new session
 
@@ -150,16 +154,16 @@ cd /Users/jamesqquick/code/pantry-plan
 git status
 git branch --show-current                    # should be migrate/astro-cloudflare
 git log --oneline -10
-cat astro-app/README.md                      # phase checklist
 cat astro-app/docs/HANDOFF.md                # this file
 ```
 
-Then ask me which phase to tackle next. Default is **Phase 9 (orders + cost estimation)**, which should:
+Then ask me which phase to tackle next. Default is **Phase 10 (weekly meal planning calendar)**, which should:
 
-1. Port the Next.js orders/shopping-list UI from `app/(authenticated)/orders/` — list, detail, create, edit pages.
-2. The `orders.*` actions already exist (`create`, `update`, `delete`). Check `src/actions/orders.ts` for the full list.
-3. Show per-order cost estimates using ingredient `estimatedCentsPerBasisUnit` data from the catalog.
-4. Use the shadcn form primitives (`Input`, `Textarea`, `Select` from `@/components/ui/`) throughout — no raw `<input>`.
+1. Port the Next.js meal plan UI from `app/(app)/meal-plan/` — weekly calendar view with day columns, meal slots (Breakfast/Lunch/Dinner), drag-and-drop or click-to-add recipe assignment.
+2. The `mealPlan.*` actions already exist. Check `src/actions/mealPlan.ts` for the full list.
+3. Reference the Next.js implementation at `app/(app)/meal-plan/` and `components/meal-plan/` for the UI patterns.
+4. The grocery aggregation from Phase 9 may be reusable for "generate grocery list from this week's plan" if the Next.js version supports that.
+5. Use the shadcn form primitives (`Input`, `Textarea`, `Select` from `@/components/ui/`) throughout — no raw `<input>`.
 
 Always:
 
