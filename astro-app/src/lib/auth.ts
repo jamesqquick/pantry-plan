@@ -43,13 +43,13 @@ function decodeHash(stored: string): { salt: Uint8Array; hash: Uint8Array } {
   return { salt: hexToBytes(saltHex), hash: hexToBytes(hashHex) };
 }
 
-async function hashPassword(password: string): Promise<string> {
+export async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(SALT_BYTES);
   const hash = scrypt(password, salt, SCRYPT_PARAMS);
   return encodeHash(salt, hash);
 }
 
-async function verifyPassword({
+export async function verifyPassword({
   password,
   hash: stored,
 }: {

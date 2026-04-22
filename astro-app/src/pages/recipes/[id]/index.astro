@@ -193,7 +193,34 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
       </div>
 
       {/* Actions on their own row so they never squeeze the title */}
-      <RecipeActions client:load recipeId={r.id} hasUnmappedIngredients={hasUnmappedIngredients} />
+      <div class="flex flex-wrap items-center gap-3">
+        <RecipeActions client:load recipeId={r.id} hasUnmappedIngredients={hasUnmappedIngredients} />
+        <a
+          href={`/meal-plan?addRecipe=${r.id}`}
+          class="btn-secondary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
+        >
+          {/* Lucide CalendarPlus */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="h-3.5 w-3.5"
+            aria-hidden="true"
+          >
+            <path d="M8 2v4"></path>
+            <path d="M16 2v4"></path>
+            <path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"></path>
+            <path d="M3 10h18"></path>
+            <path d="M16 19h6"></path>
+            <path d="M19 16v6"></path>
+          </svg>
+          Add to meal plan
+        </a>
+      </div>
     </header>
 
     <div class="grid gap-8 lg:grid-cols-5">

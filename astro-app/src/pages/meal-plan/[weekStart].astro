@@ -1,0 +1,280 @@
+---
+import { env } from "cloudflare:workers";
+import { and, asc, eq, gte, inArray, lt } from "drizzle-orm";
+import AppLayout from "@/layouts/AppLayout.astro";
+import { MealPlanWeek } from "@/components/meal-plan/MealPlanWeek";
+import {
+  createDb,
+  plannedMeal,
+  recipe,
+  recipeIngredient,
+  ingredient,
+} from "@/db";
+import {
+  parseDateString,
+  getWeekDates,
+  getWeekStartString,
+  prevWeek,
+  nextWeek,
+  toDateString,
+} from "@/lib/meal-plan/week-dates";
+import { buildGroceryList, type GroceryListResult } from "@/lib/grocery/aggregate";
+import type { PlannedMealItem } from "@/components/meal-plan/meal-plan-types";
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+const { weekStart: weekStartParam } = Astro.params;
+
+// Validate weekStart param — must be a valid YYYY-MM-DD date.
+if (!weekStartParam || !/^\d{4}-\d{2}-\d{2}$/.test(weekStartParam)) {
+  return Astro.redirect("/meal-plan");
+}
+
+// Normalize to the containing Sunday if someone enters a non-Sunday date.
+const paramDate = parseDateString(weekStartParam);
+const weekStart = getWeekStartString(paramDate);
+if (weekStart !== weekStartParam) {
+  return Astro.redirect(`/meal-plan/${weekStart}`);
+}
+
+const weekDates = getWeekDates(weekStart);
+const db = createDb(env.DB);
+
+// 1. Load planned meals for this week with recipe titles.
+const startDate = parseDateString(weekStart);
+const endDate = new Date(startDate);
+endDate.setUTCDate(endDate.getUTCDate() + 7);
+
+const mealRows = await db
+  .select({
+    id: plannedMeal.id,
+    date: plannedMeal.date,
+    mealSlot: plannedMeal.mealSlot,
+    recipeId: plannedMeal.recipeId,
+    customLabel: plannedMeal.customLabel,
+    servings: plannedMeal.servings,
+    recipeTitle: recipe.title,
+    recipeRecipeId: recipe.id,
+  })
+  .from(plannedMeal)
+  .leftJoin(recipe, eq(plannedMeal.recipeId, recipe.id))
+  .where(
+    and(
+      eq(plannedMeal.userId, user.id),
+      gte(plannedMeal.date, startDate),
+      lt(plannedMeal.date, endDate),
+    ),
+  )
+  .orderBy(asc(plannedMeal.date), asc(plannedMeal.mealSlot));
+
+const meals: PlannedMealItem[] = mealRows.map((r) => ({
+  id: r.id,
+  date: toDateString(r.date),
+  mealSlot: r.mealSlot as PlannedMealItem["mealSlot"],
+  recipeId: r.recipeId,
+  customLabel: r.customLabel,
+  servings: r.servings,
+  recipe: r.recipeRecipeId ? { id: r.recipeRecipeId, title: r.recipeTitle! } : null,
+}));
+
+// 2. Load all user recipes for the recipe picker.
+const recipeRows = await db
+  .select({ id: recipe.id, title: recipe.title })
+  .from(recipe)
+  .where(eq(recipe.userId, user.id))
+  .orderBy(asc(recipe.title));
+
+const recipeOptions = recipeRows.map((r) => ({ id: r.id, title: r.title }));
+
+// 3. Build grocery list from recipe-based meals.
+const recipeMeals = meals.filter((m) => m.recipeId != null);
+let grocery: GroceryListResult = {
+  totals: [],
+  issues: { unmapped: [], missingQuantityOrUnit: [], cannotConvert: [], missingCost: [] },
+  totalEstimatedCostCents: 0,
+};
+
+if (recipeMeals.length > 0) {
+  const recipeIds = [...new Set(recipeMeals.map((m) => m.recipeId!))];
+
+  // Load recipe default servings for batch calculation.
+  const recipeServingsRows = await db
+    .select({ id: recipe.id, servings: recipe.servings })
+    .from(recipe)
+    .where(inArray(recipe.id, recipeIds));
+  const recipeServingsMap = new Map(
+    recipeServingsRows.map((r) => [r.id, r.servings ?? 1]),
+  );
+
+  // Load recipe ingredients with ingredient data.
+  const riRows = await db
+    .select({
+      riId: recipeIngredient.id,
+      recipeId: recipeIngredient.recipeId,
+      ingredientId: recipeIngredient.ingredientId,
+      quantity: recipeIngredient.quantity,
+      unit: recipeIngredient.unit,
+      displayText: recipeIngredient.displayText,
+      ingId: ingredient.id,
+      ingName: ingredient.name,
+      ingCostBasisUnit: ingredient.costBasisUnit,
+      ingEstimatedCentsPerBasisUnit: ingredient.estimatedCentsPerBasisUnit,
+      ingGramsPerCup: ingredient.gramsPerCup,
+      ingCupsPerEach: ingredient.cupsPerEach,
+      ingPreferredDisplayUnit: ingredient.preferredDisplayUnit,
+    })
+    .from(recipeIngredient)
+    .leftJoin(ingredient, eq(recipeIngredient.ingredientId, ingredient.id))
+    .where(inArray(recipeIngredient.recipeId, recipeIds))
+    .orderBy(asc(recipeIngredient.sortOrder));
+
+  // Group ingredients by recipe.
+  const recipesForGrocery = new Map<string, {
+    id: string;
+    title: string;
+    ingredients: Array<{
+      id: string;
+      ingredientId: string | null;
+      ingredient?: {
+        id: string;
+        name: string;
+        costBasisUnit: string;
+        estimatedCentsPerBasisUnit: number | null;
+        gramsPerCup: number | null;
+        cupsPerEach: number | null;
+        preferredDisplayUnit: string | null;
+      } | null;
+      quantity: number | null;
+      unit: string | null;
+      displayText: string;
+    }>;
+  }>();
+
+  for (const m of recipeMeals) {
+    if (m.recipeId && m.recipe && !recipesForGrocery.has(m.recipeId)) {
+      recipesForGrocery.set(m.recipeId, {
+        id: m.recipeId,
+        title: m.recipe.title,
+        ingredients: [],
+      });
+    }
+  }
+
+  for (const ri of riRows) {
+    const r = recipesForGrocery.get(ri.recipeId);
+    if (!r) continue;
+    r.ingredients.push({
+      id: ri.riId,
+      ingredientId: ri.ingredientId,
+      ingredient: ri.ingId
+        ? {
+            id: ri.ingId,
+            name: ri.ingName!,
+            costBasisUnit: ri.ingCostBasisUnit!,
+            estimatedCentsPerBasisUnit: ri.ingEstimatedCentsPerBasisUnit ?? null,
+            gramsPerCup: ri.ingGramsPerCup ?? null,
+            cupsPerEach: ri.ingCupsPerEach ?? null,
+            preferredDisplayUnit: ri.ingPreferredDisplayUnit ?? null,
+          }
+        : null,
+      quantity: ri.quantity,
+      unit: ri.unit,
+      displayText: ri.displayText ?? "",
+    });
+  }
+
+  // Calculate batches from servings.
+  const orderItems = recipeMeals.map((m) => {
+    const defaultServings = recipeServingsMap.get(m.recipeId!) ?? 1;
+    const plannedServings = m.servings ?? defaultServings;
+    const batches = Math.max(0.01, plannedServings / defaultServings);
+    return { recipeId: m.recipeId!, batches };
+  });
+
+  grocery = buildGroceryList({
+    orderItems,
+    recipes: [...recipesForGrocery.values()] as any,
+  });
+}
+
+// Week navigation.
+const prevWeekStart = prevWeek(weekStart);
+const nextWeekStart = nextWeek(weekStart);
+
+const rangeStart = parseDateString(weekDates[0]!);
+const rangeEnd = parseDateString(weekDates[6]!);
+const dateRangeText = `${rangeStart.toLocaleDateString("en-US", { month: "long", day: "numeric" })}\u2013${rangeEnd.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
+
+// Check for ?addRecipe= deep link.
+const addRecipeId = Astro.url.searchParams.get("addRecipe") ?? undefined;
+---
+
+<AppLayout title={`Meal plan — ${dateRangeText} — Pantry Plan`}>
+  <article class="space-y-8">
+    {/* Week navigation header */}
+    <header class="flex items-center justify-between gap-4">
+      <a
+        href={`/meal-plan/${prevWeekStart}`}
+        class="btn-secondary gap-1.5"
+        aria-label="Previous week"
+      >
+        {/* Lucide ChevronLeft */}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="h-4 w-4"
+          aria-hidden="true"
+        >
+          <path d="m15 18-6-6 6-6"></path>
+        </svg>
+        <span class="hidden sm:inline">Prev</span>
+      </a>
+
+      <div class="text-center">
+        <h1 class="font-display text-2xl leading-tight text-primary-on-background sm:text-3xl">
+          Meal Planner
+        </h1>
+        <p class="mt-1 text-sm text-muted-foreground">{dateRangeText}</p>
+      </div>
+
+      <a
+        href={`/meal-plan/${nextWeekStart}`}
+        class="btn-secondary gap-1.5"
+        aria-label="Next week"
+      >
+        <span class="hidden sm:inline">Next</span>
+        {/* Lucide ChevronRight */}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="h-4 w-4"
+          aria-hidden="true"
+        >
+          <path d="m9 18 6-6-6-6"></path>
+        </svg>
+      </a>
+    </header>
+
+    {/* Main meal plan island */}
+    <MealPlanWeek
+      client:load
+      weekStart={weekStart}
+      weekDates={weekDates}
+      plannedMeals={meals}
+      recipeOptions={recipeOptions}
+      grocery={grocery}
+      initialAddRecipeId={addRecipeId}
+    />
+  </article>
+</AppLayout>

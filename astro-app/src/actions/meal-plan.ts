@@ -157,7 +157,6 @@ export const mealPlan = {
     },
   }),
 
-  // getWeekData is deferred to Phase 10 — it depends on the queries layer
-  // (getPlannedMealsForWeek, listRecipesForUser) and grocery aggregation
-  // pipeline (getGroceryListFromPlan + estimate), which we haven't ported yet.
+  // getWeekData: queries are inlined in the [weekStart].astro page frontmatter
+  // (Phase 10) rather than as a separate action, since the page is server-rendered.
 };

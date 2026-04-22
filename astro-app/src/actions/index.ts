@@ -8,6 +8,7 @@ import { parse } from "./parse";
 import { recipeImport } from "./import";
 import { ingredientMapping } from "./ingredient-mapping";
 import { enhance } from "./enhance";
+import { profile } from "./profile";
 
 /**
  * Every mutation / authenticated read is namespaced here. Callers import from
@@ -15,7 +16,6 @@ import { enhance } from "./enhance";
  *
  * Deferred namespaces (landing in their feature phase):
  *   - estimate                                     → Phase 9 (cost)
- *   - profile                                      → Phase 11 (profile + reset)
  */
 export const server = {
   tags,
@@ -28,4 +28,5 @@ export const server = {
   recipeImport,
   ingredientMapping,
   enhance,
+  profile,
 };

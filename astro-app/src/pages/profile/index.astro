@@ -1,5 +1,7 @@
 ---
 import AppLayout from "@/layouts/AppLayout.astro";
+import { ProfileForm } from "@/components/profile/ProfileForm";
+import { ChangePasswordForm } from "@/components/profile/ChangePasswordForm";
 
 export const prerender = false;
 
@@ -7,26 +9,21 @@ const user = Astro.locals.user!;
 ---
 
 <AppLayout title="Profile — Pantry Plan">
-  <div class="space-y-6">
+  <div class="space-y-6 max-w-xl">
     <header class="space-y-1">
       <h1 class="text-3xl font-bold text-primary-on-background">Profile</h1>
       <p class="text-sm text-muted-foreground">
-        Signed in as <strong>{user.name}</strong> · <span class="text-foreground">{user.email}</span>
-        {user.role === "ADMIN" && (
-          <span class="ml-1 inline-flex items-center rounded-input px-2 py-0.5 bg-primary-icon-bg text-primary-icon-fg text-xs font-semibold">
-            ADMIN
-          </span>
-        )}
+        Manage your account details and password.
       </p>
     </header>
 
-    <section class="rounded-lg border border-border bg-card p-6 space-y-3">
-      <div class="inline-flex items-center rounded-input px-2 py-0.5 bg-primary-icon-bg text-primary-icon-fg text-xs font-semibold">
-        Coming in Phase 11
-      </div>
-      <p class="text-sm text-muted-foreground">
-        Editable profile name and password reset flow.
-      </p>
-    </section>
+    <ProfileForm
+      client:load
+      initialName={user.name}
+      email={user.email}
+      role={user.role ?? "USER"}
+    />
+
+    <ChangePasswordForm client:load />
   </div>
 </AppLayout>
