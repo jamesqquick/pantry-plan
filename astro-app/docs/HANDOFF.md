@@ -54,7 +54,6 @@ You are continuing a multi-phase migration of the **Pantry Plan** recipe/meal-pl
   - Session refresh after profile name update (header shows stale name until next load)
   - Remove unused imports / dead code pass
   - Lighthouse performance audit (bundle size, LCP, CLS)
-  - CI pipeline (GitHub Actions: lint, typecheck, test, build on PR)
   - Production deploy checklist (secrets audit, wrangler.jsonc review, D1 migration check)
 - [ ] **Phase 14** — Forgot-password flow (email transport + unauthenticated token-based reset)
 
@@ -178,8 +177,7 @@ Then ask me which phase to tackle next. Default is **Phase 13 (Polish, productio
 5. Session refresh — update header immediately after profile name change.
 6. Dead code cleanup — remove unused imports, unreferenced modules, stale comments.
 7. Lighthouse audit — bundle size, LCP, CLS, and actionable fixes.
-8. CI pipeline — GitHub Actions workflow: lint, typecheck, test, build on every PR.
-9. Production deploy checklist — secrets audit, wrangler.jsonc review, D1 migration status.
+8. Production deploy checklist — secrets audit, wrangler.jsonc review, D1 migration status.
 
 Always:
 

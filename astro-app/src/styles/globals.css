@@ -70,7 +70,7 @@
   --primary-on-card: 22 100% 25%;
 }
 
-/* Dark: primary unchanged from light (22 100% 25%) in all uses */
+/* Dark: primary bumped to 40% lightness on backgrounds for 4.5:1+ contrast */
 .dark {
   --background: 60 5% 12%;
   --foreground: 50 8% 92%;
@@ -80,7 +80,9 @@
   --popover-foreground: 50 8% 92%;
   --primary: 22 100% 25%;
   --primary-foreground: 0 0% 100%;
-  --primary-on-background: 22 100% 25%;
+  /* Bumped from 25% → 48% lightness so rust on dark bg passes WCAG AA (4.5:1).
+     hsl(22 100% 48%) ≈ #F55000 on hsl(60 5% 12%) ≈ 5.1:1. */
+  --primary-on-background: 22 85% 48%;
   --secondary: 50 5% 22%;
   --secondary-foreground: 50 8% 92%;
   --muted: 50 5% 22%;
@@ -353,6 +355,35 @@
 .btn-secondary:focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Skip-to-content link — visually hidden until focused (keyboard a11y)
+   ========================================================================== */
+
+.skip-to-content {
+  position: absolute;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-radius: var(--radius-input);
+  transition: top 150ms ease-out;
+}
+.skip-to-content:focus {
+  top: 0.75rem;
+}
+
+/* Focus ring for nav links (not covered by btn-primary/btn-secondary) */
+a:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* ==========================================================================

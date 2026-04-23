@@ -5,9 +5,9 @@ const variants = {
   primary: "btn-primary",
   secondary: "btn-secondary",
   danger:
-    "inline-flex items-center cursor-pointer rounded-input border border-destructive bg-destructive text-destructive-foreground transition-colors hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed",
+    "inline-flex items-center cursor-pointer rounded-input border border-destructive bg-destructive text-destructive-foreground transition-colors hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
   "ghost-danger":
-    "inline-flex items-center cursor-pointer rounded-input border border-destructive/30 bg-transparent text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-60 disabled:cursor-not-allowed",
+    "inline-flex items-center cursor-pointer rounded-input border border-destructive/30 bg-transparent text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
 } as const;
 
 const sizes = {

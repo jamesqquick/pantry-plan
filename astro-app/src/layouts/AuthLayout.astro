@@ -11,7 +11,7 @@ const { title, heading, subheading } = Astro.props;
 ---
 
 <BaseLayout title={title ?? heading}>
-  <main class="min-h-screen flex flex-col items-center justify-center bg-background text-foreground px-6 py-12">
+  <main id="main-content" class="min-h-screen flex flex-col items-center justify-center bg-background text-foreground px-6 py-12">
     <div class="w-full max-w-md space-y-6">
       <header class="text-center space-y-2">
         <a

@@ -135,6 +135,7 @@ export function ChangePasswordForm() {
         <button
           type="submit"
           disabled={pending || !canSubmit}
+          aria-busy={pending}
           className="btn-primary cursor-pointer"
         >
           {pending ? "Changing password…" : "Change password"}

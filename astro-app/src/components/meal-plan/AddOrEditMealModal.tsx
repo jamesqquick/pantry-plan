@@ -252,11 +252,19 @@ export function AddOrEditMealModal({
               onFocus={() => setShowDropdown(true)}
               placeholder="Search recipes..."
               autoComplete="off"
+              role="combobox"
+              aria-expanded={showDropdown && filteredRecipes.length > 0}
+              aria-controls="recipe-search-listbox"
+              aria-autocomplete="list"
             />
             {showDropdown && filteredRecipes.length > 0 && (
-              <ul className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-border bg-card shadow-lg">
+              <ul
+                id="recipe-search-listbox"
+                role="listbox"
+                className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-border bg-card shadow-lg"
+              >
                 {filteredRecipes.map((r) => (
-                  <li key={r.id}>
+                  <li key={r.id} role="option" aria-selected={r.id === recipeId}>
                     <button
                       type="button"
                       onClick={() => handleSelectRecipe(r)}
