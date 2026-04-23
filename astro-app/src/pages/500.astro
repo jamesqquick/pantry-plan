@@ -1,0 +1,35 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+// Astro renders this page on unhandled server errors (500).
+// It receives no props/locals — keep it self-contained.
+---
+
+<BaseLayout title="Something went wrong — Pantry Plan">
+  <main id="main-content" class="min-h-screen flex items-center justify-center bg-background text-foreground px-6">
+    <div class="text-center space-y-6 max-w-md">
+      <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary-icon-bg">
+        <span class="text-4xl" aria-hidden="true">🔥</span>
+      </div>
+      <h1 class="font-display text-4xl text-primary-on-background">500</h1>
+      <p class="text-lg text-muted-foreground">
+        Something went wrong on our end. Please try again in a moment.
+      </p>
+      <div class="flex items-center justify-center gap-3">
+        <a
+          href="/recipes"
+          class="btn-primary px-5 py-2.5"
+        >
+          Back to recipes
+        </a>
+        <button
+          type="button"
+          onclick="window.location.reload()"
+          class="btn-secondary px-5 py-2.5 cursor-pointer"
+        >
+          Try again
+        </button>
+      </div>
+    </div>
+  </main>
+</BaseLayout>

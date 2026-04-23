@@ -96,8 +96,9 @@ export function ImportUrlTab({
       </div>
 
       {parseError && (
-        <div className="rounded-input bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">
-          {parseError}
+        <div role="alert" className="rounded-input bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">
+          <p className="font-medium">Could not import recipe</p>
+          <p className="mt-1">{parseError}</p>
         </div>
       )}
     </div>
