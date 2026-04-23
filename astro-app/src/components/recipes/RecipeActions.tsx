@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { actions } from "astro:actions";
 import { Button } from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Spinner";
 
 export interface RecipeActionsProps {
   recipeId: string;
@@ -124,7 +125,8 @@ export default function RecipeActions({
               <path d="M4 17v2" />
               <path d="M5 18H3" />
             </svg>
-            {pending === "enhance" ? "Mapping..." : "Map ingredients"}
+            {pending === "enhance" && <Spinner className="h-3.5 w-3.5" label="Mapping ingredients" />}
+            {pending === "enhance" ? "Mapping\u2026" : "Map ingredients"}
           </Button>
         )}
         <Button

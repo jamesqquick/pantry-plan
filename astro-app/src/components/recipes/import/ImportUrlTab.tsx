@@ -6,6 +6,7 @@ import { useState } from "react";
 import { actions } from "astro:actions";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Spinner } from "@/components/ui/Spinner";
 import { RecipeDraftEditor, type RecipeDraft } from "./RecipeDraftEditor";
 
 export function ImportUrlTab({
@@ -84,9 +85,11 @@ export function ImportUrlTab({
           <Button
             onClick={handleParse}
             disabled={parsing || !url.trim()}
-            className="shrink-0 px-5 whitespace-nowrap"
+            aria-busy={parsing}
+            className="shrink-0 px-5 whitespace-nowrap gap-2"
           >
-            {parsing ? "Parsing..." : "Import"}
+            {parsing && <Spinner className="h-4 w-4" label="Parsing recipe" />}
+            {parsing ? "Parsing\u2026" : "Import"}
           </Button>
         </div>
         <p className="mt-1 text-xs text-muted-foreground">
