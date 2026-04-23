@@ -1,6 +1,9 @@
 /**
  * Parse actions: extract recipe data from a URL or image.
  * Returns a draft that the UI can display for review before saving.
+ *
+ * Phase 12: image extraction uses Workers AI (Llama 4 Scout) as primary,
+ * OpenAI as fallback. URL parsing remains deterministic (JSON-LD).
  */
 
 import { defineAction } from "astro:actions";
@@ -8,9 +11,9 @@ import { env } from "cloudflare:workers";
 import { z } from "zod";
 import { parseUrlSchema } from "@/features/parse/parse.schemas";
 import { parseRecipeFromUrl } from "@/lib/parse/parse-recipe";
-import { extractRecipeFromImageOpenAI } from "@/lib/parse/extract-recipe-from-image-openai";
+import { extractRecipeFromImage } from "@/lib/ai/extract-recipe-from-image";
 import { parseIngredientLineForImport, type ParsedIngredientLine } from "@/lib/ingredients/parse-line";
-import { canUseOpenAi } from "@/lib/entitlements";
+import { canUseWorkersAi, canUseOpenAi } from "@/lib/entitlements";
 import { requireUser } from "./_shared";
 
 export type ParsedRecipeDraft = {
@@ -63,9 +66,11 @@ export const parse = {
   }),
 
   /**
-   * Parse recipe from an uploaded image via OpenAI Vision.
-   * Requires OPENAI_API_KEY secret. Accepts image as base64 string
-   * (Astro actions don't support FormData natively for JSON input).
+   * Parse recipe from an uploaded image.
+   * Primary: Workers AI (Llama 4 Scout vision).
+   * Fallback: OpenAI gpt-4o-mini (if OPENAI_API_KEY set).
+   * Accepts image as base64 string (Astro actions don't support FormData
+   * natively for JSON input).
    */
   parseFromImage: defineAction({
     input: z.object({
@@ -75,10 +80,12 @@ export const parse = {
     handler: async (input, ctx): Promise<ParsedRecipeDraft> => {
       requireUser(ctx);
 
-      const apiKey = env.OPENAI_API_KEY;
-      if (!canUseOpenAi(apiKey)) {
+      const ai = env.AI;
+      const openaiKey = env.OPENAI_API_KEY;
+
+      if (!canUseWorkersAi(ai) && !canUseOpenAi(openaiKey)) {
         throw new Error(
-          "Recipe-from-image is not configured. Set OPENAI_API_KEY.",
+          "Recipe-from-image is not configured. No AI provider available.",
         );
       }
 
@@ -89,10 +96,11 @@ export const parse = {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      const parsed = await extractRecipeFromImageOpenAI(
+      const parsed = await extractRecipeFromImage(
+        ai,
         bytes.buffer as ArrayBuffer,
         input.mimeType,
-        apiKey,
+        openaiKey,
       );
 
       const ingredientLines = parsed.ingredients.map((line) =>

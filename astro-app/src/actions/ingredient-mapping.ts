@@ -1,6 +1,9 @@
 /**
  * Ingredient mapping actions: suggest ingredient mappings for raw lines
  * using deterministic matching + optional LLM fallback.
+ *
+ * Phase 12: LLM fallback uses Workers AI (Llama 4 Scout) as primary,
+ * OpenAI as secondary fallback.
  */
 
 import { defineAction } from "astro:actions";
@@ -16,15 +19,16 @@ import {
   suggestMappingsWithLLM,
   type UnmappedLine,
   type CatalogEntry,
-} from "@/lib/ingredients/llm-ingredient-mapping";
-import { canUseOpenAi } from "@/lib/entitlements";
+} from "@/lib/ai/llm-ingredient-mapping";
+import { canUseWorkersAi, canUseOpenAi } from "@/lib/entitlements";
 import { getDb, requireUser } from "./_shared";
 
 export const ingredientMapping = {
   /**
    * Suggest ingredient mappings for a list of raw ingredient lines.
    * First pass: deterministic (exact, alias, fuzzy).
-   * Second pass (if OPENAI_API_KEY set): LLM for unmapped lines.
+   * Second pass (if AI available): LLM for unmapped lines
+   *   — Workers AI primary, OpenAI fallback.
    * Returns SuggestionItem[] with suggestions and candidates.
    */
   suggest: defineAction({
@@ -41,8 +45,11 @@ export const ingredientMapping = {
       );
 
       // LLM pass for unmapped lines
-      const apiKey = env.OPENAI_API_KEY;
-      if (!canUseOpenAi(apiKey)) return suggestions;
+      const ai = env.AI;
+      const openaiKey = env.OPENAI_API_KEY;
+      if (!canUseWorkersAi(ai) && !canUseOpenAi(openaiKey)) {
+        return suggestions;
+      }
 
       const unmappedLines: UnmappedLine[] = [];
       for (let i = 0; i < suggestions.length; i++) {
@@ -68,9 +75,10 @@ export const ingredientMapping = {
       const catalog: CatalogEntry[] = catalogRows;
 
       const llmMap = await suggestMappingsWithLLM(
+        ai,
         unmappedLines,
         catalog,
-        apiKey,
+        openaiKey,
       );
 
       // Merge LLM suggestions back

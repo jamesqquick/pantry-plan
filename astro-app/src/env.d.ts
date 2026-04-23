@@ -9,6 +9,7 @@ declare namespace Cloudflare {
   interface Env {
     AUTH_SECRET: string;
     AUTH_URL: string;
+    AI: Ai;
     OPENAI_API_KEY?: string;
   }
 }

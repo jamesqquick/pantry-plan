@@ -27,7 +27,8 @@ You are continuing a multi-phase migration of the **Pantry Plan** recipe/meal-pl
 - **Radix UI** for `Tabs`, `Select`, and `Dialog` (no CLI — components copied into the repo)
 - **Vitest** for tests (85 passing)
 - **Zod 4** for validation
-- Deferred: Workers AI (Phase 12), R2 (Phase 13)
+- **Workers AI** (Llama 4 Scout primary, OpenAI fallback) via `AI` binding
+- Deferred: R2 image uploads (cut from scope)
 
 ## Phase status
 
@@ -44,16 +45,24 @@ You are continuing a multi-phase migration of the **Pantry Plan** recipe/meal-pl
 - [x] **Phase 9** — Orders + cost estimation (list, detail with grocery aggregation, create, edit, delete)
 - [x] **Phase 10** — Weekly meal planning calendar (week grid, drag-and-drop, add/edit modal, grocery list)
 - [x] **Phase 11** — Profile page (edit name, change password)
-- [ ] **Phase 12** — Workers AI integration (replace OpenAI with Llama 4 Scout primary, OpenAI fallback) ← **NEXT**
-- [ ] **Phase 13** — R2 for recipe image uploads (optional enhancement)
-- [ ] **Phase 14** — Polish, production hardening, CI
-- [ ] **Phase 14.5** — Forgot-password flow (email transport + unauthenticated token-based reset)
+- [x] **Phase 12** — Workers AI integration (Llama 4 Scout primary, OpenAI fallback)
+- [ ] **Phase 13** — Polish, production hardening, CI ← **NEXT**
+  - Accessibility audit (color contrast, focus rings, ARIA labels, keyboard nav)
+  - Error boundaries and user-facing error pages (500, rate-limit, AI failures)
+  - Loading states and skeleton UI for async actions (import, mapping, enhance)
+  - View Transitions or optimistic UI for meal-plan mutations (currently full-page reload)
+  - Session refresh after profile name update (header shows stale name until next load)
+  - Remove unused imports / dead code pass
+  - Lighthouse performance audit (bundle size, LCP, CLS)
+  - CI pipeline (GitHub Actions: lint, typecheck, test, build on PR)
+  - Production deploy checklist (secrets audit, wrangler.jsonc review, D1 migration check)
+- [ ] **Phase 14** — Forgot-password flow (email transport + unauthenticated token-based reset)
 
 ## Key decisions already made
 
 - **ORM**: Drizzle (first-class D1 support, edge-native)
 - **Auth**: Better Auth (Astro-recommended, handles email/password + sessions)
-- **AI strategy**: Workers AI primary with OpenAI fallback (Phase 12 wires this up; Phase 7 uses OpenAI only since that's what the code is ported from)
+- **AI strategy**: Workers AI primary (`@cf/meta/llama-4-scout-17b-16e-instruct`) with OpenAI `gpt-4o-mini` fallback. Both image extraction and ingredient mapping use the dual-provider pattern. Old OpenAI-only modules are preserved as fallback code paths.
 - **Password migration**: sentinel scrypt hash on migrated users; they must use the CLI `npm run reset-password` for now. Forgot-password email flow deferred to Phase 14.5 (needs email transport like Resend or Cloudflare Email Workers).
 - **Project structure**: Astro in subdirectory (`astro-app/`) alongside old Next.js app. Delete Next.js files at the very end.
 - **Meal plan data fetching**: server-rendered in `.astro` frontmatter (not client-side). Week navigation is full page loads via `<a>` links. Mutations (add/edit/delete/move) call Astro actions from the React island, then `window.location.href` to refresh.
@@ -104,7 +113,7 @@ Local secrets live in `astro-app/.dev.vars` (gitignored). Production secrets via
 
 - `AUTH_SECRET` — Better Auth signing key (set on prod)
 - `AUTH_URL` — base URL. Local: `http://localhost:4321`. Prod: `https://pantry-plan.jamesqquick.workers.dev` (declared as a `var` in `wrangler.jsonc`, not a secret)
-- `OPENAI_API_KEY` — optional; Phase 7+ features gracefully degrade if unset
+- `OPENAI_API_KEY` — optional fallback; Workers AI is the primary provider. If Workers AI fails, OpenAI is used as fallback when this key is set. Features gracefully degrade if both are unavailable.
 
 ## Conventions (established in earlier phases)
 
@@ -131,18 +140,22 @@ Local secrets live in `astro-app/.dev.vars` (gitignored). Production secrets via
 4. `npx astro check` — 0 errors / 0 warnings (17 Zod-v4 / FormEvent / Astro deprecation hints are acceptable)
 5. Decide scope: **what lands now, what defers to later phases**. Be explicit about deferrals in the commit message.
 
-## What shipped in Phase 11 (latest session)
+## What shipped in Phase 12 (latest session)
 
-Phase 11 — Profile page (edit name, change password):
+Phase 12 — Workers AI integration (Llama 4 Scout primary, OpenAI fallback):
 
-- `/profile` — server-rendered page with two React island cards: ProfileForm and ChangePasswordForm.
-- **ProfileForm** (`src/components/profile/ProfileForm.tsx`) — shows email (read-only, disabled) with ADMIN badge, editable name field, Save button (disabled until dirty). Calls `actions.profile.updateName`. Success/error toasts with auto-dismiss.
-- **ChangePasswordForm** (`src/components/profile/ChangePasswordForm.tsx`) — three password fields (current, new, confirm). Client-side validation (min 8 chars, match check). Calls `actions.profile.changePassword`. Clears form on success. Success/error toasts.
-- **`src/actions/profile.ts`** — two actions:
-  - `profile.updateName` — validates with `updateProfileSchema`, updates `user.name` via Drizzle.
-  - `profile.changePassword` — validates with `resetPasswordSchema` (includes `.refine()` for confirmation match), looks up the credential `account` row, verifies current password with scrypt, hashes new password, stores it.
-- **`src/lib/auth.ts`** — exported `hashPassword` and `verifyPassword` (previously private) so the profile action can reuse the same scrypt config.
-- **Deferred**: forgot-password (unauthenticated email-based reset) — needs an email transport (Resend, Cloudflare Email Workers, etc.). Deferred to Phase 14.5.
+- **`wrangler.jsonc`** — added `ai: { binding: "AI" }` binding declaration.
+- **`src/env.d.ts`** — declared `AI: Ai` on `Cloudflare.Env`.
+- **`src/lib/ai/workers-ai-client.ts`** — thin wrapper around `env.AI.run()` with Llama 4 Scout (`@cf/meta/llama-4-scout-17b-16e-instruct`). Two helpers: `workersAiTextJson()` for text chat + JSON mode, `workersAiVisionJson()` for vision + JSON mode. Both log via `logLlmRequest`.
+- **`src/lib/ai/extract-recipe-from-image.ts`** — dual-provider image extraction. Tries Workers AI vision first, falls back to OpenAI `gpt-4o-mini` if Workers AI fails and `OPENAI_API_KEY` is set. Reuses `ExtractedRecipeDraft` type.
+- **`src/lib/ai/llm-ingredient-mapping.ts`** — dual-provider ingredient mapping. Tries Workers AI text + JSON mode first, falls back to OpenAI. Returns empty Map on total failure (graceful degradation).
+- **`src/lib/entitlements.ts`** — added `canUseWorkersAi()` (checks binding exists), updated `canUseLlmForRecipeParse()` to check either provider. `canUseOpenAi()` unchanged (now fallback-only role).
+- **`src/actions/parse.ts`** — `parseFromImage` now uses `extractRecipeFromImage()` (dual-provider) instead of OpenAI-only.
+- **`src/actions/ingredient-mapping.ts`** — `suggest` now uses `suggestMappingsWithLLM()` from `@/lib/ai/` (dual-provider).
+- **`src/actions/enhance.ts`** — `runSuggestionPasses` now uses dual-provider mapping.
+- **Old OpenAI-only modules preserved** (`src/lib/parse/extract-recipe-from-image-openai.ts`, `src/lib/ingredients/llm-ingredient-mapping.ts`) — used as fallback code paths by the new dual-provider wrappers.
+- **No UI changes** — the import/mapping UI works identically; only the backend AI provider changed.
+- **Deferred**: removing the OpenAI npm dependency entirely (it's still needed for fallback).
 
 ## What to do first in the new session
 
@@ -156,13 +169,17 @@ git log --oneline -10
 cat astro-app/docs/HANDOFF.md                # this file
 ```
 
-Then ask me which phase to tackle next. Default is **Phase 12 (Workers AI integration)**, which should:
+Then ask me which phase to tackle next. Default is **Phase 13 (Polish, production hardening, CI)**, which should:
 
-1. Replace the OpenAI-only recipe import (Phase 7) with Workers AI as primary, OpenAI as fallback.
-2. Use the `AI` binding (already available on Cloudflare Workers) with Llama 4 Scout for structured recipe extraction from URLs and images.
-3. Keep OpenAI as a graceful fallback when Workers AI fails or returns poor results.
-4. Update `wrangler.jsonc` to declare the `AI` binding if not already present.
-5. Reference the existing OpenAI integration in `src/features/import/` and `src/actions/import.ts`.
+1. Accessibility audit — color contrast, focus rings, ARIA labels, keyboard navigation across all pages.
+2. Error boundaries — user-facing error pages (500, rate-limit), graceful AI failure messages.
+3. Loading states — skeleton UI or spinners for async actions (import, mapping, enhance).
+4. View Transitions or optimistic UI — reduce perceived latency on meal-plan mutations (currently full-page reload).
+5. Session refresh — update header immediately after profile name change.
+6. Dead code cleanup — remove unused imports, unreferenced modules, stale comments.
+7. Lighthouse audit — bundle size, LCP, CLS, and actionable fixes.
+8. CI pipeline — GitHub Actions workflow: lint, typecheck, test, build on every PR.
+9. Production deploy checklist — secrets audit, wrangler.jsonc review, D1 migration status.
 
 Always:
 
@@ -181,3 +198,4 @@ Always:
 - **`user.name` is NOT NULL** in Better Auth's schema, but Turso allowed null. The Phase 2.5 load coalesces null names to the email localpart.
 - **Meal plan mutations trigger full page reloads** via `window.location.href`. This is intentional — the page is server-rendered, so the cleanest way to refresh data (including recalculated grocery lists) is a full navigation. If this feels sluggish later, Phase 14 polish could add View Transitions or optimistic client-side state.
 - **Profile name update doesn't refresh the session cookie** — the header still shows the old name until the user's next page load where middleware re-reads from DB. This is acceptable for now; Phase 14 could refresh the session inline if it bothers anyone.
+- **Workers AI binding warning in local dev** — wrangler emits "AI bindings always access remote resources" warning during `astro dev` and `astro build`. This is informational; AI calls in local dev hit Cloudflare's remote AI inference and may incur usage charges.

@@ -2,7 +2,8 @@
  * Enhance actions: re-map ingredient lines for an existing recipe, or enrich
  * raw ingredient lines with structured suggestions (no DB mutation).
  *
- * Drizzle/D1 port of app/actions/enhance-recipe-ingredients.actions.ts.
+ * Phase 12: LLM fallback uses Workers AI (Llama 4 Scout) as primary,
+ * OpenAI as secondary fallback.
  */
 
 import { ActionError, defineAction } from "astro:actions";
@@ -30,9 +31,9 @@ import {
   suggestMappingsWithLLM,
   type UnmappedLine,
   type CatalogEntry,
-} from "@/lib/ingredients/llm-ingredient-mapping";
+} from "@/lib/ai/llm-ingredient-mapping";
 import { autoConvert } from "@/lib/measurements/auto-convert";
-import { canUseOpenAi } from "@/lib/entitlements";
+import { canUseWorkersAi, canUseOpenAi } from "@/lib/entitlements";
 import { getDb, requireUser } from "./_shared";
 
 const FUZZY_THRESHOLD_LLM_CANDIDATES = 0.1;
@@ -69,6 +70,7 @@ function userScope(userId: string) {
 /**
  * Run deterministic + optional LLM suggestion pass and merge results.
  * Shared by both enhance actions.
+ * Phase 12: Workers AI primary, OpenAI fallback for LLM pass.
  */
 async function runSuggestionPasses(
   db: ReturnType<typeof getDb>,
@@ -77,8 +79,9 @@ async function runSuggestionPasses(
 ): Promise<SuggestionItem[]> {
   const suggestions = await computeIngredientSuggestions(db, lines, userId);
 
-  const apiKey = env.OPENAI_API_KEY;
-  if (!canUseOpenAi(apiKey)) return suggestions;
+  const ai = env.AI;
+  const openaiKey = env.OPENAI_API_KEY;
+  if (!canUseWorkersAi(ai) && !canUseOpenAi(openaiKey)) return suggestions;
 
   // Collect candidate IDs for LLM context
   const candidateIds = new Set<string>();
@@ -100,33 +103,17 @@ async function runSuggestionPasses(
   if (unmapped.length === 0) return suggestions;
 
   // Build catalog for LLM
-  let catalog: CatalogEntry[];
-  if (candidateIds.size > 0) {
-    // Prefer candidates the fuzzy pass already found
-    const rows = await db
-      .select({
-        id: ingredient.id,
-        name: ingredient.name,
-        normalizedName: ingredient.normalizedName,
-      })
-      .from(ingredient)
-      .where(userScope(userId))
-      .limit(LLM_CATALOG_FALLBACK_SIZE);
-    catalog = rows;
-  } else {
-    const rows = await db
-      .select({
-        id: ingredient.id,
-        name: ingredient.name,
-        normalizedName: ingredient.normalizedName,
-      })
-      .from(ingredient)
-      .where(userScope(userId))
-      .limit(LLM_CATALOG_FALLBACK_SIZE);
-    catalog = rows;
-  }
+  const catalog: CatalogEntry[] = await db
+    .select({
+      id: ingredient.id,
+      name: ingredient.name,
+      normalizedName: ingredient.normalizedName,
+    })
+    .from(ingredient)
+    .where(userScope(userId))
+    .limit(LLM_CATALOG_FALLBACK_SIZE);
 
-  const llmMap = await suggestMappingsWithLLM(unmapped, catalog, apiKey);
+  const llmMap = await suggestMappingsWithLLM(ai, unmapped, catalog, openaiKey);
 
   // Merge LLM suggestions
   for (const [idx, suggestion] of llmMap) {

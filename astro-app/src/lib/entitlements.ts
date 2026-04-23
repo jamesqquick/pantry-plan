@@ -1,27 +1,42 @@
 /**
- * Feature gating for LLM-backed features (URL parse, image import, mapping).
+ * Feature gating for AI-backed features (image import, ingredient mapping).
  *
- * Cloudflare adaptation: the original Next.js version checked
- * `process.env.OPENAI_API_KEY`. On Workers `process.env` isn't available
- * at request time — secrets live on `env`. Each caller must pass the
- * OPENAI_API_KEY string in, so this stays a pure function.
+ * Phase 12 strategy:
+ *   - Workers AI (via env.AI binding) is the primary provider — always
+ *     available on Cloudflare Workers, no API key needed.
+ *   - OpenAI is the fallback — only used when Workers AI fails AND
+ *     OPENAI_API_KEY is set.
  *
  * A future subscription/plan check can be layered in here by accepting
  * a user object.
  */
 
+/**
+ * Whether the Workers AI binding is available. On Cloudflare Workers this
+ * is always true once the `ai` binding is declared in wrangler.jsonc.
+ * Returns false only if the binding wasn't configured (e.g. local dev
+ * without wrangler).
+ */
+export function canUseWorkersAi(ai: unknown): boolean {
+  return ai != null && typeof ai === "object";
+}
+
+/**
+ * Whether OpenAI can be used as a fallback provider.
+ * Checks that the secret is set and non-empty.
+ */
 export function canUseOpenAi(openaiKey: string | undefined | null): boolean {
   return !!openaiKey && openaiKey.trim().length > 0;
 }
 
 /**
- * Whether the user may use the LLM for URL recipe parse (full recipe +
- * structured ingredients). Accepts the key string; user argument is
- * reserved for future plan checks.
+ * Whether any AI provider is available for LLM features.
+ * Workers AI is preferred; OpenAI is the fallback.
  */
 export function canUseLlmForRecipeParse(
   _userId: string,
-  openaiKey: string | undefined | null
+  ai: unknown,
+  openaiKey?: string | undefined | null,
 ): boolean {
-  return canUseOpenAi(openaiKey);
+  return canUseWorkersAi(ai) || canUseOpenAi(openaiKey);
 }
