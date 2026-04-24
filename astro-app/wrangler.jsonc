@@ -31,7 +31,4 @@
   // Secrets (set via `wrangler secret put`):
   // - AUTH_SECRET  (Better Auth JWT/cookie signing key)
   // - OPENAI_API_KEY (optional, fallback for Workers AI)
-  //
-  // Still to come:
-  // - r2_buckets: recipe images (Phase 13)
 }
