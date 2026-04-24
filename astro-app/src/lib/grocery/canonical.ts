@@ -33,11 +33,6 @@ export function lineVolumeToCups(
   }
 }
 
-/** @deprecated Use lineVolumeToCups — kept for migration callers. */
-export function toCups(quantity: number, unit: IngredientUnit): number | null {
-  return lineVolumeToCups(quantity, unit);
-}
-
 /** Direct mass line units → grams (no density). */
 export function toGrams(quantity: number, unit: IngredientUnit): number | null {
   switch (unit) {

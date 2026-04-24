@@ -1,10 +1,9 @@
 /**
  * Shared helpers for every Astro action in this project.
  *
- * The pattern mirrors the Next.js version: each action authenticates,
- * validates, mutates, and returns an ActionResult<T>. We reuse the same
- * ActionResult shape (lib/action-helpers.ts) so downstream consumers
- * don't care which host is running the action.
+ * Each action authenticates via requireUser/requireAdmin, validates with Zod,
+ * mutates via Drizzle, and throws ActionError on failure (surfaced as
+ * `{ error }` on the client call site).
  */
 import { env } from "cloudflare:workers";
 import { ActionError, type ActionAPIContext } from "astro:actions";

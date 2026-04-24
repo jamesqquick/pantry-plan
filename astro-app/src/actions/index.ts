@@ -13,9 +13,6 @@ import { profile } from "./profile";
 /**
  * Every mutation / authenticated read is namespaced here. Callers import from
  * `astro:actions` and hit `actions.recipes.create(...)` etc.
- *
- * Deferred namespaces (landing in their feature phase):
- *   - estimate                                     → Phase 9 (cost)
  */
 export const server = {
   tags,
