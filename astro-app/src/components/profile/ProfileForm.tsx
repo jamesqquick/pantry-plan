@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { actions } from "astro:actions";
 import { Input } from "@/components/ui/Input";
+import { softNavigate } from "@/lib/navigate";
 
 interface Props {
   initialName: string;
@@ -49,6 +50,10 @@ export function ProfileForm({ initialName, email, role }: Props) {
 
     setSuccess(true);
     setPending(false);
+
+    // Soft-navigate after a short delay so the server re-reads the
+    // updated name from DB. The toast stays visible during the transition.
+    setTimeout(() => softNavigate("/profile"), 1200);
   }
 
   const isDirty = name.trim() !== initialName;
