@@ -1,4 +1,5 @@
 ---
+import { ClientRouter } from "astro:transitions";
 import { Font } from "astro:assets";
 import "@/styles/globals.css";
 
@@ -17,6 +18,7 @@ const { title = "Pantry Plan", description = "Recipe management and meal plannin
     <meta name="description" content={description} />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <ClientRouter />
     <Font cssVariable="--font-body" preload />
     <Font cssVariable="--font-display" preload />
     <title>{title}</title>

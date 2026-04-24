@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { actions } from "astro:actions";
+import { softNavigate } from "@/lib/navigate";
 import { MealPlanDayCard } from "./MealPlanDayCard";
 import { MealTypeLegend } from "./MealTypeLegend";
 import { AddOrEditMealModal } from "./AddOrEditMealModal";
@@ -94,8 +95,8 @@ export function MealPlanWeek({
       // Strip ?addRecipe= from URL without a full navigation.
       window.history.replaceState({}, "", `/meal-plan/${weekStart}`);
     }
-    // Navigate to refresh server-rendered data.
-    window.location.href = `/meal-plan/${weekStart}`;
+    // Soft-navigate to refresh server-rendered data with view transition.
+    softNavigate(`/meal-plan/${weekStart}`);
   }, [initialAddRecipeId, weekStart]);
 
   // ------- Drag-and-drop -------
@@ -122,8 +123,8 @@ export function MealPlanWeek({
 
       if (!error) {
         lastMoveRef.current = { mealId, targetDate };
-        // Refresh to get updated server data (including grocery recalculation).
-        window.location.href = `/meal-plan/${weekStart}`;
+        // Soft-navigate to get updated server data (including grocery recalculation).
+        softNavigate(`/meal-plan/${weekStart}`);
       } else {
         setOptimisticMeals(null);
         setMoveError(error.message ?? "Something went wrong. The meal was moved back.");
