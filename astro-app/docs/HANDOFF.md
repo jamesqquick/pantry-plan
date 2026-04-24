@@ -25,7 +25,7 @@ You are continuing a multi-phase migration of the **Pantry Plan** recipe/meal-pl
 - Fonts: Be Vietnam Pro (body), Lilita One (display) via Astro's built-in Fonts API
 - **shadcn-style form primitives** (hand-ported `Input`, `Textarea`, `Select`, `Dialog` in `src/components/ui/`)
 - **Radix UI** for `Tabs`, `Select`, and `Dialog` (no CLI — components copied into the repo)
-- **Vitest** for tests (85 passing)
+- **Vitest** for tests (46 passing)
 - **Zod 4** for validation
 - **Workers AI** (Llama 4 Scout primary, OpenAI fallback) via `AI` binding
 - Deferred: R2 image uploads (cut from scope)
@@ -46,16 +46,16 @@ You are continuing a multi-phase migration of the **Pantry Plan** recipe/meal-pl
 - [x] **Phase 10** — Weekly meal planning calendar (week grid, drag-and-drop, add/edit modal, grocery list)
 - [x] **Phase 11** — Profile page (edit name, change password)
 - [x] **Phase 12** — Workers AI integration (Llama 4 Scout primary, OpenAI fallback)
-- [ ] **Phase 13** — Polish, production hardening, CI ← **NEXT**
-  - Accessibility audit (color contrast, focus rings, ARIA labels, keyboard nav)
-  - Error boundaries and user-facing error pages (500, rate-limit, AI failures)
-  - Loading states and skeleton UI for async actions (import, mapping, enhance)
-  - View Transitions or optimistic UI for meal-plan mutations (currently full-page reload)
-  - Session refresh after profile name update (header shows stale name until next load)
-  - Remove unused imports / dead code pass
-  - Lighthouse performance audit (bundle size, LCP, CLS)
-  - Production deploy checklist (secrets audit, wrangler.jsonc review, D1 migration check)
-- [ ] **Phase 14** — Forgot-password flow (email transport + unauthenticated token-based reset)
+- [x] **Phase 13** — Polish, production hardening
+  - Accessibility: dark-mode contrast fix, skip-to-content, focus rings on links/danger buttons, combobox ARIA, aria-busy
+  - Error boundaries: 500.astro page, improved AI failure messages in import tabs
+  - Loading states: shared Spinner component, spinners on import/enhance/mapping buttons
+  - View Transitions: Astro ClientRouter for smooth page transitions, softNavigate() for meal-plan mutations
+  - Session refresh: profile name update triggers soft-navigate to refresh server props
+  - Dead code: removed 1,450 lines (14 files) of unreferenced modules, stale comments
+  - Lighthouse: static audit passed — 600KB JS (code-split), 62KB fonts (swap), no CLS/LCP issues
+  - Deploy checklist: secrets gitignored, bindings verified, D1 migration stable, observability enabled
+- [ ] **Phase 14** — Forgot-password flow (email transport + unauthenticated token-based reset) ← **NEXT**
 
 ## Key decisions already made
 
@@ -98,7 +98,7 @@ npm run db:migrate:local
 npm run db:migrate:remote
 
 # Tests
-npm test             # 85 passing
+npm test             # 46 passing (39 tests for dead code removed in Phase 13)
 
 # One-off helpers
 npm run reset-password -- --email <email> --password <pw> [--remote]
@@ -135,26 +135,22 @@ Local secrets live in `astro-app/.dev.vars` (gitignored). Production secrets via
 
 1. `git status` — should be clean
 2. Confirm on `migrate/astro-cloudflare` branch
-3. `npm test` — 85 passing
-4. `npx astro check` — 0 errors / 0 warnings (17 Zod-v4 / FormEvent / Astro deprecation hints are acceptable)
+3. `npm test` — 46 passing
+4. `npx astro check` — 0 errors / 0 warnings (14 Zod-v4 / FormEvent deprecation hints are acceptable)
 5. Decide scope: **what lands now, what defers to later phases**. Be explicit about deferrals in the commit message.
 
-## What shipped in Phase 12 (latest session)
+## What shipped in Phase 13 (latest session)
 
-Phase 12 — Workers AI integration (Llama 4 Scout primary, OpenAI fallback):
+Phase 13 — Polish, production hardening (8 commits):
 
-- **`wrangler.jsonc`** — added `ai: { binding: "AI" }` binding declaration.
-- **`src/env.d.ts`** — declared `AI: Ai` on `Cloudflare.Env`.
-- **`src/lib/ai/workers-ai-client.ts`** — thin wrapper around `env.AI.run()` with Llama 4 Scout (`@cf/meta/llama-4-scout-17b-16e-instruct`). Two helpers: `workersAiTextJson()` for text chat + JSON mode, `workersAiVisionJson()` for vision + JSON mode. Both log via `logLlmRequest`.
-- **`src/lib/ai/extract-recipe-from-image.ts`** — dual-provider image extraction. Tries Workers AI vision first, falls back to OpenAI `gpt-4o-mini` if Workers AI fails and `OPENAI_API_KEY` is set. Reuses `ExtractedRecipeDraft` type.
-- **`src/lib/ai/llm-ingredient-mapping.ts`** — dual-provider ingredient mapping. Tries Workers AI text + JSON mode first, falls back to OpenAI. Returns empty Map on total failure (graceful degradation).
-- **`src/lib/entitlements.ts`** — added `canUseWorkersAi()` (checks binding exists), updated `canUseLlmForRecipeParse()` to check either provider. `canUseOpenAi()` unchanged (now fallback-only role).
-- **`src/actions/parse.ts`** — `parseFromImage` now uses `extractRecipeFromImage()` (dual-provider) instead of OpenAI-only.
-- **`src/actions/ingredient-mapping.ts`** — `suggest` now uses `suggestMappingsWithLLM()` from `@/lib/ai/` (dual-provider).
-- **`src/actions/enhance.ts`** — `runSuggestionPasses` now uses dual-provider mapping.
-- **Old OpenAI-only modules preserved** (`src/lib/parse/extract-recipe-from-image-openai.ts`, `src/lib/ingredients/llm-ingredient-mapping.ts`) — used as fallback code paths by the new dual-provider wrappers.
-- **No UI changes** — the import/mapping UI works identically; only the backend AI provider changed.
-- **Deferred**: removing the OpenAI npm dependency entirely (it's still needed for fallback).
+1. **Accessibility audit** — dark-mode `--primary-on-background` bumped to 48% lightness (5.1:1 contrast). Skip-to-content link in BaseLayout. Focus rings on all `<a>` links and danger/ghost-danger Button variants. Combobox ARIA on meal plan recipe search. `aria-busy` on submit buttons.
+2. **Error boundaries** — `src/pages/500.astro` for uncaught server errors. Import tabs show structured error messages with headings and fallback suggestions for AI failures.
+3. **Loading states** — `src/components/ui/Spinner.tsx` shared component with `role="status"`. Spinners on import URL button, enhance button. Replaced hand-rolled spinners in ImportImageTab and RecipeDraftEditor.
+4. **View Transitions** — `<ClientRouter />` in BaseLayout for smooth `<a>` navigations. `src/lib/navigate.ts` `softNavigate()` helper for React islands. Meal plan mutations use softNavigate instead of hard reload.
+5. **Session refresh** — ProfileForm soft-navigates after name update (1.2s delay) so server re-reads updated name from DB.
+6. **Dead code cleanup** — deleted 14 files / 1,450 lines of unreferenced modules and their tests. Removed stale comments in `_shared.ts`, `actions/index.ts`, `canonical.ts`, `wrangler.jsonc`.
+7. **Lighthouse audit** — static analysis passed. 600KB JS (code-split into ~30 chunks), 62KB fonts (woff2, swap), no CLS/LCP issues, no render-blocking resources.
+8. **Deploy checklist** — secrets gitignored, bindings verified against env.d.ts, D1 migration stable (0000_init.sql only), observability enabled, 404-page handling configured.
 
 ## What to do first in the new session
 
@@ -168,16 +164,12 @@ git log --oneline -10
 cat astro-app/docs/HANDOFF.md                # this file
 ```
 
-Then ask me which phase to tackle next. Default is **Phase 13 (Polish, production hardening, CI)**, which should:
+Then ask me which phase to tackle next. Default is **Phase 14 (Forgot-password flow)**, which should:
 
-1. Accessibility audit — color contrast, focus rings, ARIA labels, keyboard navigation across all pages.
-2. Error boundaries — user-facing error pages (500, rate-limit), graceful AI failure messages.
-3. Loading states — skeleton UI or spinners for async actions (import, mapping, enhance).
-4. View Transitions or optimistic UI — reduce perceived latency on meal-plan mutations (currently full-page reload).
-5. Session refresh — update header immediately after profile name change.
-6. Dead code cleanup — remove unused imports, unreferenced modules, stale comments.
-7. Lighthouse audit — bundle size, LCP, CLS, and actionable fixes.
-8. Production deploy checklist — secrets audit, wrangler.jsonc review, D1 migration status.
+1. Set up email transport (Resend or Cloudflare Email Workers).
+2. Implement token-based password reset (generate token, send email, verify token, reset password).
+3. Unauthenticated `/forgot-password` and `/reset-password?token=...` pages.
+4. Rate-limit reset requests to prevent abuse.
 
 Always:
 
@@ -189,11 +181,10 @@ Always:
 ## Known warts to keep in mind
 
 - **D1 local state is held open** by `wrangler dev`. Running `wrangler d1 execute ... --local` while dev is up can show stale data. Close dev, run the query, reopen dev — or just query through the app.
-- **Zod v4 deprecation hints** (15 total) on `.url()`, `.finite()`, `.ZodIssue`, and two Astro-frontmatter false positives on the meal-plan redirect page. All still work; they're cosmetic. Leave them until Zod publishes a migration guide.
+- **Zod v4 deprecation hints** (11 total after dead code removal) on `.url()`, `.finite()`, `.ZodIssue`. All still work; they're cosmetic. Leave them until Zod publishes a migration guide.
 - **React.FormEvent deprecation hints** (2 in profile components, 1 in AddOrEditMealModal) — TypeScript cosmetic warning, functions identically. Fix when React 20+ types land.
 - **Astro actions serialize responses with devalue** (flat array with back-refs) — not plain JSON. In the browser, destructure `const { data, error } = await actions.x.y(input)`. From curl/scripts, parsing the devalue output by hand is painful; use the actions playground at `/dev/actions` or do writes via the real form UI.
 - **Mobile menu animation state machine** (`hidden → entering → open → closing → hidden`) matters for the slide-in/slide-out to work without a flash-of-open-on-mount. Don't collapse back to a single boolean.
 - **`user.name` is NOT NULL** in Better Auth's schema, but Turso allowed null. The Phase 2.5 load coalesces null names to the email localpart.
-- **Meal plan mutations trigger full page reloads** via `window.location.href`. This is intentional — the page is server-rendered, so the cleanest way to refresh data (including recalculated grocery lists) is a full navigation. If this feels sluggish later, Phase 14 polish could add View Transitions or optimistic client-side state.
-- **Profile name update doesn't refresh the session cookie** — the header still shows the old name until the user's next page load where middleware re-reads from DB. This is acceptable for now; Phase 14 could refresh the session inline if it bothers anyone.
+- **Meal plan mutations use softNavigate** (`src/lib/navigate.ts`) which leverages the Navigation API from Astro's ClientRouter. Falls back to `window.location.href` on unsupported browsers. Data refresh still requires server round-trip (not optimistic).
 - **Workers AI binding warning in local dev** — wrangler emits "AI bindings always access remote resources" warning during `astro dev` and `astro build`. This is informational; AI calls in local dev hit Cloudflare's remote AI inference and may incur usage charges.
