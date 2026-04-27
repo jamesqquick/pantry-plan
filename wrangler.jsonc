@@ -14,6 +14,7 @@
   "observability": {
     "enabled": true
   },
+
   "vars": {
     // Public-ish config (not secrets). AUTH_URL must match the deployed origin.
     "AUTH_URL": "https://pantry-plan.jamesqquick.workers.dev"

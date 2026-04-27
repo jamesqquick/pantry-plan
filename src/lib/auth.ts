@@ -27,8 +27,10 @@ function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
  * one per request inside the catch-all API route and middleware.
  */
 
-// scrypt params — N=2^14 is the Workers-safe sweet spot (fast enough, strong enough)
-const SCRYPT_PARAMS = { N: 2 ** 14, r: 8, p: 1, dkLen: 32 };
+// scrypt params — N=2^10, r=8 keeps CPU time under Workers Free plan
+// limits (~10ms). Still provides meaningful brute-force resistance with
+// a 32-byte output and 16-byte salt.
+const SCRYPT_PARAMS = { N: 2 ** 10, r: 8, p: 1, dkLen: 32 };
 const SALT_BYTES = 16;
 
 function encodeHash(salt: Uint8Array, hash: Uint8Array): string {
