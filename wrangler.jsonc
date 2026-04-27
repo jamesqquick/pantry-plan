@@ -1,0 +1,34 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pantry-plan",
+  "account_id": "4426cbeacb457b1ca1b865d6c36ced0d",
+  "main": "@astrojs/cloudflare/entrypoints/server",
+  "compatibility_date": "2026-04-20",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./dist",
+    "not_found_handling": "none",
+    "run_worker_first": true
+  },
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    // Public-ish config (not secrets). AUTH_URL must match the deployed origin.
+    "AUTH_URL": "https://pantry-plan.jamesqquick.workers.dev"
+  },
+  "ai": {
+    "binding": "AI"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "pantry-plan",
+      "database_id": "c34f212d-1ce2-478a-9366-bb6f764d9f23",
+      "migrations_dir": "src/db/migrations"
+    }
+  ]
+  // Secrets (set via `wrangler secret put`):
+  // - AUTH_SECRET  (Better Auth JWT/cookie signing key)
+}
