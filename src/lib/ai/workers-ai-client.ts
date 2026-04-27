@@ -5,8 +5,8 @@
  *   1. Text chat completion with JSON mode (ingredient mapping)
  *   2. Vision chat completion with JSON mode (image → recipe)
  *
- * Model: Gemma 4 26B A4B — MoE with built-in thinking mode, strong
- *   vision/OCR/document parsing, and JSON mode support.
+ * Model: Gemma 3 12B — multimodal with strong vision/OCR/document
+ *   parsing and JSON mode support.
  *
  * All methods are pure functions that accept the `Ai` binding so they
  * can be tested and never import from `cloudflare:workers` at module scope.
@@ -15,7 +15,7 @@
 import { logLlmRequest, type LlmUsage } from "@/lib/log-llm";
 
 export const WORKERS_AI_MODEL =
-  "@cf/google/gemma-4-26b-a4b-it" as const;
+  "@cf/google/gemma-3-12b-it" as const;
 
 /** Convert ArrayBuffer to data-URI (Workers-compatible, no Node Buffer). */
 function arrayBufferToDataUri(
