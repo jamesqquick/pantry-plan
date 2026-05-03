@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-/** Max size for recipe image upload (4 MB). Keep in sync with next.config serverActions.bodySizeLimit. */
+/** Max size for recipe image upload (4 MB). Astro action body limit is set to 10 MB in astro.config.mjs (security.actionBodySizeLimit) to allow base64 inflation overhead. */
 export const MAX_RECIPE_IMAGE_BYTES = 4 * 1024 * 1024;
 
 export const ALLOWED_RECIPE_IMAGE_TYPES = [
