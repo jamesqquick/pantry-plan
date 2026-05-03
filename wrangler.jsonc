@@ -7,9 +7,16 @@
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
     "binding": "ASSETS",
-    "directory": "./dist",
-    "not_found_handling": "none",
-    "run_worker_first": true
+    // Astro Cloudflare adapter writes static client output to dist/client.
+    // The server bundle in dist/server is referenced by `main` above.
+    "directory": "./dist/client",
+    // Serve dist/client/404.html (emitted by Astro) for unmatched routes
+    // without invoking the Worker.
+    "not_found_handling": "404-page"
+    // No `run_worker_first`: let Cloudflare serve static assets directly so
+    // `_astro/*` bundles, fonts, favicon, etc. don't bill as Worker
+    // invocations or count against the daily request quota. The Worker is
+    // invoked only when no asset matches (i.e., for SSR routes).
   },
   "observability": {
     "enabled": true

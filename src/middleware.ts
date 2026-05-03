@@ -3,8 +3,12 @@ import { env } from "cloudflare:workers";
 import { createAuth } from "@/lib/auth";
 
 /**
- * Public routes — everything else under `/app/*` paths that aren't the
- * landing page is treated as protected. API routes for auth are always public.
+ * Public routes — anything else requires auth.
+ *
+ * Note: Cloudflare's static-asset serving runs before the Worker (see
+ * wrangler.jsonc), so requests for `/_astro/*`, `/favicon*`, and any
+ * other prerendered asset never reach this middleware. We only need to
+ * special-case dynamic public routes here.
  */
 const PUBLIC_PATH_PREFIXES = [
   "/api/auth/",
@@ -12,9 +16,6 @@ const PUBLIC_PATH_PREFIXES = [
   // so XHR callers get a proper 401 JSON payload instead of a useless 302
   // to /login.
   "/_actions/",
-  "/_image",
-  "/_astro/",
-  "/favicon",
 ];
 
 const AUTH_ONLY_PATHS = new Set<string>(["/login", "/register"]);
@@ -27,8 +28,6 @@ const ALWAYS_PUBLIC_PATHS = new Set<string>([
 
 function isPublicPath(pathname: string): boolean {
   if (ALWAYS_PUBLIC_PATHS.has(pathname)) return true;
-  // Static 404 page served by Cloudflare (with or without trailing slash).
-  if (pathname === "/404" || pathname === "/404/") return true;
   return PUBLIC_PATH_PREFIXES.some((p) => pathname.startsWith(p));
 }
 
