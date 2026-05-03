@@ -11,11 +11,13 @@ export default defineConfig({
     // Auto-configures Workers KV for Astro sessions
     // Default sessionKVBindingName is 'SESSION'
   }),
-  // Astro Actions default body limit is 1 MB, which rejects recipe-image
-  // uploads (4 MB raw -> ~5.4 MB after base64). Bump to 10 MB for headroom.
-  // Cloudflare Workers (Free plan) allows up to 100 MB request bodies.
+  // Astro Actions default body limit is 1 MB. The recipe-image upload
+  // (parse.parseFromImage) accepts a real File via multipart/form-data,
+  // capped at 4 MB by the action's own Zod refinement. Allow 5 MB here
+  // for multipart envelope overhead; Cloudflare Workers (Free plan)
+  // allows up to 100 MB request bodies, so this is the binding limit.
   security: {
-    actionBodySizeLimit: 10 * 1024 * 1024, // 10 MB
+    actionBodySizeLimit: 5 * 1024 * 1024, // 5 MB
   },
   integrations: [react()],
   fonts: [

@@ -41,19 +41,13 @@ export function ImportImageTab({
 
     setParsing(true);
 
-    // Convert file to base64 for the action
-    const arrayBuffer = await file.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    let binary = "";
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    const base64 = btoa(binary);
+    // Submit the file directly via FormData. The action declares
+    // accept: "form", so Astro decodes this into a real File on the server
+    // — no base64 encoding, no 33% inflation.
+    const formData = new FormData();
+    formData.append("image", file);
 
-    const { data, error } = await actions.parse.parseFromImage({
-      imageBase64: base64,
-      mimeType: file.type as "image/jpeg" | "image/png" | "image/webp",
-    });
+    const { data, error } = await actions.parse.parseFromImage(formData);
     setParsing(false);
 
     if (error) {
@@ -138,7 +132,7 @@ export function ImportImageTab({
       {parsing && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Spinner className="h-4 w-4" label="Analyzing image" />
-          Analyzing image with AI\u2026 this may take a moment.
+          Analyzing image with AI… this may take a moment.
         </div>
       )}
 

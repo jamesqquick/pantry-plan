@@ -2,14 +2,18 @@
  * Parse actions: extract recipe data from a URL or image.
  * Returns a draft that the UI can display for review before saving.
  *
- * Image extraction uses Workers AI (Gemma 4 26B).
+ * Image extraction uses Workers AI (Gemma 3 12B vision).
  * URL parsing remains deterministic (JSON-LD).
  */
 
-import { defineAction } from "astro:actions";
+import { ActionError, defineAction } from "astro:actions";
 import { env } from "cloudflare:workers";
 import { z } from "zod";
-import { parseUrlSchema } from "@/features/parse/parse.schemas";
+import {
+  ALLOWED_RECIPE_IMAGE_TYPES,
+  MAX_RECIPE_IMAGE_BYTES,
+  parseUrlSchema,
+} from "@/features/parse/parse.schemas";
 import { parseRecipeFromUrl } from "@/lib/parse/parse-recipe";
 import { extractRecipeFromImage } from "@/lib/ai/extract-recipe-from-image";
 import { parseIngredientLineForImport, type ParsedIngredientLine } from "@/lib/ingredients/parse-line";
@@ -42,7 +46,10 @@ export const parse = {
 
       const result = await parseRecipeFromUrl(input.url);
       if (!result.ok) {
-        throw new Error(result.error);
+        throw new ActionError({
+          code: "BAD_REQUEST",
+          message: result.error,
+        });
       }
 
       const ingredientLines = result.data.ingredients.map((line) =>
@@ -66,37 +73,46 @@ export const parse = {
   }),
 
   /**
-   * Parse recipe from an uploaded image via Workers AI (Gemma 4 26B).
-   * Accepts image as base64 string (Astro actions don't support FormData
-   * natively for JSON input).
+   * Parse recipe from an uploaded image via Workers AI (Gemma 3 12B vision).
+   *
+   * Accepts the image as a real File via multipart/form-data (accept: "form").
+   * This avoids ~33% base64 inflation, double encode/decode passes, and the
+   * need to raise Astro's actionBodySizeLimit beyond a small headroom value.
    */
   parseFromImage: defineAction({
+    accept: "form",
     input: z.object({
-      imageBase64: z.string().min(1, "Image data required"),
-      mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+      image: z
+        .instanceof(File, { message: "Image file is required." })
+        .refine(
+          (f) => f.size > 0 && f.size <= MAX_RECIPE_IMAGE_BYTES,
+          "Image must be 4 MB or smaller.",
+        )
+        .refine(
+          (f) =>
+            (
+              ALLOWED_RECIPE_IMAGE_TYPES as readonly string[]
+            ).includes(f.type),
+          "Image must be JPEG, PNG, or WebP.",
+        ),
     }),
     handler: async (input, ctx): Promise<ParsedRecipeDraft> => {
       requireUser(ctx);
 
       const ai = env.AI;
-
       if (!canUseWorkersAi(ai)) {
-        throw new Error(
-          "Recipe-from-image is not configured. Workers AI binding not available.",
-        );
+        throw new ActionError({
+          code: "SERVICE_UNAVAILABLE",
+          message:
+            "Recipe-from-image is not configured. Workers AI binding not available.",
+        });
       }
 
-      // Decode base64 to ArrayBuffer
-      const binaryString = atob(input.imageBase64);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-
+      const buffer = await input.image.arrayBuffer();
       const parsed = await extractRecipeFromImage(
         ai,
-        bytes.buffer as ArrayBuffer,
-        input.mimeType,
+        buffer,
+        input.image.type,
       );
 
       const ingredientLines = parsed.ingredients.map((line) =>
