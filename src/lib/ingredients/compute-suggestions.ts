@@ -85,9 +85,13 @@ export async function computeIngredientSuggestions(
   }
 
   // --- Exact match by normalizedName ---
+  // Restrict to user scope (global rows OR rows owned by this user) to prevent
+  // suggestions from leaking ingredient ids that belong to other users.
+  // When both a global and a user-owned row share a normalized name, prefer the
+  // user-owned one.
   const ingredientByNorm: Record<
     string,
-    { id: string; name: string; normalizedName: string }
+    { id: string; name: string; normalizedName: string; userId: string | null }
   > = {};
   if (allNormalizedKeys.size > 0) {
     const exactRows = await db
@@ -95,14 +99,21 @@ export async function computeIngredientSuggestions(
         id: ingredient.id,
         name: ingredient.name,
         normalizedName: ingredient.normalizedName,
+        userId: ingredient.userId,
       })
       .from(ingredient)
       .where(
-        inArray(ingredient.normalizedName, Array.from(allNormalizedKeys)),
+        and(
+          inArray(ingredient.normalizedName, Array.from(allNormalizedKeys)),
+          userScope(userId),
+        ),
       );
-    // Filter to user scope in JS (D1 doesn't support combining inArray + or() cleanly)
     for (const row of exactRows) {
-      ingredientByNorm[row.normalizedName] = row;
+      const existing = ingredientByNorm[row.normalizedName];
+      // Prefer user-owned over global on collisions.
+      if (!existing || (existing.userId === null && row.userId === userId)) {
+        ingredientByNorm[row.normalizedName] = row;
+      }
     }
   }
 
@@ -120,9 +131,16 @@ export async function computeIngredientSuggestions(
   }
 
   // --- Alias match ---
+  // Same user-scope restriction as exact match: only resolve aliases that
+  // point at a global ingredient or one owned by this user.
   const aliasByNorm: Record<
     string,
-    { id: string; name: string; normalizedName: string }
+    {
+      id: string;
+      name: string;
+      normalizedName: string;
+      userId: string | null;
+    }
   > = {};
   if (keysForAlias.size > 0) {
     const aliasRows = await db
@@ -131,18 +149,30 @@ export async function computeIngredientSuggestions(
         ingredientId: ingredient.id,
         ingredientName: ingredient.name,
         ingredientNormalizedName: ingredient.normalizedName,
+        ingredientUserId: ingredient.userId,
       })
       .from(ingredientAlias)
       .innerJoin(ingredient, eq(ingredientAlias.ingredientId, ingredient.id))
       .where(
-        inArray(ingredientAlias.aliasNormalized, Array.from(keysForAlias)),
+        and(
+          inArray(ingredientAlias.aliasNormalized, Array.from(keysForAlias)),
+          userScope(userId),
+        ),
       );
     for (const a of aliasRows) {
-      aliasByNorm[a.aliasNormalized] = {
-        id: a.ingredientId,
-        name: a.ingredientName,
-        normalizedName: a.ingredientNormalizedName,
-      };
+      const existing = aliasByNorm[a.aliasNormalized];
+      // Prefer user-owned over global on collisions.
+      if (
+        !existing ||
+        (existing.userId === null && a.ingredientUserId === userId)
+      ) {
+        aliasByNorm[a.aliasNormalized] = {
+          id: a.ingredientId,
+          name: a.ingredientName,
+          normalizedName: a.ingredientNormalizedName,
+          userId: a.ingredientUserId,
+        };
+      }
     }
   }
 
