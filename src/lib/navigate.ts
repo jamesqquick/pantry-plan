@@ -19,3 +19,25 @@ export function softNavigate(href: string): void {
   }
   window.location.href = href;
 }
+
+/**
+ * Validate that a redirect target is a same-origin path and not an
+ * attacker-controlled URL. Defends against open redirects from query
+ * parameters like `?next=//evil.com` or `?next=/\evil.com`.
+ *
+ * Returns the path if safe; otherwise the supplied fallback (default "/").
+ *
+ * A safe path:
+ *   - starts with "/"
+ *   - the second character is NOT "/" or "\" (blocks protocol-relative
+ *     and backslash-tricks)
+ *   - is not a single "/" alone (no protocol confusion)
+ */
+export function safeRelativePath(
+  path: string | undefined | null,
+  fallback = "/",
+): string {
+  if (typeof path !== "string") return fallback;
+  if (!/^\/[^/\\]/.test(path)) return fallback;
+  return path;
+}

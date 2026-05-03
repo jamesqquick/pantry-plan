@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { signIn } from "@/lib/auth-client";
+import { safeRelativePath } from "@/lib/navigate";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -28,7 +29,8 @@ export function LoginForm({ next }: Props) {
     }
 
     // Full navigation so middleware re-runs against the new cookie.
-    window.location.href = next && next.startsWith("/") ? next : "/recipes";
+    // Validate `next` against open-redirect tricks (e.g. //evil.com).
+    window.location.href = safeRelativePath(next, "/recipes");
   };
 
   return (
