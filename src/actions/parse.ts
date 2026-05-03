@@ -18,6 +18,7 @@ import { parseRecipeFromUrl } from "@/lib/parse/parse-recipe";
 import { extractRecipeFromImage } from "@/lib/ai/extract-recipe-from-image";
 import { parseIngredientLineForImport, type ParsedIngredientLine } from "@/lib/ingredients/parse-line";
 import { canUseWorkersAi } from "@/lib/entitlements";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { requireUser } from "./_shared";
 
 export type ParsedRecipeDraft = {
@@ -42,7 +43,12 @@ export const parse = {
   parseFromUrl: defineAction({
     input: parseUrlSchema,
     handler: async (input, ctx): Promise<ParsedRecipeDraft> => {
-      requireUser(ctx);
+      const user = requireUser(ctx);
+
+      // Throttle AI-backed parsing per user. Shared budget with
+      // parseFromImage — both keys are `ai:<userId>` — so a user gets
+      // 5 AI parses per 60s regardless of which entry point they use.
+      await enforceRateLimit(env.AI_RATE_LIMIT, `ai:${user.id}`);
 
       const result = await parseRecipeFromUrl(input.url);
       if (!result.ok) {
@@ -97,7 +103,10 @@ export const parse = {
         ),
     }),
     handler: async (input, ctx): Promise<ParsedRecipeDraft> => {
-      requireUser(ctx);
+      const user = requireUser(ctx);
+
+      // Shared rate limit with parseFromUrl: 5 AI parses per 60s per user.
+      await enforceRateLimit(env.AI_RATE_LIMIT, `ai:${user.id}`);
 
       const ai = env.AI;
       if (!canUseWorkersAi(ai)) {

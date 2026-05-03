@@ -36,6 +36,22 @@
       "database_id": "c34f212d-1ce2-478a-9366-bb6f764d9f23",
       "migrations_dir": "src/db/migrations"
     }
+  ],
+  "ratelimits": [
+    {
+      // AI parsing endpoints (recipe-from-image, recipe-from-URL).
+      // 5 calls per 60s per user.id. Note: rate-limit counters are
+      // per-Cloudflare-location, so the effective ceiling for a user
+      // hitting multiple PoPs in a minute is somewhat higher.
+      // Sized to allow normal recipe-import workflows while preventing
+      // automated abuse / cost runaway on Workers AI.
+      "name": "AI_RATE_LIMIT",
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 5,
+        "period": 60
+      }
+    }
   ]
   // Secrets (set via `wrangler secret put`):
   // - AUTH_SECRET  (Better Auth JWT/cookie signing key)
