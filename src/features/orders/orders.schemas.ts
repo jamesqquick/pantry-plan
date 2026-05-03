@@ -3,12 +3,16 @@ import { z } from "zod";
 /** Allowed batch counts when adding a recipe to an order (UI + validation). */
 export const ORDER_ITEM_BATCH_VALUES = [0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
+const MAX_ORDER_NAME = 200;
+const MAX_ORDER_NOTES = 5_000;
+const MAX_ORDER_ITEMS = 500;
+
 export const orderIdSchema = z.object({
   id: z.string().min(1, "Order id is required"),
 });
 
 export const orderItemSchema = z.object({
-  recipeId: z.string().min(1, "Recipe is required"),
+  recipeId: z.string().min(1, "Recipe is required").max(100),
   batches: z
     .coerce
     .number()
@@ -21,16 +25,30 @@ export const orderItemSchema = z.object({
 });
 
 export const orderCreateSchema = z.object({
-  name: z.string().min(1, "Name is required").transform((s) => s.trim()),
-  notes: z.string().optional(),
-  items: z.array(orderItemSchema).min(1, "Add at least one recipe"),
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .max(MAX_ORDER_NAME)
+    .transform((s) => s.trim()),
+  notes: z.string().max(MAX_ORDER_NOTES).optional(),
+  items: z
+    .array(orderItemSchema)
+    .max(MAX_ORDER_ITEMS)
+    .min(1, "Add at least one recipe"),
 });
 
 export const orderUpdateSchema = z.object({
   id: z.string().min(1, "Order id is required"),
-  name: z.string().min(1, "Name is required").transform((s) => s.trim()),
-  notes: z.string().optional(),
-  items: z.array(orderItemSchema).min(1, "Add at least one recipe"),
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .max(MAX_ORDER_NAME)
+    .transform((s) => s.trim()),
+  notes: z.string().max(MAX_ORDER_NOTES).optional(),
+  items: z
+    .array(orderItemSchema)
+    .max(MAX_ORDER_ITEMS)
+    .min(1, "Add at least one recipe"),
 });
 
 export type OrderIdInput = z.infer<typeof orderIdSchema>;
