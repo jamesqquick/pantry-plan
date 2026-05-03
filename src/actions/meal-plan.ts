@@ -81,6 +81,22 @@ export const mealPlan = {
         });
       }
 
+      // If a non-null recipeId is supplied, it must belong to the caller.
+      // (recipeId === null means "clear"; undefined means "leave alone".)
+      if (input.recipeId) {
+        const ownRecipe = await db
+          .select({ id: recipe.id })
+          .from(recipe)
+          .where(and(eq(recipe.id, input.recipeId), eq(recipe.userId, user.id)))
+          .limit(1);
+        if (ownRecipe.length === 0) {
+          throw new ActionError({
+            code: "NOT_FOUND",
+            message: "Recipe not found.",
+          });
+        }
+      }
+
       const patch: Partial<typeof plannedMeal.$inferInsert> = {};
       if (input.date != null) patch.date = parseDateString(input.date);
       if (input.mealSlot != null) patch.mealSlot = input.mealSlot;
