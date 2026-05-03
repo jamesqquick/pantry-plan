@@ -1,12 +1,15 @@
 import { z } from "zod";
 import { INGREDIENT_UNITS } from "@/db/schema/enums";
+import { optionalHttpUrlSchema } from "@/lib/url";
 
 const ingredientUnitSchema = z.enum(INGREDIENT_UNITS).nullable().optional();
 
 export const importDraftSchema = z.object({
   title: z.string().min(1).max(500),
-  sourceUrl: z.string().optional(),
-  imageUrl: z.string().optional(),
+  // Drafts come from URL parsing or image OCR; if a URL is present it
+  // must be http/https — never `javascript:` or `data:`.
+  sourceUrl: optionalHttpUrlSchema,
+  imageUrl: optionalHttpUrlSchema,
   servings: z.number().int().min(0).optional(),
   prepTimeMinutes: z.number().int().min(0).optional(),
   cookTimeMinutes: z.number().int().min(0).optional(),
@@ -37,8 +40,8 @@ export const importIngredientLineSchema = z.object({
 
 export const saveImportedRecipeRecipeSchema = z.object({
   title: z.string().min(1, "Title is required").max(500),
-  sourceUrl: z.string().url().optional().or(z.literal("")),
-  imageUrl: z.string().url().optional().or(z.literal("")),
+  sourceUrl: optionalHttpUrlSchema,
+  imageUrl: optionalHttpUrlSchema,
   servings: z.coerce.number().int().min(0).optional(),
   prepTimeMinutes: z.coerce.number().int().min(0).optional(),
   cookTimeMinutes: z.coerce.number().int().min(0).optional(),

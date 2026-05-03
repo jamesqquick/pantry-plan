@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { optionalHttpUrlSchema } from "@/lib/url";
 
 const stringArray = z
   .array(z.string())
@@ -12,8 +13,10 @@ const stringArrayOptional = z
 
 export const recipeCreateSchema = z.object({
   title: z.string().min(1, "Title is required").max(500),
-  sourceUrl: z.string().url().optional().or(z.literal("")),
-  imageUrl: z.string().url().optional().or(z.literal("")),
+  // optionalHttpUrlSchema rejects `javascript:`, `data:`, `file:`, etc.
+  // The empty string is treated as "no URL provided".
+  sourceUrl: optionalHttpUrlSchema,
+  imageUrl: optionalHttpUrlSchema,
   servings: z.coerce.number().int().min(0).optional(),
   prepTimeMinutes: z.coerce.number().int().min(0).optional(),
   cookTimeMinutes: z.coerce.number().int().min(0).optional(),

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isSafeHttpUrl } from "@/lib/url";
 
 /**
  * Max size for recipe image upload (4 MB). Enforced both client-side (in
@@ -31,8 +32,7 @@ export const parseUrlSchema = z.object({
   url: z
     .string()
     .min(1, "URL is required")
-    .url("Invalid URL")
-    .refine((u) => u.startsWith("http://") || u.startsWith("https://"), "Only http/https allowed")
+    .refine(isSafeHttpUrl, "Only http and https URLs are allowed")
     .refine(
       (u) => {
         try {
