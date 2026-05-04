@@ -1,0 +1,221 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+export const prerender = false;
+
+// Authenticated users get bounced straight to the app.
+if (Astro.locals.session) {
+  return Astro.redirect("/recipes");
+}
+
+const pillars = [
+  {
+    title: "Import",
+    body: "Paste any recipe URL or snap a cookbook photo. We parse, structure, and store it.",
+    // Import / link icon
+    icon: `<path d="M12 17v-7"/><path d="m9 14 3 3 3-3"/><path d="M22 12A10 10 0 1 1 12 2a10 10 0 0 1 10 10Z"/>`,
+  },
+  {
+    title: "Plan",
+    body: "Drop recipes into a weekly calendar. Breakfast, lunch, dinner — it's your board.",
+    icon: `<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/>`,
+  },
+  {
+    title: "Shop",
+    body: "Aggregated grocery lists with smart unit conversions and cost estimates per batch.",
+    icon: `<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>`,
+  },
+];
+---
+
+<BaseLayout title="Pantry Plan">
+  <main class="relative min-h-screen bg-warm-wash bg-grain overflow-hidden">
+    <!-- Decorative atmosphere blobs -->
+    <div
+      class="blob h-72 w-72 bg-primary"
+      style="top: 10%; left: -4rem;"
+      aria-hidden="true"
+    >
+    </div>
+    <div
+      class="blob h-64 w-64 bg-accent"
+      style="bottom: 5%; right: -3rem; animation-delay: -6s;"
+      aria-hidden="true"
+    >
+    </div>
+
+    <!-- Minimal top bar -->
+    <header class="relative z-10 mx-auto flex max-w-5xl items-center justify-between px-4 py-6 sm:py-8">
+      <a
+        href="/"
+        class="font-display flex items-baseline gap-1 text-2xl sm:text-3xl"
+        aria-label="Pantry Plan home"
+      >
+        <span class="text-header-logo">Pantry</span>
+        <span class="text-header-logo">Plan</span>
+      </a>
+      <nav class="flex items-center gap-2 sm:gap-3" aria-label="Account">
+        <a
+          href="/login"
+          class="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Sign in
+        </a>
+        <a
+          href="/register"
+          class="btn-primary"
+        >
+          Get started
+        </a>
+      </nav>
+    </header>
+
+    <!-- Hero -->
+    <section class="relative z-10 mx-auto max-w-5xl px-4 pt-8 pb-16 sm:pt-16 sm:pb-24">
+      <div class="grid gap-10 lg:grid-cols-2 lg:items-center">
+        <div class="space-y-6 text-center lg:text-left">
+          <span
+            class="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground"
+          >
+            <span class="h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true"></span>
+            Live on Cloudflare Workers
+          </span>
+          <h1
+            class="font-display text-5xl leading-[0.95] tracking-tight sm:text-6xl lg:text-7xl"
+          >
+            <span class="block text-foreground">Your kitchen,</span>
+            <span class="block text-foreground">organized.</span>
+          </h1>
+          <p class="mx-auto max-w-md text-lg text-muted-foreground lg:mx-0">
+            Import recipes from anywhere. Plan your week in a few clicks. Walk
+            into the grocery store with a single list.
+          </p>
+          <div class="flex flex-col items-center gap-3 sm:flex-row lg:items-start lg:justify-start">
+            <a
+              href="/register"
+              class="btn-primary w-full justify-center px-6 py-3 text-base sm:w-auto"
+            >
+              Create free account
+            </a>
+            <a
+              href="/login"
+              class="btn-secondary w-full justify-center px-6 py-3 text-base sm:w-auto"
+            >
+              I already have one
+            </a>
+          </div>
+        </div>
+
+        <!-- Illustrative "recipe card" mock — no real data, just visual interest -->
+        <div class="relative mx-auto w-full max-w-md lg:max-w-none">
+          <div
+            class="absolute -inset-4 rounded-3xl bg-primary/10 blur-2xl"
+            aria-hidden="true"
+          >
+          </div>
+          <div
+            class="relative rounded-3xl border border-border bg-card p-6 shadow-xl"
+          >
+            <div class="flex items-center gap-3">
+              <div
+                class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-icon-bg text-primary-icon-fg"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-6 w-6"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"
+                  ></path>
+                  <path d="M6 17h12"></path>
+                </svg>
+              </div>
+              <div>
+                <div class="font-display text-lg text-card-foreground">
+                  Brown Butter Choc Chip
+                </div>
+                <div class="text-xs text-muted-foreground">24 servings · 45 min</div>
+              </div>
+            </div>
+            <ul class="mt-5 space-y-2 text-sm text-card-foreground">
+              <li class="flex items-center justify-between rounded-lg bg-panel px-3 py-2">
+                <span>All-purpose flour</span>
+                <span class="tabular-nums text-muted-foreground">2¼ cups</span>
+              </li>
+              <li class="flex items-center justify-between rounded-lg bg-panel px-3 py-2">
+                <span>Butter, browned</span>
+                <span class="tabular-nums text-muted-foreground">1 cup</span>
+              </li>
+              <li class="flex items-center justify-between rounded-lg bg-panel px-3 py-2">
+                <span>Dark brown sugar</span>
+                <span class="tabular-nums text-muted-foreground">¾ cup</span>
+              </li>
+              <li class="flex items-center justify-between rounded-lg bg-panel px-3 py-2">
+                <span>Eggs</span>
+                <span class="tabular-nums text-muted-foreground">2 large</span>
+              </li>
+            </ul>
+            <div class="mt-5 flex items-center justify-between text-xs">
+              <div class="flex gap-1.5">
+                <span
+                  class="inline-flex items-center rounded-full bg-primary-icon-bg px-2 py-0.5 text-primary-icon-fg font-semibold"
+                  >Dessert</span
+                >
+                <span
+                  class="inline-flex items-center rounded-full bg-primary-icon-bg px-2 py-0.5 text-primary-icon-fg font-semibold"
+                  >Favourite</span
+                >
+              </div>
+              <span class="text-muted-foreground">~ $3.40 / batch</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Three-pillar how it works -->
+    <section class="relative z-10 mx-auto max-w-5xl px-4 pb-24">
+      <div class="mb-10 text-center">
+        <h2 class="font-display text-3xl sm:text-4xl text-foreground">
+          Three steps, one clean kitchen
+        </h2>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-3">
+        {
+          pillars.map((p, i) => (
+            <div class="relative rounded-2xl border border-border bg-card p-6">
+              <div class="absolute -top-3 left-6 rounded-full bg-primary px-2.5 py-0.5 text-xs font-bold text-primary-foreground">
+                {i + 1}
+              </div>
+              <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-icon-bg text-primary-icon-fg">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-5 w-5"
+                  aria-hidden="true"
+                  set:html={p.icon}
+                />
+              </div>
+              <h3 class="mt-4 font-display text-xl text-card-foreground">
+                {p.title}
+              </h3>
+              <p class="mt-1 text-sm text-muted-foreground">{p.body}</p>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+  </main>
+</BaseLayout>

@@ -1,0 +1,107 @@
+---
+import { env } from "cloudflare:workers";
+import { asc, count, desc, eq } from "drizzle-orm";
+import AppLayout from "@/layouts/AppLayout.astro";
+import RecipeList from "@/components/recipes/RecipeList";
+import {
+  createDb,
+  recipe,
+  recipeTag,
+  tag,
+} from "@/db";
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+const db = createDb(env.DB);
+
+// Fetch all recipes for the current user along with their tag names.
+// Two round-trips is fine at this scale (22 recipes for the primary user).
+const recipes = await db
+  .select({
+    id: recipe.id,
+    title: recipe.title,
+    imageUrl: recipe.imageUrl,
+    sourceUrl: recipe.sourceUrl,
+    servings: recipe.servings,
+    prepTimeMinutes: recipe.prepTimeMinutes,
+    cookTimeMinutes: recipe.cookTimeMinutes,
+    totalTimeMinutes: recipe.totalTimeMinutes,
+    lastViewedAt: recipe.lastViewedAt,
+    updatedAt: recipe.updatedAt,
+  })
+  .from(recipe)
+  .where(eq(recipe.userId, user.id))
+  .orderBy(desc(recipe.updatedAt));
+
+const tagRows = await db
+  .select({
+    recipeId: recipeTag.recipeId,
+    tagId: tag.id,
+    tagName: tag.name,
+  })
+  .from(recipeTag)
+  .innerJoin(tag, eq(recipeTag.tagId, tag.id))
+  .where(eq(tag.userId, user.id))
+  .orderBy(asc(tag.name));
+
+const tagsByRecipe = new Map<string, { id: string; name: string }[]>();
+for (const row of tagRows) {
+  const list = tagsByRecipe.get(row.recipeId) ?? [];
+  list.push({ id: row.tagId, name: row.tagName });
+  tagsByRecipe.set(row.recipeId, list);
+}
+
+const recipesWithTags = recipes.map((r) => ({
+  ...r,
+  // Serialize dates to timestamps for the React island (Date → number).
+  lastViewedAt: r.lastViewedAt ? r.lastViewedAt.getTime() : null,
+  updatedAt: r.updatedAt.getTime(),
+  tags: tagsByRecipe.get(r.id) ?? [],
+}));
+
+const allTags = await db
+  .select({ id: tag.id, name: tag.name, n: count(recipeTag.id) })
+  .from(tag)
+  .leftJoin(recipeTag, eq(recipeTag.tagId, tag.id))
+  .where(eq(tag.userId, user.id))
+  .groupBy(tag.id, tag.name)
+  .orderBy(asc(tag.name));
+---
+
+<AppLayout title="Recipes — Pantry Plan">
+  <div class="space-y-8">
+    <header class="flex items-start justify-between gap-4">
+      <div class="space-y-1">
+        <h1 class="font-display text-4xl text-foreground">Recipes</h1>
+        <p class="text-sm text-muted-foreground">
+          {recipes.length === 0
+            ? "No recipes yet — start by creating your first one."
+            : `${recipes.length} ${recipes.length === 1 ? "recipe" : "recipes"} in your kitchen.`}
+        </p>
+      </div>
+      <a
+        href="/recipes/new"
+        class="btn-primary shrink-0 gap-2"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="h-4 w-4"
+          aria-hidden="true"
+        >
+          <path d="M12 5v14"></path>
+          <path d="M5 12h14"></path>
+        </svg>
+        New recipe
+      </a>
+    </header>
+
+    <RecipeList client:load recipes={recipesWithTags} allTags={allTags} />
+  </div>
+</AppLayout>

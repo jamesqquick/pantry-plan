@@ -1,0 +1,63 @@
+---
+import { env } from "cloudflare:workers";
+import { asc, eq } from "drizzle-orm";
+import AppLayout from "@/layouts/AppLayout.astro";
+import { ImportWizard } from "@/components/recipes/import/ImportWizard";
+import { createDb, tag } from "@/db";
+import { getBooleanFlag } from "@/lib/feature-flags";
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+const db = createDb(env.DB);
+
+const allTags = await db
+  .select({ id: tag.id, name: tag.name })
+  .from(tag)
+  .where(eq(tag.userId, user.id))
+  .orderBy(asc(tag.name));
+
+const imageUploadEnabled = await getBooleanFlag(
+  env.FLAGS,
+  "recipe-image-upload",
+  false,
+  { email: user.email, userId: user.id },
+);
+---
+
+<AppLayout title="New recipe — Pantry Plan">
+  <div class="space-y-6">
+    <nav class="text-sm">
+      <a
+        href="/recipes"
+        class="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="h-3.5 w-3.5"
+          aria-hidden="true"
+        >
+          <path d="m15 18-6-6 6-6"></path>
+        </svg>
+        All recipes
+      </a>
+    </nav>
+
+    <header class="space-y-1">
+      <h1 class="font-display text-4xl text-foreground">
+        New recipe
+      </h1>
+      <p class="text-sm text-muted-foreground">
+        Import from a URL, photo, or create from scratch.
+      </p>
+    </header>
+
+    <ImportWizard client:only="react" allTags={allTags} imageUploadEnabled={imageUploadEnabled} />
+  </div>
+</AppLayout>

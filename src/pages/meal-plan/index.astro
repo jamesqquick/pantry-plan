@@ -1,0 +1,8 @@
+---
+import { getWeekStartString } from "@/lib/meal-plan/week-dates";
+
+export const prerender = false;
+
+// Redirect to the current week's Sunday, preserving any query params (e.g. ?addRecipe=).
+return Astro.redirect(`/meal-plan/${getWeekStartString(new Date())}${Astro.url.search}`);
+---

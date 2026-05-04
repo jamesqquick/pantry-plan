@@ -1,0 +1,295 @@
+---
+import { env } from "cloudflare:workers";
+import { and, asc, eq, isNull, or } from "drizzle-orm";
+import AppLayout from "@/layouts/AppLayout.astro";
+import { DeleteIngredientButton } from "@/components/ingredients/DeleteIngredientButton";
+import { renderMarkdownToHtml } from "@/features/markdown/render-markdown";
+import { formatDollars } from "@/lib/money";
+import { createDb, ingredient, recipeIngredient, recipe } from "@/db";
+
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+const isAdmin = (user as any).role === "ADMIN";
+const { id } = Astro.params;
+if (!id) return Astro.redirect("/ingredients");
+
+const db = createDb(env.DB);
+
+// Load ingredient — visible if global OR user's own.
+const rows = await db
+  .select()
+  .from(ingredient)
+  .where(
+    and(
+      eq(ingredient.id, id),
+      or(isNull(ingredient.userId), eq(ingredient.userId, user.id))
+    )
+  )
+  .limit(1);
+
+if (rows.length === 0) {
+  return new Response("Ingredient not found", { status: 404 });
+}
+const ing = rows[0]!;
+
+const isGlobal = ing.userId === null;
+const isOwner = ing.userId === user.id;
+const canEdit = isOwner || (isGlobal && isAdmin);
+
+// Load base ingredient name (if derived from a global base).
+let baseName: string | null = null;
+if (ing.baseIngredientId) {
+  const baseRows = await db
+    .select({ name: ingredient.name })
+    .from(ingredient)
+    .where(eq(ingredient.id, ing.baseIngredientId))
+    .limit(1);
+  if (baseRows.length > 0) baseName = baseRows[0]!.name;
+}
+
+// Load recipes that use this ingredient (user's recipes only).
+const recipesUsing = await db
+  .select({
+    id: recipe.id,
+    title: recipe.title,
+    imageUrl: recipe.imageUrl,
+  })
+  .from(recipeIngredient)
+  .innerJoin(recipe, eq(recipeIngredient.recipeId, recipe.id))
+  .where(
+    and(
+      eq(recipeIngredient.ingredientId, id),
+      eq(recipe.userId, user.id)
+    )
+  )
+  .orderBy(asc(recipe.title));
+
+// Render markdown notes server-side.
+const notesHtml = ing.notes?.trim()
+  ? await renderMarkdownToHtml(ing.notes)
+  : null;
+
+// Build detail fields.
+const UNIT_LABELS: Record<string, string> = {
+  COUNT: "count",
+  TSP: "tsp",
+  TBSP: "tbsp",
+  CUP: "cup",
+  OZ: "oz",
+  LB: "lb",
+  G: "g",
+  KG: "kg",
+  PINCH: "pinch",
+};
+
+const DISPLAY_UNIT_LABELS: Record<string, string> = {
+  AUTO: "Auto",
+  GRAM: "Grams",
+  CUP: "Cups",
+  EACH: "Each",
+  TBSP: "Tablespoon",
+  TSP: "Teaspoon",
+};
+
+type DetailField = { label: string; value: string };
+const details: DetailField[] = [];
+if (ing.category) details.push({ label: "Category", value: ing.category });
+if (ing.defaultUnit) details.push({ label: "Default unit", value: UNIT_LABELS[ing.defaultUnit] ?? ing.defaultUnit });
+if (ing.preferredDisplayUnit && ing.preferredDisplayUnit !== "AUTO") {
+  details.push({ label: "Preferred display unit", value: DISPLAY_UNIT_LABELS[ing.preferredDisplayUnit] ?? ing.preferredDisplayUnit });
+}
+if (ing.costBasisUnit) details.push({ label: "Cost basis unit", value: UNIT_LABELS[ing.costBasisUnit] ?? ing.costBasisUnit });
+if (ing.estimatedCentsPerBasisUnit != null) {
+  const basisLabel = UNIT_LABELS[ing.costBasisUnit] ?? ing.costBasisUnit;
+  details.push({
+    label: "Estimated cost",
+    value: `${formatDollars(ing.estimatedCentsPerBasisUnit)} per ${basisLabel}`,
+  });
+}
+if (ing.gramsPerCup != null) {
+  details.push({ label: "Grams per cup", value: String(ing.gramsPerCup) });
+}
+---
+
+<AppLayout title={`${ing.name} — Pantry Plan`}>
+  <article class="space-y-8">
+    <nav class="text-sm">
+      <a
+        href="/ingredients"
+        class="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+      >
+        {/* Lucide ChevronLeft */}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="h-3.5 w-3.5"
+          aria-hidden="true"
+        >
+          <path d="m15 18-6-6 6-6"></path>
+        </svg>
+        All ingredients
+      </a>
+    </nav>
+
+    <header class="space-y-4">
+      <div class="flex items-start justify-between gap-4">
+        <div class="min-w-0 space-y-2">
+          <div class="flex items-center gap-3">
+            <h1 class="font-display text-3xl leading-tight text-foreground sm:text-4xl">
+              {ing.name}
+            </h1>
+            <span
+              class:list={[
+                "shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold",
+                isGlobal
+                  ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
+                  : "bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300",
+              ]}
+            >
+              {isGlobal ? "Global" : "Custom"}
+            </span>
+          </div>
+          {baseName && (
+            <p class="text-sm text-muted-foreground">
+              Based on{" "}
+              <a
+                href={`/ingredients/${ing.baseIngredientId}`}
+                class="text-primary-on-card underline underline-offset-4 hover:text-primary-on-background"
+              >
+                {baseName}
+              </a>
+            </p>
+          )}
+        </div>
+        {canEdit && (
+          <a
+            href={`/ingredients/${ing.id}/edit`}
+            class="btn-secondary shrink-0 gap-1.5"
+          >
+            {/* Lucide Pencil */}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="h-3.5 w-3.5"
+              aria-hidden="true"
+            >
+              <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path>
+            </svg>
+            Edit
+          </a>
+        )}
+      </div>
+    </header>
+
+    {/* Detail fields */}
+    {details.length > 0 && (
+      <section class="rounded-lg border border-border bg-card p-6">
+        <h2 class="font-display text-xl text-card-foreground mb-4">Details</h2>
+        <dl class="grid gap-x-8 gap-y-3 sm:grid-cols-2">
+          {details.map((d) => (
+            <div>
+              <dt class="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                {d.label}
+              </dt>
+              <dd class="mt-0.5 text-sm text-card-foreground">{d.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+    )}
+
+    {/* Notes */}
+    {notesHtml && (
+      <section class="rounded-lg border border-border bg-card p-6">
+        <h2 class="font-display text-xl text-card-foreground">Notes</h2>
+        <div
+          class="prose prose-sm mt-3 max-w-none text-card-foreground dark:prose-invert"
+          set:html={notesHtml}
+        />
+      </section>
+    )}
+
+    {/* Recipes using this ingredient */}
+    <section>
+      <h2 class="font-display text-xl text-foreground">
+        Recipes using this ingredient
+        {recipesUsing.length > 0 && (
+          <span class="ml-2 text-sm font-normal text-muted-foreground">
+            ({recipesUsing.length})
+          </span>
+        )}
+      </h2>
+      {recipesUsing.length === 0 ? (
+        <p class="mt-3 text-sm text-muted-foreground">
+          None of your recipes use this ingredient yet.
+        </p>
+      ) : (
+        <ul class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {recipesUsing.map((r) => (
+            <li>
+              <a
+                href={`/recipes/${r.id}`}
+                class="group block rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md cursor-pointer"
+              >
+                <div class="flex items-center gap-3">
+                  {r.imageUrl ? (
+                    <img
+                      src={r.imageUrl}
+                      alt=""
+                      class="h-10 w-10 rounded-lg object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-panel text-muted-foreground">
+                      {/* Lucide Chef Hat */}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="h-5 w-5"
+                        aria-hidden="true"
+                      >
+                        <path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"></path>
+                        <path d="M6 17h12"></path>
+                      </svg>
+                    </div>
+                  )}
+                  <p class="truncate text-sm font-medium text-card-foreground group-hover:text-primary-on-card">
+                    {r.title}
+                  </p>
+                </div>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+
+    {/* Delete button (only for users with edit permission) */}
+    {canEdit && (
+      <section class="pt-4 border-t border-border">
+        <DeleteIngredientButton
+          client:load
+          ingredientId={ing.id}
+          ingredientName={ing.name}
+        />
+      </section>
+    )}
+  </article>
+</AppLayout>

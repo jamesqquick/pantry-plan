@@ -1,0 +1,40 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+import { ThemeToggle } from "@/components/app/ThemeToggle";
+
+interface Props {
+  title?: string;
+  heading: string;
+  subheading?: string;
+}
+
+const { title, heading, subheading } = Astro.props;
+---
+
+<BaseLayout title={title ?? heading}>
+  <div class="absolute top-4 right-4 z-10">
+    <ThemeToggle client:load />
+  </div>
+  <main id="main-content" class="min-h-screen flex flex-col items-center justify-center bg-background text-foreground px-6 py-12">
+    <div class="w-full max-w-md space-y-6">
+      <header class="text-center space-y-2">
+        <a
+          href="/"
+          class="inline-flex items-baseline gap-2 text-foreground font-display text-3xl"
+          aria-label="Pantry Plan home"
+        >
+          <span>Pantry</span>
+          <span>Plan</span>
+        </a>
+      </header>
+
+      <section class="rounded-lg border border-border bg-card p-8 shadow-sm space-y-6">
+        <div class="space-y-1">
+          <h1 class="text-2xl font-bold">{heading}</h1>
+          {subheading && <p class="text-sm text-muted-foreground">{subheading}</p>}
+        </div>
+        <slot />
+      </section>
+    </div>
+  </main>
+</BaseLayout>

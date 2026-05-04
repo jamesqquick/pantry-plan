@@ -1,0 +1,34 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+// Prerender the 404 so it's served quickly and works even without auth.
+export const prerender = true;
+---
+
+<BaseLayout title="Not found — Pantry Plan">
+  <main id="main-content" class="min-h-screen flex items-center justify-center bg-background text-foreground px-6">
+    <div class="text-center space-y-6 max-w-md">
+      <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary-icon-bg">
+        <span class="text-4xl" aria-hidden="true">🥣</span>
+      </div>
+      <h1 class="font-display text-4xl text-foreground">404</h1>
+      <p class="text-lg text-muted-foreground">
+        The page you're looking for isn't on the menu.
+      </p>
+      <div class="flex items-center justify-center gap-3">
+        <a
+          href="/recipes"
+          class="btn-primary px-5 py-2.5"
+        >
+          Back to recipes
+        </a>
+        <a
+          href="/"
+          class="btn-secondary px-5 py-2.5"
+        >
+          Go home
+        </a>
+      </div>
+    </div>
+  </main>
+</BaseLayout>

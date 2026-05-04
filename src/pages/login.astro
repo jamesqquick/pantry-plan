@@ -1,0 +1,12 @@
+---
+import AuthLayout from "@/layouts/AuthLayout.astro";
+import { LoginForm } from "@/components/auth/LoginForm";
+
+export const prerender = false;
+
+const nextParam = Astro.url.searchParams.get("next") ?? undefined;
+---
+
+<AuthLayout title="Sign in" heading="Welcome back" subheading="Sign in to your Pantry Plan account.">
+  <LoginForm client:load next={nextParam} />
+</AuthLayout>
