@@ -42,3 +42,6 @@ pnpm-debug.log*
 
 # Cursor scratch plans
 /.cursor/plans/
+
+# Temporary working directory for one-off scripts and debug files
+tmp/
