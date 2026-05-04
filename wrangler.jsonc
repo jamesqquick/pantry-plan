@@ -4,7 +4,7 @@
   "account_id": "4426cbeacb457b1ca1b865d6c36ced0d",
   "main": "@astrojs/cloudflare/entrypoints/server",
   "compatibility_date": "2026-04-20",
-  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public", "assets_navigation_has_no_effect"],
   "assets": {
     "binding": "ASSETS",
     // Astro Cloudflare adapter writes static client output to dist/client.
