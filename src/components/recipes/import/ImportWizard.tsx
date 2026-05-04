@@ -27,14 +27,17 @@ const EMPTY_INITIAL: RecipeFormInitial = {
 
 export interface ImportWizardProps {
   allTags: { id: string; name: string }[];
+  imageUploadEnabled?: boolean;
 }
 
-export function ImportWizard({ allTags }: ImportWizardProps) {
+export function ImportWizard({ allTags, imageUploadEnabled }: ImportWizardProps) {
   return (
     <Tabs defaultValue="url" className="space-y-6">
       <TabsList>
         <TabsTrigger value="url">From URL</TabsTrigger>
-        <TabsTrigger value="photo">From photo</TabsTrigger>
+        {imageUploadEnabled && (
+          <TabsTrigger value="photo">From photo</TabsTrigger>
+        )}
         <TabsTrigger value="manual">Manual</TabsTrigger>
       </TabsList>
 
@@ -42,9 +45,11 @@ export function ImportWizard({ allTags }: ImportWizardProps) {
         <ImportUrlTab allTags={allTags} />
       </TabsContent>
 
-      <TabsContent value="photo">
-        <ImportImageTab allTags={allTags} />
-      </TabsContent>
+      {imageUploadEnabled && (
+        <TabsContent value="photo">
+          <ImportImageTab allTags={allTags} />
+        </TabsContent>
+      )}
 
       <TabsContent value="manual">
         <RecipeForm

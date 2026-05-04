@@ -4,6 +4,7 @@ import { asc, eq } from "drizzle-orm";
 import AppLayout from "@/layouts/AppLayout.astro";
 import { ImportWizard } from "@/components/recipes/import/ImportWizard";
 import { createDb, tag } from "@/db";
+import { getBooleanFlag } from "@/lib/feature-flags";
 
 export const prerender = false;
 
@@ -15,6 +16,13 @@ const allTags = await db
   .from(tag)
   .where(eq(tag.userId, user.id))
   .orderBy(asc(tag.name));
+
+const imageUploadEnabled = await getBooleanFlag(
+  env.FLAGS,
+  "recipe-image-upload",
+  false,
+  { email: user.email, userId: user.id },
+);
 ---
 
 <AppLayout title="New recipe — Pantry Plan">
@@ -50,6 +58,6 @@ const allTags = await db
       </p>
     </header>
 
-    <ImportWizard client:only="react" allTags={allTags} />
+    <ImportWizard client:only="react" allTags={allTags} imageUploadEnabled={imageUploadEnabled} />
   </div>
 </AppLayout>

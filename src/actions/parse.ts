@@ -19,6 +19,7 @@ import { extractRecipeFromImage } from "@/lib/ai/extract-recipe-from-image";
 import { parseIngredientLineForImport, type ParsedIngredientLine } from "@/lib/ingredients/parse-line";
 import { canUseWorkersAi } from "@/lib/entitlements";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { getBooleanFlag } from "@/lib/feature-flags";
 import { requireUser } from "./_shared";
 
 export type ParsedRecipeDraft = {
@@ -107,6 +108,20 @@ export const parse = {
 
       // Shared rate limit with parseFromUrl: 5 AI parses per 60s per user.
       await enforceRateLimit(env.AI_RATE_LIMIT, `ai:${user.id}`);
+
+      // Gate image upload behind a Flagship feature flag.
+      const imageUploadEnabled = await getBooleanFlag(
+        env.FLAGS,
+        "recipe-image-upload",
+        false,
+        { email: user.email, userId: user.id },
+      );
+      if (!imageUploadEnabled) {
+        throw new ActionError({
+          code: "FORBIDDEN",
+          message: "Recipe-from-image is not available for your account yet.",
+        });
+      }
 
       const ai = env.AI;
       if (!canUseWorkersAi(ai)) {

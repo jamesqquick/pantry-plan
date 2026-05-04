@@ -52,6 +52,12 @@
         "period": 60
       }
     }
+  ],
+  "flagship": [
+    {
+      "binding": "FLAGS",
+      "app_id": "fd4d7b82-85af-49f7-ba1e-b5f535cc4bff"
+    }
   ]
   // Secrets (set via `wrangler secret put`):
   // - AUTH_SECRET  (Better Auth JWT/cookie signing key)
