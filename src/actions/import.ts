@@ -252,13 +252,47 @@ export const recipeImport = {
           };
         });
 
-      // 6. Insert all recipeIngredients in one batch
+      // 6. Build all recipeIngredient rows
       const allRecipeIngredientRows = [...unmappedRows, ...mappedRows];
-      if (allRecipeIngredientRows.length > 0) {
-        await db.insert(recipeIngredient).values(allRecipeIngredientRows);
+
+      // 7. Resolve tags
+      const validTagIds = await filterOwnedTagIds(
+        db,
+        user.id,
+        recipeData.tagIds,
+      );
+
+      // 8. Atomically insert instructions + ingredients + tags.
+      // If any of these fail, D1 rolls back the entire batch so the
+      // recipe won't exist as a partial entity.
+      const batchQueries = [
+        ...(recipeData.instructions.length > 0
+          ? [
+              db.insert(recipeInstruction).values(
+                recipeData.instructions.map((text, sortOrder) => ({
+                  recipeId,
+                  sortOrder,
+                  text: text.trim() || "\u2014",
+                })),
+              ),
+            ]
+          : []),
+        ...(allRecipeIngredientRows.length > 0
+          ? [db.insert(recipeIngredient).values(allRecipeIngredientRows)]
+          : []),
+        ...(validTagIds.length > 0
+          ? [
+              db.insert(recipeTag).values(
+                validTagIds.map((tagId) => ({ recipeId, tagId })),
+              ),
+            ]
+          : []),
+      ];
+      if (batchQueries.length > 0) {
+        await db.batch(batchQueries as [typeof batchQueries[0], ...typeof batchQueries]);
       }
 
-      // 7. Upsert aliases in two batches (select → update + insert)
+      // 9. Upsert aliases (best-effort; not tied to recipe atomicity)
       const aliasEntries = parsedLines
         .map(({ line }) => {
           const key = normalizeIngredientName(
@@ -305,18 +339,6 @@ export const recipeImport = {
         await db.insert(ingredientAlias).values(aliasInserts);
       }
 
-      // Tags
-      const validTagIds = await filterOwnedTagIds(
-        db,
-        user.id,
-        recipeData.tagIds,
-      );
-      if (validTagIds.length > 0) {
-        await db
-          .insert(recipeTag)
-          .values(validTagIds.map((tagId) => ({ recipeId, tagId })));
-      }
-
       return { recipeId };
     },
   }),
@@ -355,42 +377,52 @@ export const recipeImport = {
       }
       const recipeId = row.id;
 
-      // Instructions
-      if (recipeData.instructions.length > 0) {
-        await db.insert(recipeInstruction).values(
-          recipeData.instructions.map((text, sortOrder) => ({
-            recipeId,
-            sortOrder,
-            text: text.trim() || "\u2014",
-          })),
-        );
-      }
-
-      // Raw ingredient lines
-      if (ingredients.length > 0) {
-        await db.insert(recipeIngredient).values(
-          ingredients.map((line, i) => ({
-            recipeId,
-            ingredientId: null,
-            quantity: null,
-            unit: null,
-            displayText: line.trim(),
-            rawText: line.trim(),
-            sortOrder: i,
-          })),
-        );
-      }
-
-      // Tags
+      // Resolve tags before the atomic batch
       const validTagIds = await filterOwnedTagIds(
         db,
         user.id,
         recipeData.tagIds,
       );
-      if (validTagIds.length > 0) {
-        await db
-          .insert(recipeTag)
-          .values(validTagIds.map((tagId) => ({ recipeId, tagId })));
+
+      // Atomically insert instructions + ingredients + tags.
+      // D1 guarantees all statements in a batch succeed or fail together.
+      const batchQueries = [
+        ...(recipeData.instructions.length > 0
+          ? [
+              db.insert(recipeInstruction).values(
+                recipeData.instructions.map((text, sortOrder) => ({
+                  recipeId,
+                  sortOrder,
+                  text: text.trim() || "\u2014",
+                })),
+              ),
+            ]
+          : []),
+        ...(ingredients.length > 0
+          ? [
+              db.insert(recipeIngredient).values(
+                ingredients.map((line, i) => ({
+                  recipeId,
+                  ingredientId: null,
+                  quantity: null,
+                  unit: null,
+                  displayText: line.trim(),
+                  rawText: line.trim(),
+                  sortOrder: i,
+                })),
+              ),
+            ]
+          : []),
+        ...(validTagIds.length > 0
+          ? [
+              db.insert(recipeTag).values(
+                validTagIds.map((tagId) => ({ recipeId, tagId })),
+              ),
+            ]
+          : []),
+      ];
+      if (batchQueries.length > 0) {
+        await db.batch(batchQueries as [typeof batchQueries[0], ...typeof batchQueries]);
       }
 
       return { recipeId };
