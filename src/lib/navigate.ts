@@ -7,9 +7,20 @@
  * Usage: `softNavigate("/meal-plan/2024-01-01")`
  */
 export function softNavigate(href: string): void {
+  if (typeof window === "undefined") return;
+
+  // Only soft-navigate same-origin paths. External / absolute URLs
+  // should use a regular navigation so the browser handles origin
+  // changes, protocol upgrades, etc. correctly.
+  const isRelativePath = href.startsWith("/") && !href.startsWith("//");
+  if (!isRelativePath) {
+    window.location.href = href;
+    return;
+  }
+
   // Astro's ClientRouter patches Navigation API on supported browsers.
   // On unsupported browsers or if the client router isn't loaded, fall back.
-  if (typeof window !== "undefined" && "navigation" in window) {
+  if ("navigation" in window) {
     try {
       (window as any).navigation.navigate(href);
       return;
