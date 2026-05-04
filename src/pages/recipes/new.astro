@@ -17,12 +17,26 @@ const allTags = await db
   .where(eq(tag.userId, user.id))
   .orderBy(asc(tag.name));
 
-const imageUploadEnabled = await getBooleanFlag(
-  env.FLAGS,
-  "recipe-image-upload",
-  false,
-  { email: user.email, userId: user.id },
-);
+// Debug: Check if FLAGS binding exists
+console.log("DEBUG FLAGS:", {
+  exists: !!env.FLAGS,
+  type: typeof env.FLAGS,
+  hasGetBooleanValue: env.FLAGS ? typeof env.FLAGS.getBooleanValue : 'N/A',
+});
+
+let imageUploadEnabled = false;
+try {
+  imageUploadEnabled = await getBooleanFlag(
+    env.FLAGS,
+    "recipe-image-upload",
+    false,
+    { email: user.email, userId: user.id },
+  );
+} catch (err) {
+  console.error("DEBUG getBooleanFlag error:", err);
+  // Fall back to false on error
+  imageUploadEnabled = false;
+}
 ---
 
 <AppLayout title="New recipe — Pantry Plan">
