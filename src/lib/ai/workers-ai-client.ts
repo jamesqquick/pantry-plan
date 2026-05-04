@@ -70,8 +70,7 @@ export async function workersAiTextJson(
   const startTime = Date.now();
 
   try {
-    const result = (await ai.run.call(
-      ai,
+    const result = (await ai.run(
       WORKERS_AI_MODEL,
       {
         messages: [{ role: "user", content: prompt }],
@@ -123,20 +122,24 @@ export async function workersAiVisionJson(
 
   try {
     const result = (await withTimeout(
-      ai.run.call(ai, WORKERS_AI_MODEL, {
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: dataUri } },
-            ],
-          },
-        ],
-        response_format: { type: "json_object" },
-        max_tokens: opts?.maxTokens ?? 4096,
-        temperature: opts?.temperature ?? 0.15,
-      }, gatewayOptions),
+      ai.run(
+        WORKERS_AI_MODEL,
+        {
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                { type: "image_url", image_url: { url: dataUri } },
+              ],
+            },
+          ],
+          response_format: { type: "json_object" },
+          max_tokens: opts?.maxTokens ?? 4096,
+          temperature: opts?.temperature ?? 0.15,
+        },
+        gatewayOptions,
+      ),
       opts?.timeoutMs ?? DEFAULT_VISION_TIMEOUT_MS,
       "Recipe extraction timed out. The image may be too complex or the model is temporarily overloaded. Please try again.",
     )) as { response?: string; usage?: LlmUsage };
