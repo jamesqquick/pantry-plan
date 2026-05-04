@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Sun, Moon, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -8,15 +8,8 @@ import {
   setTheme,
   subscribeToSystemTheme,
   subscribeToThemeChange,
-  type ResolvedTheme,
   type Theme,
 } from "@/lib/theme";
-
-const HOVER_OPEN_DELAY_MS = 150;
-const HOVER_CLOSE_DELAY_MS = 150;
-
-const TRIGGER_CLASS =
-  "flex cursor-pointer items-center justify-center rounded-input p-1.5 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background";
 
 interface ThemeToggleProps {
   /** Optional extra classes for the wrapper (e.g. positioning on auth pages). */
@@ -25,27 +18,26 @@ interface ThemeToggleProps {
 
 const OPTIONS: { value: Theme; label: string; Icon: typeof Sun }[] = [
   { value: "light", label: "Light", Icon: Sun },
-  { value: "dark", label: "Dark", Icon: Moon },
   { value: "system", label: "System", Icon: Monitor },
+  { value: "dark", label: "Dark", Icon: Moon },
 ];
+
+const OPTION_INDEX: Record<Theme, number> = {
+  light: 0,
+  system: 1,
+  dark: 2,
+};
 
 export function ThemeToggle({ className }: ThemeToggleProps) {
   // Start with neutral defaults to keep SSR/CSR markup identical.
   // Real values are read in useEffect after mount.
   const [theme, setThemeState] = useState<Theme>("system");
-  const [resolved, setResolved] = useState<ResolvedTheme>("light");
   const [mounted, setMounted] = useState(false);
-  const [open, setOpen] = useState(false);
-
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const hoverOpenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hoverCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Initial read + sync on mount.
   useEffect(() => {
     const stored = getStoredTheme();
     setThemeState(stored);
-    setResolved(getResolvedTheme(stored));
     setMounted(true);
   }, []);
 
@@ -53,137 +45,83 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
   useEffect(() => {
     return subscribeToThemeChange((next) => {
       setThemeState(next);
-      setResolved(getResolvedTheme(next));
     });
   }, []);
 
-  // Live OS theme updates while the user is on "system".
+  // Live OS theme updates while the user is on "system" — keeps the
+  // <html> class in sync even though the segmented selection itself
+  // doesn't change (still on "system").
   useEffect(() => {
     return subscribeToSystemTheme(() => {
-      const stored = getStoredTheme();
-      if (stored !== "system") return;
-      applyTheme();
-      setResolved(getResolvedTheme(stored));
+      if (getStoredTheme() === "system") applyTheme();
     });
-  }, []);
-
-  function clearHoverTimeouts() {
-    if (hoverOpenTimeoutRef.current) {
-      clearTimeout(hoverOpenTimeoutRef.current);
-      hoverOpenTimeoutRef.current = null;
-    }
-    if (hoverCloseTimeoutRef.current) {
-      clearTimeout(hoverCloseTimeoutRef.current);
-      hoverCloseTimeoutRef.current = null;
-    }
-  }
-
-  function handleMouseEnter() {
-    if (hoverCloseTimeoutRef.current) {
-      clearTimeout(hoverCloseTimeoutRef.current);
-      hoverCloseTimeoutRef.current = null;
-    }
-    hoverOpenTimeoutRef.current = setTimeout(
-      () => setOpen(true),
-      HOVER_OPEN_DELAY_MS
-    );
-  }
-
-  function handleMouseLeave() {
-    if (hoverOpenTimeoutRef.current) {
-      clearTimeout(hoverOpenTimeoutRef.current);
-      hoverOpenTimeoutRef.current = null;
-    }
-    hoverCloseTimeoutRef.current = setTimeout(
-      () => setOpen(false),
-      HOVER_CLOSE_DELAY_MS
-    );
-  }
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        wrapperRef.current &&
-        !wrapperRef.current.contains(event.target as Node)
-      ) {
-        setOpen(false);
-      }
-    }
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleEscape);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleEscape);
-      clearHoverTimeouts();
-    };
   }, []);
 
   function handleSelect(next: Theme) {
     setTheme(next);
-    setOpen(false);
   }
 
-  // Show the icon for the current resolved theme so the trigger reflects
-  // what the user actually sees. Until mounted, render a stable placeholder
-  // (Monitor) to avoid hydration mismatches.
-  const TriggerIcon = !mounted
-    ? Monitor
-    : resolved === "dark"
-      ? Moon
-      : Sun;
-
-  const ariaLabel = !mounted
-    ? "Toggle theme"
-    : `Theme: ${theme === "system" ? `system (${resolved})` : theme}. Click to change.`;
+  // Until mounted, render with the indicator hidden so the markup is
+  // stable across SSR/CSR (no hydration mismatch on a positioned pill).
+  const activeIndex = OPTION_INDEX[theme];
+  const resolvedLabel =
+    theme === "system" ? `system (${getResolvedTheme(theme)})` : theme;
 
   return (
     <div
-      className={cn("relative", className)}
-      ref={wrapperRef}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className={TRIGGER_CLASS}
-        aria-expanded={open}
-        aria-haspopup="true"
-        aria-label={ariaLabel}
-      >
-        <TriggerIcon className="size-6" aria-hidden="true" />
-      </button>
-      {open && (
-        <div
-          className="absolute right-0 top-full z-50 mt-1 min-w-40 rounded-input border border-border bg-popover py-1 text-popover-foreground shadow-lg"
-          role="menu"
-        >
-          {OPTIONS.map(({ value, label, Icon }) => {
-            const active = theme === value;
-            return (
-              <button
-                key={value}
-                type="button"
-                role="menuitemradio"
-                aria-checked={active}
-                onClick={() => handleSelect(value)}
-                className={cn(
-                  "flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm transition-colors duration-150 ease-out",
-                  active
-                    ? "font-semibold text-primary-on-card"
-                    : "text-muted-foreground hover:font-bold hover:text-primary-on-card"
-                )}
-              >
-                <Icon className="size-4" aria-hidden="true" />
-                <span>{label}</span>
-              </button>
-            );
-          })}
-        </div>
+      role="radiogroup"
+      aria-label="Theme"
+      className={cn(
+        "relative inline-flex items-center rounded-full border border-border bg-muted/60 p-1 text-muted-foreground shadow-sm backdrop-blur-sm",
+        className
       )}
+    >
+      {/* Sliding pill indicator. Width is one third of the track, slides
+          via translateX. Hidden until mounted to avoid jumping into place. */}
+      <span
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute top-1 bottom-1 left-1 w-[calc((100%-0.5rem)/3)] rounded-full bg-background shadow-sm ring-1 ring-border/60 transition-transform duration-300 ease-out",
+          mounted ? "opacity-100" : "opacity-0"
+        )}
+        style={{
+          transform: `translateX(${activeIndex * 100}%)`,
+        }}
+      />
+
+      {OPTIONS.map(({ value, label, Icon }) => {
+        const active = theme === value;
+        return (
+          <button
+            key={value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            aria-label={
+              !mounted
+                ? label
+                : value === "system"
+                  ? `Theme: ${resolvedLabel}. Choose system.`
+                  : `Choose ${label.toLowerCase()} theme.`
+            }
+            onClick={() => handleSelect(value)}
+            className={cn(
+              "relative z-10 flex h-8 w-9 cursor-pointer items-center justify-center rounded-full transition-colors duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              active && mounted
+                ? "text-foreground"
+                : "hover:text-foreground"
+            )}
+          >
+            <Icon
+              className={cn(
+                "size-4 transition-transform duration-300 ease-out",
+                active && mounted ? "scale-110" : "scale-100"
+              )}
+              aria-hidden="true"
+            />
+          </button>
+        );
+      })}
     </div>
   );
 }
