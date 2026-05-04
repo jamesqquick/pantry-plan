@@ -1,6 +1,9 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
 
+// Prerender the 500 so it can be served even when SSR is failing.
+export const prerender = true;
+
 // Astro renders this page on unhandled server errors (500).
 // It receives no props/locals — keep it self-contained.
 ---
