@@ -24,6 +24,7 @@ const ALWAYS_PUBLIC_PATHS = new Set<string>([
   "/",
   "/login",
   "/register",
+  "/404",
 ]);
 
 function isPublicPath(pathname: string): boolean {
