@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppNav } from "./AppNav";
+import { ThemeToggle } from "./ThemeToggle";
 import { UserMenu } from "./UserMenu";
 
 const ICON_BUTTON_CLASS =
@@ -84,6 +85,9 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
         >
           <AppNav pathname={pathname} />
           <span className="shrink-0">
+            <ThemeToggle />
+          </span>
+          <span className="shrink-0">
             <UserMenu email={userEmail} />
           </span>
         </nav>
@@ -137,7 +141,8 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
             <div className="flex flex-col items-center gap-6">
               <AppNav pathname={pathname} onNavigate={closeMenu} />
             </div>
-            <div className="mt-4">
+            <div className="mt-4 flex items-center gap-4">
+              <ThemeToggle />
               <UserMenu email={userEmail} />
             </div>
           </nav>
