@@ -77,7 +77,7 @@ export default function RecipeList({ recipes, allTags }: RecipeListProps) {
             <path d="M6 17h12" />
           </svg>
         </div>
-        <h2 className="font-display text-xl text-primary-on-background">
+        <h2 className="font-display text-xl text-card-foreground">
           Your recipe box is empty
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">

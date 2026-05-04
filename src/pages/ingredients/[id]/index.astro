@@ -142,7 +142,7 @@ if (ing.gramsPerCup != null) {
       <div class="flex items-start justify-between gap-4">
         <div class="min-w-0 space-y-2">
           <div class="flex items-center gap-3">
-            <h1 class="font-display text-3xl leading-tight text-primary-on-background sm:text-4xl">
+            <h1 class="font-display text-3xl leading-tight text-foreground sm:text-4xl">
               {ing.name}
             </h1>
             <span
@@ -196,7 +196,7 @@ if (ing.gramsPerCup != null) {
     {/* Detail fields */}
     {details.length > 0 && (
       <section class="rounded-lg border border-border bg-card p-6">
-        <h2 class="font-display text-xl text-primary-on-background mb-4">Details</h2>
+        <h2 class="font-display text-xl text-card-foreground mb-4">Details</h2>
         <dl class="grid gap-x-8 gap-y-3 sm:grid-cols-2">
           {details.map((d) => (
             <div>
@@ -213,7 +213,7 @@ if (ing.gramsPerCup != null) {
     {/* Notes */}
     {notesHtml && (
       <section class="rounded-lg border border-border bg-card p-6">
-        <h2 class="font-display text-xl text-primary-on-background">Notes</h2>
+        <h2 class="font-display text-xl text-card-foreground">Notes</h2>
         <div
           class="prose prose-sm mt-3 max-w-none text-card-foreground dark:prose-invert"
           set:html={notesHtml}
@@ -223,7 +223,7 @@ if (ing.gramsPerCup != null) {
 
     {/* Recipes using this ingredient */}
     <section>
-      <h2 class="font-display text-xl text-primary-on-background">
+      <h2 class="font-display text-xl text-foreground">
         Recipes using this ingredient
         {recipesUsing.length > 0 && (
           <span class="ml-2 text-sm font-normal text-muted-foreground">

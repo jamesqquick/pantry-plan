@@ -280,7 +280,7 @@ export default function RecipeForm({
 
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">
-          <h2 className="font-display text-xl text-primary-on-background">Ingredients</h2>
+          <h2 className="font-display text-xl text-foreground">Ingredients</h2>
           <button
             type="button"
             onClick={addIngredient}
@@ -374,7 +374,7 @@ export default function RecipeForm({
 
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">
-          <h2 className="font-display text-xl text-primary-on-background">Instructions</h2>
+          <h2 className="font-display text-xl text-foreground">Instructions</h2>
           <button
             type="button"
             onClick={addInstruction}
@@ -431,7 +431,7 @@ export default function RecipeForm({
 
       {allTags.length > 0 && (
         <section className="space-y-3">
-          <h2 className="font-display text-xl text-primary-on-background">Tags</h2>
+          <h2 className="font-display text-xl text-foreground">Tags</h2>
           <div className="flex flex-wrap gap-2">
             {allTags.map((t) => (
               <TagToggle

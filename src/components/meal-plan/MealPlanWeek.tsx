@@ -172,7 +172,7 @@ export function MealPlanWeek({
       {/* Weekly grid */}
       <section className="rounded-lg border border-border bg-card shadow-sm">
         <div className="border-b border-border px-6 py-4">
-          <h2 className="font-display text-xl text-primary-on-background">
+          <h2 className="font-display text-xl text-card-foreground">
             Meals this week
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -215,7 +215,7 @@ export function MealPlanWeek({
       {hasRecipeMeals && recipesInPlan.length > 0 && (
         <section className="rounded-lg border border-border bg-card shadow-sm">
           <div className="border-b border-border px-6 py-4">
-            <h2 className="font-display text-xl text-primary-on-background">
+            <h2 className="font-display text-xl text-card-foreground">
               This week's recipes
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -241,7 +241,7 @@ export function MealPlanWeek({
       {(hasRecipeMeals || displayMeals.length > 0) && (
         <section className="rounded-lg border border-border bg-card shadow-sm">
           <div className="border-b border-border px-6 py-4">
-            <h2 className="font-display text-xl text-primary-on-background">
+            <h2 className="font-display text-xl text-card-foreground">
               Grocery list
               {grocery.totals.length > 0 && (
                 <span className="ml-2 text-sm font-normal text-muted-foreground">

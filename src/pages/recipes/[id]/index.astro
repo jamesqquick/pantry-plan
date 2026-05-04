@@ -142,7 +142,7 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
           />
         )}
         <div class="min-w-0 flex-1 space-y-3">
-          <h1 class="font-display text-3xl leading-tight text-primary-on-background sm:text-4xl">
+          <h1 class="font-display text-3xl leading-tight text-foreground sm:text-4xl">
             {r.title}
           </h1>
         {tags.length > 0 && (
@@ -226,7 +226,7 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
     <div class="grid gap-8 lg:grid-cols-5">
       <section class="lg:col-span-2">
         <div class="flex items-baseline justify-between gap-2">
-          <h2 class="font-display text-2xl text-primary-on-background">Ingredients</h2>
+          <h2 class="font-display text-2xl text-foreground">Ingredients</h2>
           {ingredients.length > 0 && (
             <span class="text-xs text-muted-foreground">
               {ingredients.filter((i) => i.ingredientId).length}/{ingredients.length} mapped
@@ -258,7 +258,7 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
       </section>
 
       <section class="lg:col-span-3">
-        <h2 class="font-display text-2xl text-primary-on-background">Instructions</h2>
+        <h2 class="font-display text-2xl text-foreground">Instructions</h2>
         {instructions.length === 0 ? (
           <p class="mt-3 text-sm text-muted-foreground">
             No instructions yet. <a href={`/recipes/${r.id}/edit`} class="text-primary-on-card underline">Add some</a>.
@@ -280,7 +280,7 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
 
     {notesHtml && (
       <section class="rounded-lg border border-border bg-card p-6">
-        <h2 class="font-display text-2xl text-primary-on-background">Notes</h2>
+        <h2 class="font-display text-2xl text-card-foreground">Notes</h2>
         <div
           class="prose prose-sm mt-3 max-w-none text-card-foreground dark:prose-invert"
           set:html={notesHtml}

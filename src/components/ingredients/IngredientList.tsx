@@ -109,7 +109,7 @@ export default function IngredientList({
             <path d="M15 2s-2 1.33-2 3.5S15 9 15 9s2-1.33 2-3.5S15 2 15 2" />
           </svg>
         </div>
-        <h2 className="font-display text-xl text-primary-on-background">
+        <h2 className="font-display text-xl text-card-foreground">
           No custom ingredients yet
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">

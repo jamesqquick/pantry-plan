@@ -60,7 +60,7 @@ export function ProfileForm({ initialName, email, role }: Props) {
 
   return (
     <section className="rounded-lg border border-border bg-card p-6 space-y-4">
-      <h2 className="text-lg font-semibold text-primary-on-background">
+      <h2 className="text-lg font-semibold text-card-foreground">
         Profile details
       </h2>
 

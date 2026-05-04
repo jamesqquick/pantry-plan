@@ -183,7 +183,7 @@ function batchLabel(v: number): string {
 
     <header class="space-y-4">
       <div class="flex items-start justify-between gap-4">
-        <h1 class="font-display text-3xl leading-tight text-primary-on-background sm:text-4xl">
+        <h1 class="font-display text-3xl leading-tight text-foreground sm:text-4xl">
           {o.name || "Untitled order"}
         </h1>
         <a
@@ -221,7 +221,7 @@ function batchLabel(v: number): string {
 
     {/* Order items */}
     <section>
-      <h2 class="font-display text-xl text-primary-on-background mb-4">
+      <h2 class="font-display text-xl text-foreground mb-4">
         Recipes
         <span class="ml-2 text-sm font-normal text-muted-foreground">
           ({items.length})
@@ -246,7 +246,7 @@ function batchLabel(v: number): string {
 
     {/* Grocery list */}
     <section>
-      <h2 class="font-display text-xl text-primary-on-background mb-4">
+      <h2 class="font-display text-xl text-foreground mb-4">
         Grocery list
         {groceryResult.totals.length > 0 && (
           <span class="ml-2 text-sm font-normal text-muted-foreground">
