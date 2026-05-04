@@ -91,8 +91,10 @@ export const recipeImport = {
         );
       }
 
-      // Ingredient lines with mapping
-      for (const line of ingredientLines) {
+      // ── Batch-process ingredient lines ──
+      // Pre-compute structured parse data for every line so we can build
+      // all INSERT rows in memory and issue a single batch query.
+      const parsedLines = ingredientLines.map((line) => {
         const structuredParse = parseIngredientLineStructured(
           line.originalLine,
         );
@@ -111,100 +113,15 @@ export const recipeImport = {
           line.displayText?.trim() ||
           getDisplayTextFromIngredientLine(line.originalLine) ||
           line.originalLine;
+        return { line, structuredParse, quantity, unitEnum, displayText };
+      });
 
-        const hasMapping = !!(
-          line.ingredientId?.trim() || line.createName?.trim()
-        );
-        if (!hasMapping) {
-          await db.insert(recipeIngredient).values({
-            recipeId,
-            ingredientId: null,
-            quantity,
-            unit: unitEnum,
-            displayText,
-            rawText: line.originalLine,
-            parseConfidence: structuredParse.parseConfidence,
-            sortOrder: line.sortOrder,
-            originalQuantity: quantity,
-            originalUnit: unitEnum,
-          });
-          continue;
-        }
-
-        let ingredientId: string;
-        if (line.ingredientId?.trim()) {
-          // Verify ingredient exists and is accessible to user
-          const [ing] = await db
-            .select({
-              id: ingredient.id,
-              userId: ingredient.userId,
-            })
-            .from(ingredient)
-            .where(eq(ingredient.id, line.ingredientId.trim()))
-            .limit(1);
-          if (!ing || (ing.userId !== null && ing.userId !== user.id)) {
-            throw new ActionError({
-              code: "FORBIDDEN",
-              message:
-                "An ingredient was not found or does not belong to you.",
-            });
-          }
-          ingredientId = ing.id;
-        } else {
-          // Create or find ingredient by normalizedName
-          const createName = line.createName!.trim();
-          const normalizedName = normalizeIngredientName(createName);
-          const [existing] = await db
-            .select({ id: ingredient.id })
-            .from(ingredient)
-            .where(
-              and(
-                or(
-                  isNull(ingredient.userId),
-                  eq(ingredient.userId, user.id),
-                ),
-                eq(ingredient.normalizedName, normalizedName),
-              ),
-            )
-            .limit(1);
-          if (existing) {
-            ingredientId = existing.id;
-          } else {
-            const [created] = await db
-              .insert(ingredient)
-              .values({
-                userId: user.id,
-                name: createName,
-                normalizedName,
-                costBasisUnit: "G",
-              })
-              .returning({ id: ingredient.id });
-            ingredientId = created!.id;
-          }
-        }
-
-        // Auto-convert to weight
-        const [ingForConvert] = await db
-          .select({
-            normalizedName: ingredient.normalizedName,
-            gramsPerCup: ingredient.gramsPerCup,
-          })
-          .from(ingredient)
-          .where(eq(ingredient.id, ingredientId))
-          .limit(1);
-        const converted = autoConvert({
-          quantity: quantity ?? 1,
-          unit: unitEnum ?? null,
-          ingredient: ingForConvert ?? {
-            normalizedName: null,
-            gramsPerCup: null,
-          },
-          originalLine: line.originalLine,
-        });
-
-        await db.insert(recipeIngredient).values({
+      // 1. Lines without a mapping → raw text only
+      const unmappedRows = parsedLines
+        .filter(({ line }) => !line.ingredientId?.trim() && !line.createName?.trim())
+        .map(({ line, structuredParse, quantity, unitEnum, displayText }) => ({
           recipeId,
-          ingredientId,
+          ingredientId: null,
           quantity,
           unit: unitEnum,
           displayText,
@@ -213,38 +130,179 @@ export const recipeImport = {
           sortOrder: line.sortOrder,
           originalQuantity: quantity,
           originalUnit: unitEnum,
-          weightGrams: converted.weightGrams ?? null,
-          conversionSource: converted.conversionSource ?? null,
-          conversionConfidence: converted.conversionConfidence ?? null,
-          conversionNotes: converted.conversionNotes ?? null,
+        }));
+
+      // 2. Verify all referenced ingredientIds in one query
+      const mappedById = parsedLines.filter(({ line }) => line.ingredientId?.trim());
+      const idSet = [...new Set(mappedById.map(({ line }) => line.ingredientId!.trim()))];
+      const verifiedById = idSet.length
+        ? await db
+            .select({ id: ingredient.id, userId: ingredient.userId })
+            .from(ingredient)
+            .where(
+              and(
+                inArray(ingredient.id, idSet),
+                or(isNull(ingredient.userId), eq(ingredient.userId, user.id)),
+              ),
+            )
+        : [];
+      if (verifiedById.length !== idSet.length) {
+        throw new ActionError({
+          code: "FORBIDDEN",
+          message: "An ingredient was not found or does not belong to you.",
+        });
+      }
+      const idToIngredientId = new Map(verifiedById.map((i) => [i.id, i.id]));
+
+      // 3. Resolve createName lines (find existing or create new)
+      const mappedByName = parsedLines.filter(({ line }) => line.createName?.trim());
+      const nameMap = new Map(
+        mappedByName.map(({ line }) => [
+          line.createName!.trim(),
+          normalizeIngredientName(line.createName!.trim()),
+        ]),
+      );
+      const normalizedNames = [...new Set(nameMap.values())];
+      const existingByName = normalizedNames.length
+        ? await db
+            .select({ id: ingredient.id, normalizedName: ingredient.normalizedName })
+            .from(ingredient)
+            .where(
+              and(
+                or(isNull(ingredient.userId), eq(ingredient.userId, user.id)),
+                inArray(ingredient.normalizedName, normalizedNames),
+              ),
+            )
+        : [];
+      const existingNameToId = new Map(
+        existingByName.map((i) => [i.normalizedName, i.id]),
+      );
+      const namesToCreate = normalizedNames.filter((n) => !existingNameToId.has(n));
+      const createdIngredients = namesToCreate.length
+        ? await db
+            .insert(ingredient)
+            .values(
+              namesToCreate.map((normalizedName) => {
+                const createName = [...nameMap.entries()].find(
+                  ([, n]) => n === normalizedName,
+                )![0];
+                return {
+                  userId: user.id,
+                  name: createName,
+                  normalizedName,
+                  costBasisUnit: "G" as const,
+                };
+              }),
+            )
+            .returning({ id: ingredient.id, normalizedName: ingredient.normalizedName })
+        : [];
+      const nameToIngredientId = new Map([
+        ...existingNameToId,
+        ...createdIngredients.map((i) => [i.normalizedName, i.id] as const),
+      ]);
+
+      // 4. Collect every ingredientId we need conversion data for
+      const allIngredientIds = [
+        ...verifiedById.map((i) => i.id),
+        ...createdIngredients.map((i) => i.id),
+      ];
+      const convertData = allIngredientIds.length
+        ? await db
+            .select({
+              id: ingredient.id,
+              normalizedName: ingredient.normalizedName,
+              gramsPerCup: ingredient.gramsPerCup,
+            })
+            .from(ingredient)
+            .where(inArray(ingredient.id, allIngredientIds))
+        : [];
+      const convertById = new Map(convertData.map((i) => [i.id, i]));
+
+      // 5. Build recipeIngredient rows for mapped lines
+      const mappedRows = parsedLines
+        .filter(({ line }) => line.ingredientId?.trim() || line.createName?.trim())
+        .map(({ line, structuredParse, quantity, unitEnum, displayText }) => {
+          const ingredientId = line.ingredientId?.trim()
+            ? idToIngredientId.get(line.ingredientId.trim())!
+            : nameToIngredientId.get(
+                normalizeIngredientName(line.createName!.trim()),
+              )!;
+          const ing = convertById.get(ingredientId);
+          const converted = autoConvert({
+            quantity: quantity ?? 1,
+            unit: unitEnum ?? null,
+            ingredient: ing ?? { normalizedName: null, gramsPerCup: null },
+            originalLine: line.originalLine,
+          });
+          return {
+            recipeId,
+            ingredientId,
+            quantity,
+            unit: unitEnum,
+            displayText,
+            rawText: line.originalLine,
+            parseConfidence: structuredParse.parseConfidence,
+            sortOrder: line.sortOrder,
+            originalQuantity: quantity,
+            originalUnit: unitEnum,
+            weightGrams: converted.weightGrams ?? null,
+            conversionSource: converted.conversionSource ?? null,
+            conversionConfidence: converted.conversionConfidence ?? null,
+            conversionNotes: converted.conversionNotes ?? null,
+          };
         });
 
-        // Upsert alias for future matching
-        const normalizedKey = normalizeIngredientName(
-          line.originalLine.trim() ||
-            line.createName?.trim() ||
-            "",
-        ).trim();
-        if (normalizedKey) {
-          // D1 doesn't support upsert with unique constraint as cleanly;
-          // use insert-or-ignore then update pattern
-          const [existingAlias] = await db
-            .select({ id: ingredientAlias.id })
+      // 6. Insert all recipeIngredients in one batch
+      const allRecipeIngredientRows = [...unmappedRows, ...mappedRows];
+      if (allRecipeIngredientRows.length > 0) {
+        await db.insert(recipeIngredient).values(allRecipeIngredientRows);
+      }
+
+      // 7. Upsert aliases in two batches (select → update + insert)
+      const aliasEntries = parsedLines
+        .map(({ line }) => {
+          const key = normalizeIngredientName(
+            line.originalLine.trim() || line.createName?.trim() || "",
+          ).trim();
+          if (!key) return null;
+          const ingredientId = line.ingredientId?.trim()
+            ? idToIngredientId.get(line.ingredientId.trim())!
+            : line.createName?.trim()
+              ? nameToIngredientId.get(normalizeIngredientName(line.createName.trim()))!
+              : null;
+          if (!ingredientId) return null;
+          return { key, ingredientId };
+        })
+        .filter((e): e is { key: string; ingredientId: string } => e !== null);
+
+      const aliasKeys = [...new Set(aliasEntries.map((e) => e.key))];
+      const existingAliases = aliasKeys.length
+        ? await db
+            .select({ id: ingredientAlias.id, aliasNormalized: ingredientAlias.aliasNormalized })
             .from(ingredientAlias)
-            .where(eq(ingredientAlias.aliasNormalized, normalizedKey))
-            .limit(1);
-          if (existingAlias) {
-            await db
-              .update(ingredientAlias)
-              .set({ ingredientId })
-              .where(eq(ingredientAlias.id, existingAlias.id));
-          } else {
-            await db.insert(ingredientAlias).values({
-              ingredientId,
-              aliasNormalized: normalizedKey,
-            });
-          }
-        }
+            .where(inArray(ingredientAlias.aliasNormalized, aliasKeys))
+        : [];
+      const existingAliasSet = new Set(existingAliases.map((a) => a.aliasNormalized));
+
+      const aliasUpdates = existingAliases.map((alias) => ({
+        id: alias.id,
+        ingredientId: aliasEntries.find((e) => e.key === alias.aliasNormalized)!.ingredientId,
+      }));
+      for (const { id, ingredientId } of aliasUpdates) {
+        await db
+          .update(ingredientAlias)
+          .set({ ingredientId })
+          .where(eq(ingredientAlias.id, id));
+      }
+
+      const aliasInserts = aliasEntries
+        .filter((e) => !existingAliasSet.has(e.key))
+        .map((e) => ({
+          ingredientId: e.ingredientId,
+          aliasNormalized: e.key,
+        }));
+      if (aliasInserts.length > 0) {
+        await db.insert(ingredientAlias).values(aliasInserts);
       }
 
       // Tags
