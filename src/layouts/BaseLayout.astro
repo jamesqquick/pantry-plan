@@ -12,7 +12,7 @@ const { title = "Pantry Plan", description = "Recipe management and meal plannin
 ---
 
 <!doctype html>
-<html lang="en" suppress-hydration-warning>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="description" content={description} />
@@ -22,21 +22,46 @@ const { title = "Pantry Plan", description = "Recipe management and meal plannin
     <Font cssVariable="--font-body" preload />
     <Font cssVariable="--font-display" preload />
     <title>{title}</title>
+    {/*
+      Inline blocking theme bootstrap. Runs before paint to prevent FOUC.
+      Mirrors the logic in src/lib/theme.ts (kept inline because is:inline
+      scripts cannot import). If you change theme behavior, update both.
+    */}
     <script is:inline>
-      // Sync dark mode with OS preference before render (avoid flash).
-      // Respects explicit user toggle stored in localStorage["theme"].
       (function () {
         try {
-          const stored = localStorage.getItem("theme");
-          const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-          const isDark = stored ? stored === "dark" : prefersDark;
-          if (isDark) document.documentElement.classList.add("dark");
-        } catch {}
+          var stored = localStorage.getItem("theme");
+          var explicit = stored === "light" || stored === "dark";
+          var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var isDark = explicit ? stored === "dark" : prefersDark;
+          var root = document.documentElement;
+          if (isDark) root.classList.add("dark");
+          else root.classList.remove("dark");
+        } catch (e) {}
       })();
     </script>
   </head>
   <body class="min-h-screen bg-background text-foreground antialiased">
     <a href="#main-content" class="skip-to-content">Skip to content</a>
     <slot />
+
+    {/*
+      Re-apply theme after every Astro view transition (the inline bootstrap
+      above only runs on initial load). Also live-updates when the OS theme
+      flips while the user is on "system".
+    */}
+    <script>
+      import { applyTheme, getStoredTheme } from "@/lib/theme";
+
+      // Reapply on every client-side navigation. Defensive: fixes any
+      // desync between SSR and prerendered pages under view transitions.
+      document.addEventListener("astro:after-swap", applyTheme);
+
+      // Live OS theme updates — only when the user hasn't picked an override.
+      const mql = window.matchMedia("(prefers-color-scheme: dark)");
+      mql.addEventListener("change", () => {
+        if (getStoredTheme() === "system") applyTheme();
+      });
+    </script>
   </body>
 </html>

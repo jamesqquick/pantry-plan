@@ -10,6 +10,8 @@
    ========================================================================== */
 
 :root {
+  /* Native UI (scrollbars, form controls, autofill) follows the theme. */
+  color-scheme: light;
   --radius: 1.25rem;
   /* Core — white background, warm text */
   --background: 0 0% 100%;
@@ -68,10 +70,14 @@
   --header-logo: 22 100% 25%;
   /* Link/hover on card or popover: primary in light; in dark use card-foreground so primary is never on dark card */
   --primary-on-card: 22 100% 25%;
+  /* Inset shadow for .btn-primary — kept as a token so dark mode can tune it */
+  --primary-shadow: 22 100% 18%;
 }
 
 /* Dark: primary bumped to 40% lightness on backgrounds for 4.5:1+ contrast */
 .dark {
+  /* Native UI (scrollbars, form controls, autofill) follows the theme. */
+  color-scheme: dark;
   --background: 60 5% 12%;
   --foreground: 50 8% 92%;
   --card: 50 6% 16%;
@@ -122,6 +128,9 @@
   --primary-icon-fg: 22 100% 25%;
   --header-logo: 0 0% 100%;
   --primary-on-card: 50 8% 92%;
+  /* Darker inset shadow keeps the primary button's depth visible against
+     dark backgrounds without bleeding rust into the surrounding surface. */
+  --primary-shadow: 22 100% 12%;
 }
 
 /* Tailwind v4 @theme — semantic utilities from CSS vars (HSL) */
@@ -296,8 +305,8 @@
   color: hsl(var(--primary-foreground));
   border-radius: var(--radius-input);
   box-shadow:
-    0 1px 0 hsl(22 100% 18%) inset,
-    0 4px 12px -4px hsl(22 100% 25% / 0.4);
+    0 1px 0 hsl(var(--primary-shadow)) inset,
+    0 4px 12px -4px hsl(var(--primary) / 0.4);
   transition:
     transform 150ms ease-out,
     box-shadow 150ms ease-out,
@@ -310,15 +319,15 @@
 .btn-primary:hover {
   transform: translateY(-1px);
   box-shadow:
-    0 1px 0 hsl(22 100% 18%) inset,
-    0 8px 20px -4px hsl(22 100% 25% / 0.5);
+    0 1px 0 hsl(var(--primary-shadow)) inset,
+    0 8px 20px -4px hsl(var(--primary) / 0.5);
   filter: brightness(1.05);
 }
 .btn-primary:active {
   transform: translateY(0);
   box-shadow:
-    0 1px 0 hsl(22 100% 18%) inset,
-    0 2px 6px -2px hsl(22 100% 25% / 0.4);
+    0 1px 0 hsl(var(--primary-shadow)) inset,
+    0 2px 6px -2px hsl(var(--primary) / 0.4);
 }
 .btn-primary:focus-visible {
   outline: 2px solid hsl(var(--ring));
