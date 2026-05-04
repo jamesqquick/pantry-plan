@@ -25,29 +25,11 @@ export async function getBooleanFlag(
   defaultValue: boolean,
   context?: { email?: string; userId?: string },
 ): Promise<boolean> {
-  console.log("DEBUG getBooleanFlag called:", {
-    bindingExists: !!binding,
-    bindingType: typeof binding,
-    methodType: binding ? typeof binding.getBooleanValue : 'N/A',
-    flagKey,
-    defaultValue,
-    context,
-  });
-  
   if (!binding) return defaultValue;
 
   const ctx: Record<string, string> = {};
   if (context?.email) ctx.email = context.email;
   if (context?.userId) ctx.userId = context.userId;
 
-  console.log("DEBUG calling getBooleanValue with ctx:", ctx);
-  
-  try {
-    const result = await binding.getBooleanValue(flagKey, defaultValue, ctx);
-    console.log("DEBUG getBooleanValue result:", result);
-    return result;
-  } catch (err) {
-    console.error("DEBUG getBooleanValue threw:", err);
-    throw err;
-  }
+  return binding.getBooleanValue(flagKey, defaultValue, ctx);
 }
