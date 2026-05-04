@@ -31,5 +31,5 @@ export async function getBooleanFlag(
   if (context?.email) ctx.email = context.email;
   if (context?.userId) ctx.userId = context.userId;
 
-  return binding.getBooleanValue(flagKey, defaultValue, ctx);
+  return binding.getBooleanValue.call(binding, flagKey, defaultValue, ctx);
 }
