@@ -20,6 +20,7 @@ import {
   ingredient,
   ingredientAlias,
 } from "@/db";
+import { chunkRows } from "@/db/chunked-insert";
 import { normalizeIngredientName } from "@/lib/ingredients/normalize";
 import { UNIT_FROM_LABEL } from "@/lib/ingredients/units";
 import { autoConvert } from "@/lib/measurements/auto-convert";
@@ -79,17 +80,6 @@ export const recipeImport = {
         });
       }
       const recipeId = row.id;
-
-      // Instructions
-      if (recipeData.instructions.length > 0) {
-        await db.insert(recipeInstruction).values(
-          recipeData.instructions.map((text, sortOrder) => ({
-            recipeId,
-            sortOrder,
-            text: text.trim() || "\u2014",
-          })),
-        );
-      }
 
       // ── Batch-process ingredient lines ──
       // Pre-compute structured parse data for every line so we can build
@@ -265,31 +255,41 @@ export const recipeImport = {
       // 8. Atomically insert instructions + ingredients + tags.
       // If any of these fail, D1 rolls back the entire batch so the
       // recipe won't exist as a partial entity.
+      //
+      // Each row binds one parameter per column (plus `id` from cuidPk).
+      // D1 limits bound parameters per statement (~100), so we chunk
+      // each bulk insert into multiple statements that all run in the
+      // same batch. Param-per-row counts:
+      //   recipeInstruction: 4 (id, recipeId, sortOrder, text)
+      //   recipeIngredient (mapped): 15
+      //   recipeTag: 3 (id, recipeId, tagId)
+      const instructionRows = recipeData.instructions.map(
+        (text, sortOrder) => ({
+          recipeId,
+          sortOrder,
+          text: text.trim() || "\u2014",
+        }),
+      );
+      const tagRows = validTagIds.map((tagId) => ({ recipeId, tagId }));
+
       const batchQueries = [
-        ...(recipeData.instructions.length > 0
-          ? [
-              db.insert(recipeInstruction).values(
-                recipeData.instructions.map((text, sortOrder) => ({
-                  recipeId,
-                  sortOrder,
-                  text: text.trim() || "\u2014",
-                })),
-              ),
-            ]
-          : []),
-        ...(allRecipeIngredientRows.length > 0
-          ? [db.insert(recipeIngredient).values(allRecipeIngredientRows)]
-          : []),
-        ...(validTagIds.length > 0
-          ? [
-              db.insert(recipeTag).values(
-                validTagIds.map((tagId) => ({ recipeId, tagId })),
-              ),
-            ]
-          : []),
+        ...chunkRows(instructionRows, 4).map((chunk) =>
+          db.insert(recipeInstruction).values(chunk),
+        ),
+        ...chunkRows(allRecipeIngredientRows, 15).map((chunk) =>
+          db.insert(recipeIngredient).values(chunk),
+        ),
+        ...chunkRows(tagRows, 3).map((chunk) =>
+          db.insert(recipeTag).values(chunk),
+        ),
       ];
       if (batchQueries.length > 0) {
-        await db.batch(batchQueries as [typeof batchQueries[0], ...typeof batchQueries]);
+        await db.batch(
+          batchQueries as [
+            (typeof batchQueries)[0],
+            ...typeof batchQueries,
+          ],
+        );
       }
 
       // 9. Upsert aliases (best-effort; not tied to recipe atomicity)
@@ -335,8 +335,9 @@ export const recipeImport = {
           ingredientId: e.ingredientId,
           aliasNormalized: e.key,
         }));
-      if (aliasInserts.length > 0) {
-        await db.insert(ingredientAlias).values(aliasInserts);
+      // ingredientAlias: 3 params/row (id, ingredientId, aliasNormalized)
+      for (const chunk of chunkRows(aliasInserts, 3)) {
+        await db.insert(ingredientAlias).values(chunk);
       }
 
       return { recipeId };
@@ -386,43 +387,44 @@ export const recipeImport = {
 
       // Atomically insert instructions + ingredients + tags.
       // D1 guarantees all statements in a batch succeed or fail together.
+      // Param-per-row counts (incl. cuid id from $defaultFn):
+      //   recipeInstruction: 4, recipeIngredient (text-only): 8, recipeTag: 3
+      const instructionRows = recipeData.instructions.map(
+        (text, sortOrder) => ({
+          recipeId,
+          sortOrder,
+          text: text.trim() || "\u2014",
+        }),
+      );
+      const ingredientRows = ingredients.map((line, i) => ({
+        recipeId,
+        ingredientId: null,
+        quantity: null,
+        unit: null,
+        displayText: line.trim(),
+        rawText: line.trim(),
+        sortOrder: i,
+      }));
+      const tagRows = validTagIds.map((tagId) => ({ recipeId, tagId }));
+
       const batchQueries = [
-        ...(recipeData.instructions.length > 0
-          ? [
-              db.insert(recipeInstruction).values(
-                recipeData.instructions.map((text, sortOrder) => ({
-                  recipeId,
-                  sortOrder,
-                  text: text.trim() || "\u2014",
-                })),
-              ),
-            ]
-          : []),
-        ...(ingredients.length > 0
-          ? [
-              db.insert(recipeIngredient).values(
-                ingredients.map((line, i) => ({
-                  recipeId,
-                  ingredientId: null,
-                  quantity: null,
-                  unit: null,
-                  displayText: line.trim(),
-                  rawText: line.trim(),
-                  sortOrder: i,
-                })),
-              ),
-            ]
-          : []),
-        ...(validTagIds.length > 0
-          ? [
-              db.insert(recipeTag).values(
-                validTagIds.map((tagId) => ({ recipeId, tagId })),
-              ),
-            ]
-          : []),
+        ...chunkRows(instructionRows, 4).map((chunk) =>
+          db.insert(recipeInstruction).values(chunk),
+        ),
+        ...chunkRows(ingredientRows, 8).map((chunk) =>
+          db.insert(recipeIngredient).values(chunk),
+        ),
+        ...chunkRows(tagRows, 3).map((chunk) =>
+          db.insert(recipeTag).values(chunk),
+        ),
       ];
       if (batchQueries.length > 0) {
-        await db.batch(batchQueries as [typeof batchQueries[0], ...typeof batchQueries]);
+        await db.batch(
+          batchQueries as [
+            (typeof batchQueries)[0],
+            ...typeof batchQueries,
+          ],
+        );
       }
 
       return { recipeId };

@@ -15,6 +15,7 @@ import {
   recipeTag,
   tag,
 } from "@/db";
+import { chunkRows } from "@/db/chunked-insert";
 import { getDb, requireUser } from "./_shared";
 
 /**
@@ -92,38 +93,37 @@ export const recipes = {
       }
       const recipeId = row.id;
 
-      if (input.instructions.length > 0) {
-        await db.insert(recipeInstruction).values(
-          input.instructions.map((text, sortOrder) => ({
-            recipeId,
-            sortOrder,
-            text: text.trim() || "—",
-          }))
-        );
+      // Chunk bulk inserts to stay under D1's bound-parameter cap.
+      // Param counts incl. cuid id: instruction=4, ingredient=8, tag=3.
+      const instructionRows = input.instructions.map((text, sortOrder) => ({
+        recipeId,
+        sortOrder,
+        text: text.trim() || "—",
+      }));
+      for (const chunk of chunkRows(instructionRows, 4)) {
+        await db.insert(recipeInstruction).values(chunk);
       }
 
-      if (input.ingredientsStructured.length > 0) {
-        await db.insert(recipeIngredient).values(
-          input.ingredientsStructured.map((item) => ({
-            recipeId,
-            ingredientId:
-              item.ingredientId && item.ingredientId !== ""
-                ? item.ingredientId
-                : null,
-            quantity: item.quantity ?? null,
-            unit: item.unit ?? null,
-            displayText: item.displayText.trim() || "—",
-            rawText: item.rawText?.trim() || null,
-            sortOrder: item.sortOrder,
-          }))
-        );
+      const ingredientRows = input.ingredientsStructured.map((item) => ({
+        recipeId,
+        ingredientId:
+          item.ingredientId && item.ingredientId !== ""
+            ? item.ingredientId
+            : null,
+        quantity: item.quantity ?? null,
+        unit: item.unit ?? null,
+        displayText: item.displayText.trim() || "—",
+        rawText: item.rawText?.trim() || null,
+        sortOrder: item.sortOrder,
+      }));
+      for (const chunk of chunkRows(ingredientRows, 8)) {
+        await db.insert(recipeIngredient).values(chunk);
       }
 
       const validTagIds = await filterOwnedTagIds(db, user.id, input.tagIds);
-      if (validTagIds.length > 0) {
-        await db
-          .insert(recipeTag)
-          .values(validTagIds.map((tagId) => ({ recipeId, tagId })));
+      const tagRows = validTagIds.map((tagId) => ({ recipeId, tagId }));
+      for (const chunk of chunkRows(tagRows, 3)) {
+        await db.insert(recipeTag).values(chunk);
       }
 
       return { id: recipeId };
@@ -175,14 +175,13 @@ export const recipes = {
         await db
           .delete(recipeInstruction)
           .where(eq(recipeInstruction.recipeId, input.id));
-        if (input.instructions.length > 0) {
-          await db.insert(recipeInstruction).values(
-            input.instructions.map((text, sortOrder) => ({
-              recipeId: input.id,
-              sortOrder,
-              text: text.trim() || "—",
-            }))
-          );
+        const instructionRows = input.instructions.map((text, sortOrder) => ({
+          recipeId: input.id,
+          sortOrder,
+          text: text.trim() || "—",
+        }));
+        for (const chunk of chunkRows(instructionRows, 4)) {
+          await db.insert(recipeInstruction).values(chunk);
         }
       }
 
@@ -190,31 +189,32 @@ export const recipes = {
         await db
           .delete(recipeIngredient)
           .where(eq(recipeIngredient.recipeId, input.id));
-        if (input.ingredientsStructured.length > 0) {
-          await db.insert(recipeIngredient).values(
-            input.ingredientsStructured.map((item) => ({
-              recipeId: input.id,
-              ingredientId:
-                item.ingredientId && item.ingredientId !== ""
-                  ? item.ingredientId
-                  : null,
-              quantity: item.quantity ?? null,
-              unit: item.unit ?? null,
-              displayText: item.displayText.trim() || "—",
-              rawText: item.rawText?.trim() || null,
-              sortOrder: item.sortOrder,
-            }))
-          );
+        const ingredientRows = input.ingredientsStructured.map((item) => ({
+          recipeId: input.id,
+          ingredientId:
+            item.ingredientId && item.ingredientId !== ""
+              ? item.ingredientId
+              : null,
+          quantity: item.quantity ?? null,
+          unit: item.unit ?? null,
+          displayText: item.displayText.trim() || "—",
+          rawText: item.rawText?.trim() || null,
+          sortOrder: item.sortOrder,
+        }));
+        for (const chunk of chunkRows(ingredientRows, 8)) {
+          await db.insert(recipeIngredient).values(chunk);
         }
       }
 
       if (input.tagIds !== undefined) {
         const validTagIds = await filterOwnedTagIds(db, user.id, input.tagIds);
         await db.delete(recipeTag).where(eq(recipeTag.recipeId, input.id));
-        if (validTagIds.length > 0) {
-          await db
-            .insert(recipeTag)
-            .values(validTagIds.map((tagId) => ({ recipeId: input.id, tagId })));
+        const tagRows = validTagIds.map((tagId) => ({
+          recipeId: input.id,
+          tagId,
+        }));
+        for (const chunk of chunkRows(tagRows, 3)) {
+          await db.insert(recipeTag).values(chunk);
         }
       }
 
@@ -309,37 +309,37 @@ export const recipes = {
           .where(eq(recipeTag.recipeId, input.recipeId)),
       ]);
 
-      if (insts.length > 0) {
-        await db.insert(recipeInstruction).values(
-          insts.map((i) => ({
-            recipeId: copy.id,
-            sortOrder: i.sortOrder,
-            text: i.text,
-          }))
-        );
+      const instructionRows = insts.map((i) => ({
+        recipeId: copy.id,
+        sortOrder: i.sortOrder,
+        text: i.text,
+      }));
+      for (const chunk of chunkRows(instructionRows, 4)) {
+        await db.insert(recipeInstruction).values(chunk);
       }
-      if (rings.length > 0) {
-        await db.insert(recipeIngredient).values(
-          rings.map((ri, idx) => ({
-            recipeId: copy.id,
-            ingredientId: ri.ingredientId,
-            quantity: ri.quantity,
-            unit: ri.unit,
-            displayText: ri.displayText,
-            rawText: ri.rawText,
-            sortOrder: ri.sortOrder ?? idx,
-          }))
-        );
+
+      const ingredientRows = rings.map((ri, idx) => ({
+        recipeId: copy.id,
+        ingredientId: ri.ingredientId,
+        quantity: ri.quantity,
+        unit: ri.unit,
+        displayText: ri.displayText,
+        rawText: ri.rawText,
+        sortOrder: ri.sortOrder ?? idx,
+      }));
+      for (const chunk of chunkRows(ingredientRows, 8)) {
+        await db.insert(recipeIngredient).values(chunk);
       }
+
       if (rtags.length > 0) {
         const tagIds = rtags.map((r) => r.tagId);
         const validTagIds = await filterOwnedTagIds(db, user.id, tagIds);
-        if (validTagIds.length > 0) {
-          await db
-            .insert(recipeTag)
-            .values(
-              validTagIds.map((tagId) => ({ recipeId: copy.id, tagId }))
-            );
+        const tagRows = validTagIds.map((tagId) => ({
+          recipeId: copy.id,
+          tagId,
+        }));
+        for (const chunk of chunkRows(tagRows, 3)) {
+          await db.insert(recipeTag).values(chunk);
         }
       }
 
