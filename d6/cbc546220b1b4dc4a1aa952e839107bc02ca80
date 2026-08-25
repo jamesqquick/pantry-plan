@@ -1,0 +1,19 @@
+src/db/migrations/meta/_journal.json
+  s_4ba335b1f77894::t_2a80cb212325a7 11-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "d6cbc546220b1b4dc4a1aa952e839107bc02ca80",
+  "prompts": {},
+  "sessions": {
+    "s_4ba335b1f77894": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fca9984b1ffetRm3aJMKTxdp1O",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
