@@ -6,7 +6,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { UserMenu } from "./UserMenu";
 
 const ICON_BUTTON_CLASS =
-  "inline-flex items-center justify-center rounded-input text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background";
+  "inline-flex items-center justify-center rounded-input border border-border bg-background text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background";
 
 interface AppHeaderProps {
   userEmail: string;
@@ -68,11 +68,11 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
   }, [mounted, open]);
 
   return (
-    <header className="bg-transparent">
-      <div className="mx-auto flex min-h-14 max-w-5xl flex-wrap items-center justify-between gap-2 px-4 py-6 sm:flex-nowrap sm:gap-0">
+    <header className="border-b border-border bg-background">
+      <div className="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center justify-between gap-2 px-5 py-5 sm:flex-nowrap sm:gap-0 sm:px-8">
         <a
           href="/recipes"
-          className="font-display flex shrink-0 items-baseline gap-1 text-2xl sm:text-3xl"
+          className="font-display flex shrink-0 items-baseline gap-1 text-3xl sm:text-4xl"
           aria-label="Pantry Plan home"
         >
           <span className="text-header-logo">Pantry</span>

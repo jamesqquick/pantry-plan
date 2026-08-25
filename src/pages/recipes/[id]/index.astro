@@ -107,7 +107,7 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
 ---
 
 <AppLayout title={`${r.title} — Pantry Plan`}>
-  <article class="space-y-8">
+  <article class="space-y-10 font-ui">
     <nav class="text-sm">
       <a
         href="/recipes"
@@ -130,7 +130,7 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
       </a>
     </nav>
 
-    <header class="space-y-5">
+    <header class="space-y-6">
       {/* Image + title row: stacked on mobile, side-by-side on md+ */}
       <div class="flex flex-col gap-5 md:flex-row md:items-start">
         {r.imageUrl && (
@@ -142,7 +142,7 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
           />
         )}
         <div class="min-w-0 flex-1 space-y-3">
-          <h1 class="font-display text-3xl leading-tight text-foreground sm:text-4xl">
+          <h1 class="font-editorial text-4xl leading-[1.02] tracking-tight text-foreground sm:text-5xl">
             {r.title}
           </h1>
         {tags.length > 0 && (
@@ -197,7 +197,7 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
         <RecipeActions client:load recipeId={r.id} hasUnmappedIngredients={hasUnmappedIngredients} />
         <a
           href={`/meal-plan?addRecipe=${r.id}`}
-          class="btn-secondary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
+          class="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
         >
           {/* Lucide CalendarPlus */}
           <svg
@@ -226,9 +226,9 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
     <div class="grid gap-8 lg:grid-cols-5">
       <section class="lg:col-span-2">
         <div class="flex items-baseline justify-between gap-2">
-          <h2 class="font-display text-2xl text-foreground">Ingredients</h2>
+          <h2 class="font-editorial text-3xl text-foreground">Ingredients</h2>
           {ingredients.length > 0 && (
-            <span class="text-xs text-muted-foreground">
+             <span class="font-ui text-xs text-muted-foreground">
               {ingredients.filter((i) => i.ingredientId).length}/{ingredients.length} mapped
             </span>
           )}
@@ -238,9 +238,9 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
             No ingredients yet. <a href={`/recipes/${r.id}/edit`} class="text-primary-on-card underline">Add some</a>.
           </p>
         ) : (
-          <ul class="mt-4 space-y-1 text-sm">
+           <ul class="mt-4 space-y-1 text-sm">
             {ingredients.map((i) => (
-              <li class="rounded-input bg-panel px-3 py-2 leading-relaxed">
+               <li class="border-b border-divider px-0 py-3 leading-relaxed">
                 <span>{formatIngredientLine(i)}</span>
                 {i.ingredientId ? (
                   <span class="ml-1.5 inline-block rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] leading-tight font-medium text-green-700 dark:bg-green-900/20 dark:text-green-300">
@@ -258,18 +258,18 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
       </section>
 
       <section class="lg:col-span-3">
-        <h2 class="font-display text-2xl text-foreground">Instructions</h2>
+         <h2 class="font-editorial text-3xl text-foreground">Instructions</h2>
         {instructions.length === 0 ? (
           <p class="mt-3 text-sm text-muted-foreground">
             No instructions yet. <a href={`/recipes/${r.id}/edit`} class="text-primary-on-card underline">Add some</a>.
           </p>
         ) : (
-          <ol class="mt-4 space-y-4">
+           <ol class="mt-4 space-y-5">
             {instructions.map((step, idx) => (
               <li class="flex gap-4">
-                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground tabular-nums">
-                  {idx + 1}
-                </span>
+                 <span class="font-ui text-sm font-bold tabular-nums text-primary">
+                   {idx + 1}
+                 </span>
                 <p class="whitespace-pre-wrap text-sm leading-relaxed pt-0.5">{step.text}</p>
               </li>
             ))}
@@ -279,8 +279,8 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
     </div>
 
     {notesHtml && (
-      <section class="rounded-lg border border-border bg-card p-6">
-        <h2 class="font-display text-2xl text-card-foreground">Notes</h2>
+       <section class="border-t border-divider pt-6">
+         <h2 class="font-editorial text-3xl text-card-foreground">Notes</h2>
         <div
           class="prose prose-sm mt-3 max-w-none text-card-foreground dark:prose-invert"
           set:html={notesHtml}

@@ -23,7 +23,7 @@ export default defineConfig({
   fonts: [
     {
       provider: fontProviders.google(),
-      name: "Be Vietnam Pro",
+      name: "Inter",
       cssVariable: "--font-body",
       weights: ["400", "500", "600", "700"],
       styles: ["normal"],
@@ -31,7 +31,7 @@ export default defineConfig({
     },
     {
       provider: fontProviders.google(),
-      name: "Lilita One",
+      name: "Newsreader",
       cssVariable: "--font-display",
       weights: ["400"],
       styles: ["normal"],

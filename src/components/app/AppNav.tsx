@@ -19,25 +19,16 @@ interface NavItemProps {
 }
 
 function NavItem({ href, label, active, onNavigate }: NavItemProps) {
-  // Two-layer trick from the Next.js version: invisible bold text reserves
-  // width so hovering to bold doesn't shift layout.
   return (
-    <a href={href} className="group shrink-0 text-base" onClick={onNavigate}>
-      <span className="relative inline-block whitespace-nowrap">
-        <span className="invisible select-none font-bold" aria-hidden="true">
-          {label}
-        </span>
-        <span
-          className={cn(
-            "absolute inset-0 text-left transition-colors duration-150 ease-out",
-            active
-              ? "font-bold text-header-logo"
-              : "text-muted-foreground group-hover:font-bold group-hover:text-header-logo"
-          )}
-        >
-          {label}
-        </span>
-      </span>
+    <a
+      href={href}
+      className={cn(
+        "shrink-0 whitespace-nowrap font-ui text-sm transition-colors",
+        active ? "font-semibold text-header-logo" : "text-muted-foreground hover:text-header-logo",
+      )}
+      onClick={onNavigate}
+    >
+      {label}
     </a>
   );
 }
