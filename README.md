@@ -106,37 +106,4 @@ pnpm dev
 The development server runs on `http://localhost:4321` by default. Fill in the
 local values in `.dev.vars` before using authenticated or AI-backed features.
 For Google sign-in locally, configure `GOOGLE_CLIENT_ID` and
-`GOOGLE_CLIENT_SECRET`, and add this callback URL to the Google OAuth client:
-
-```text
-http://localhost:4321/api/auth/callback/google
-```
-
-The production callback URL is:
-
-```text
-https://pantry-plan.jamesqquick.workers.dev/api/auth/callback/google
-```
-
-Never commit `.dev.vars` or real credentials.
-
-### Commands
-
-```bash
-pnpm dev                    # Start the Astro development server
-pnpm build                  # Build for production
-pnpm preview                # Preview the built Worker locally (run pnpm build first)
-pnpm deploy                 # Build and deploy to Cloudflare Workers
-pnpm cf-typegen             # Regenerate Cloudflare worker types
-
-pnpm db:generate            # Generate a Drizzle migration
-pnpm db:migrate:local       # Apply D1 migrations locally
-pnpm db:migrate:remote      # Apply D1 migrations remotely
-pnpm db:studio              # Open Drizzle Studio
-
-pnpm test                   # Run the test suite once
-pnpm test:watch             # Run Vitest in watch mode
-```
-
-See [`docs/HANDOFF.md`](docs/HANDOFF.md) for internal migration history and
-engineering notes.
+`GOOGLE_CLIENT_SECRET`.
