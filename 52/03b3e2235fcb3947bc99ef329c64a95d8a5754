@@ -1,0 +1,63 @@
+package-lock.json
+  s_66828d9cd66c1b::t_a08a5fdf475cf7 13,23,361-403,447-582,613-655,665-800,886-906,1097-1102,2754-2778,4163-4165,4168-4170,4173-4175,4178-4179,4182-4256,4362-4367,4489-5380,5388-5391,5393-5397,5400-5403,5405-5406,5409,5412-5416,5418-5420,5422-5423,5426-5429,5432-5437,5440,5443-5453,5455-5494,5496-5505,5507-5508,5510-5511,5514-5518,5520,5523,5526-5529,5532-5539,5542-5545,5548-5554,5557-5560,5563-5571,5574-5577,5580-5588,5591-5594,5597-5605,6250-6272,7319-7324,7474-7485,7863-7868,9044-9080,9340-9356,11827-11829
+package.json
+  s_66828d9cd66c1b::t_fb9dcceaccc8f6 25,35
+src/actions/import.ts
+  s_66828d9cd66c1b::t_02ab6385023f5b 31-35,345-348,351
+src/actions/index.ts
+  s_66828d9cd66c1b::t_e578d617c5651e 12,30
+src/actions/mcp-keys.ts
+  s_66828d9cd66c1b::t_1b0066496a4181 1-44
+src/components/profile/McpApiKeys.tsx
+  s_66828d9cd66c1b::t_3955399c3e2172 1-176
+src/db/migrations/0001_cloudy_the_liberteens.sql
+  s_66828d9cd66c1b::t_751808ce755e8e 1-13
+src/db/migrations/0002_account_issuer.sql
+  s_66828d9cd66c1b::t_680a7bf4da8fa3 1-3
+src/db/migrations/meta/0001_snapshot.json
+  s_66828d9cd66c1b::t_292d684d6d58cc 4-5,104,109,116-117,199,206-207,525,532-533,538,545-546,606,613-614,706,713-714,839,846-847,1007,1014-1015,1020,1027-1028,1081,1088-1089,1142,1149-1150,1155,1162-1163,1224,1231-1232,1301,1308-1309,1385,1392-1393,1398,1405-1406,1496,1503-1504,1509,1516-1606,1618-1619,1624
+src/db/migrations/meta/0002_snapshot.json
+  s_66828d9cd66c1b::t_bdd5e26c955082 1-1641
+src/db/migrations/meta/_journal.json
+  s_66828d9cd66c1b::t_25ed1200f274e7 15-21,23,27
+src/db/schema/index.ts
+  s_66828d9cd66c1b::t_a24f53b9720f14 11
+src/db/schema/mcp-api-keys.ts
+  s_66828d9cd66c1b::t_1efd2d711da212 1-24
+src/features/mcp/mcp.schemas.test.ts
+  s_66828d9cd66c1b::t_1ff0b00768d1ae 1-32
+src/features/mcp/mcp.schemas.ts
+  s_66828d9cd66c1b::t_423a7498c33c8e 1-29
+src/features/recipes/create-text-recipe.ts
+  s_66828d9cd66c1b::t_e72a72321889b0 1-87
+src/lib/mcp/api-keys.test.ts
+  s_66828d9cd66c1b::t_a9cfc5036fd1de 1-29
+src/lib/mcp/api-keys.ts
+  s_66828d9cd66c1b::t_fbdee5dc47d6f7 1-119
+src/lib/mcp/server.ts
+  s_66828d9cd66c1b::t_db5c8cea1a1bb3 1-178
+src/lib/parse/fetch-html.test.ts
+  s_66828d9cd66c1b::t_45d29fdd78c63c 1-36
+src/lib/parse/fetch-html.ts
+  s_66828d9cd66c1b::t_5ecfe5f278c6a7 7,26,34-60
+src/middleware.ts
+  s_66828d9cd66c1b::t_43a2b918beee7e 36-40
+src/pages/mcp.ts
+  s_66828d9cd66c1b::t_bb449a8985e9ed 1-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "5203b3e2235fcb3947bc99ef329c64a95d8a5754",
+  "prompts": {},
+  "sessions": {
+    "s_66828d9cd66c1b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fc9c95369ffeFm3iK6X7VEhZnt",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
