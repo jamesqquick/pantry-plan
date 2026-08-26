@@ -33,6 +33,11 @@ function isPublicPath(pathname: string): boolean {
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  const { pathname } = context.url;
+  // MCP requests authenticate with a profile-generated bearer key in the
+  // endpoint itself, not with a browser session.
+  if (pathname === "/mcp") return next();
+
   const auth = createAuth(env);
   const result = await auth.api.getSession({
     headers: context.request.headers,
@@ -43,7 +48,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
   context.locals.user = (result?.user ?? null) as App.Locals["user"];
   context.locals.session = result?.session ?? null;
 
-  const { pathname } = context.url;
   const isAuthed = !!context.locals.session;
 
   // Already signed in? Don't show login/register — bounce to recipes.

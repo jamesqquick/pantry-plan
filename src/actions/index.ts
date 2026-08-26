@@ -9,6 +9,7 @@ import { recipeImport } from "./import";
 import { ingredientMapping } from "./ingredient-mapping";
 import { enhance } from "./enhance";
 import { profile } from "./profile";
+import { mcpKeys } from "./mcp-keys";
 
 /**
  * Every mutation / authenticated read is namespaced here. Callers import from
@@ -26,4 +27,5 @@ export const server = {
   ingredientMapping,
   enhance,
   profile,
+  mcpKeys,
 };

@@ -33,7 +33,7 @@ export const user = sqliteTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex("user_email_key").on(t.email)]
+  (t) => [uniqueIndex("user_email_key").on(t.email)],
 );
 
 /**
@@ -54,7 +54,7 @@ export const session = sqliteTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex("session_token_key").on(t.token)]
+  (t) => [uniqueIndex("session_token_key").on(t.token)],
 );
 
 /**
@@ -62,27 +62,35 @@ export const session = sqliteTable(
  * For email/password, providerId = "credential" and password holds the hash.
  * For OAuth (future), accessToken / refreshToken / scope / idToken are used.
  */
-export const account = sqliteTable("account", {
-  id: cuidPk(),
-  userId: text("userId")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  accountId: text("accountId").notNull(),
-  providerId: text("providerId").notNull(),
-  accessToken: text("accessToken"),
-  refreshToken: text("refreshToken"),
-  accessTokenExpiresAt: integer("accessTokenExpiresAt", {
-    mode: "timestamp_ms",
-  }),
-  refreshTokenExpiresAt: integer("refreshTokenExpiresAt", {
-    mode: "timestamp_ms",
-  }),
-  scope: text("scope"),
-  idToken: text("idToken"),
-  password: text("password"),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-});
+export const account = sqliteTable(
+  "account",
+  {
+    id: cuidPk(),
+    userId: text("userId")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    // Better Auth scopes account identity by issuer.
+    issuer: text("issuer").notNull().default("local:credential"),
+    accountId: text("accountId").notNull(),
+    providerId: text("providerId").notNull(),
+    accessToken: text("accessToken"),
+    refreshToken: text("refreshToken"),
+    accessTokenExpiresAt: integer("accessTokenExpiresAt", {
+      mode: "timestamp_ms",
+    }),
+    refreshTokenExpiresAt: integer("refreshTokenExpiresAt", {
+      mode: "timestamp_ms",
+    }),
+    scope: text("scope"),
+    idToken: text("idToken"),
+    password: text("password"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("account_issuer_account_id_key").on(t.issuer, t.accountId),
+  ],
+);
 
 /**
  * Verification — Better Auth verification tokens (email verify, reset, etc.).

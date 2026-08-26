@@ -4,6 +4,7 @@
  */
 
 const ALLOWED_PROTOCOLS = ["http:", "https:"];
+const MAX_HTML_BYTES = 1_000_000;
 
 function isUrlAllowed(url: URL): boolean {
   if (!ALLOWED_PROTOCOLS.includes(url.protocol)) return false;
@@ -22,6 +23,7 @@ export async function fetchHtml(urlString: string): Promise<string> {
   }
   const res = await fetch(urlString, {
     headers: { "User-Agent": "RecipesApp/1.0 (compatible; parse)" },
+    redirect: "error",
     signal: AbortSignal.timeout(15_000),
   });
   if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
@@ -29,5 +31,31 @@ export async function fetchHtml(urlString: string): Promise<string> {
   if (!contentType.includes("text/html")) {
     throw new Error("URL did not return HTML");
   }
-  return res.text();
+  const contentLength = Number(res.headers.get("content-length"));
+  if (Number.isFinite(contentLength) && contentLength > MAX_HTML_BYTES) {
+    throw new Error("Recipe page is too large");
+  }
+
+  if (!res.body) throw new Error("Recipe page had no response body");
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_HTML_BYTES) throw new Error("Recipe page is too large");
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(bytes);
 }
