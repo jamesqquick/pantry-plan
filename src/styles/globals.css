@@ -12,35 +12,36 @@
 :root {
   /* Native UI (scrollbars, form controls, autofill) follows the theme. */
   color-scheme: light;
-  --radius: 1.25rem;
+  --radius: 0.375rem;
+  --font-ui: var(--font-body);
+  --font-editorial: var(--font-display);
   /* Core — white background, warm text */
-  --background: 0 0% 100%;
-  --foreground: 25 18% 14%;
-  --card: 0 0% 100%;
-  --card-foreground: 25 18% 14%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 25 18% 14%;
-  /* Primary — #802E00 (deep rust/brown accent) */
-  --primary: 22 100% 25%;
+   --background: 35 100% 98%;
+   --foreground: 20 18% 17%;
+   --card: 35 100% 99%;
+   --card-foreground: 20 18% 17%;
+   --popover: 35 100% 99%;
+   --popover-foreground: 20 18% 17%;
+   /* Primary — warm burnt orange from the Clean 2 reference. */
+   --primary: 20 63% 40%;
   --primary-foreground: 0 0% 100%;
-  --primary-on-background: 22 100% 25%;
-  --secondary: 35 25% 92%;
-  --secondary-foreground: 25 18% 14%;
-  --muted: 35 20% 93%;
-  --muted-foreground: 25 10% 48%;
-  /* Accent — #FDF6F6 (very light blush) */
-  --accent: 0 63% 98%;
-  --accent-foreground: 25 18% 14%;
-  --destructive: 9 45% 48%;
+   --primary-on-background: 20 63% 40%;
+   --secondary: 30 43% 92%;
+   --secondary-foreground: 20 18% 17%;
+   --muted: 30 35% 94%;
+   --muted-foreground: 25 15% 49%;
+   --accent: 30 50% 95%;
+   --accent-foreground: 20 18% 17%;
+   --destructive: 8 55% 48%;
   --destructive-foreground: 0 0% 100%;
-  --border: 30 18% 88%;
-  --input: 30 18% 88%;
-  --ring: 22 100% 25%;
+   --border: 28 35% 87%;
+   --input: 28 35% 87%;
+   --ring: 20 63% 40%;
   /* Extended — app-specific */
-  --panel: 35 30% 95%;
-  --panel-foreground: 25 18% 14%;
-  --divider: 30 15% 88%;
-  --success: 145 35% 38%;
+   --panel: 30 45% 94%;
+   --panel-foreground: 20 18% 17%;
+   --divider: 28 35% 87%;
+   --success: 125 30% 38%;
   --success-foreground: 0 0% 98%;
   --warning: 38 85% 48%;
   --warning-foreground: 0 0% 10%;
@@ -53,57 +54,57 @@
   --chart-4: 9 40% 50%;
   --chart-5: 75 18% 55%;
   /* Sidebar */
-  --sidebar: 35 40% 96%;
-  --sidebar-foreground: 25 18% 14%;
-  --sidebar-primary: 22 100% 25%;
+   --sidebar: 30 45% 96%;
+   --sidebar-foreground: 20 18% 17%;
+   --sidebar-primary: 20 63% 40%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 0 63% 98%;
-  --sidebar-accent-foreground: 25 18% 14%;
-  --sidebar-border: 30 18% 88%;
-  --sidebar-ring: 22 100% 25%;
+   --sidebar-accent: 30 50% 95%;
+   --sidebar-accent-foreground: 20 18% 17%;
+   --sidebar-border: 28 35% 87%;
+   --sidebar-ring: 20 63% 40%;
   /* Primary icon container — light enough for primary (22 100% 25%) to meet contrast */
   --primary-icon-bg: 0 63% 98%;
   /* Foreground designed to contrast against --primary-icon-bg.
      Light mode: deep primary on near-white blush → ~11:1. */
-  --primary-icon-fg: 22 100% 25%;
+   --primary-icon-fg: 20 63% 40%;
   /* Header logo: primary in light; .dark on html switches --header-logo */
-  --header-logo: 22 100% 25%;
+   --header-logo: 20 63% 40%;
   /* Link/hover on card or popover: primary in light; in dark use card-foreground so primary is never on dark card */
-  --primary-on-card: 22 100% 25%;
+   --primary-on-card: 20 63% 40%;
   /* Inset shadow for .btn-primary — kept as a token so dark mode can tune it */
-  --primary-shadow: 22 100% 18%;
+   --primary-shadow: 20 63% 30%;
 }
 
 /* Dark: primary bumped to 40% lightness on backgrounds for 4.5:1+ contrast */
 .dark {
   /* Native UI (scrollbars, form controls, autofill) follows the theme. */
   color-scheme: dark;
-  --background: 60 5% 12%;
-  --foreground: 50 8% 92%;
-  --card: 50 6% 16%;
-  --card-foreground: 50 8% 92%;
-  --popover: 50 6% 16%;
-  --popover-foreground: 50 8% 92%;
-  --primary: 22 100% 25%;
+   --background: 24 10% 13%;
+   --foreground: 35 30% 92%;
+   --card: 24 9% 17%;
+   --card-foreground: 35 30% 92%;
+   --popover: 24 9% 17%;
+   --popover-foreground: 35 30% 92%;
+   --primary: 20 63% 38%;
   --primary-foreground: 0 0% 100%;
   /* Bumped from 25% → 48% lightness so rust on dark bg passes WCAG AA (4.5:1).
      hsl(22 100% 48%) ≈ #F55000 on hsl(60 5% 12%) ≈ 5.1:1. */
-  --primary-on-background: 22 85% 48%;
-  --secondary: 50 5% 22%;
-  --secondary-foreground: 50 8% 92%;
-  --muted: 50 5% 22%;
-  --muted-foreground: 50 5% 58%;
-  --accent: 50 5% 26%;
-  --accent-foreground: 50 8% 92%;
+   --primary-on-background: 20 70% 65%;
+   --secondary: 24 8% 23%;
+   --secondary-foreground: 35 30% 92%;
+   --muted: 24 8% 23%;
+   --muted-foreground: 30 12% 66%;
+   --accent: 24 8% 27%;
+   --accent-foreground: 35 30% 92%;
   --destructive: 9 45% 45%;
   --destructive-foreground: 0 0% 98%;
-  --border: 50 5% 22%;
-  --input: 50 5% 22%;
-  --ring: 22 100% 25%;
-  --panel: 55 6% 18%;
-  --panel-foreground: 50 8% 92%;
-  --divider: 50 4% 28%;
-  --success: 145 30% 42%;
+   --border: 24 8% 28%;
+   --input: 24 8% 28%;
+   --ring: 20 70% 65%;
+   --panel: 24 9% 21%;
+   --panel-foreground: 35 30% 92%;
+   --divider: 24 8% 28%;
+   --success: 125 28% 55%;
   --success-foreground: 0 0% 98%;
   --warning: 38 85% 50%;
   --warning-foreground: 0 0% 10%;
@@ -114,23 +115,23 @@
   --chart-3: 35 20% 52%;
   --chart-4: 9 45% 45%;
   --chart-5: 75 15% 50%;
-  --sidebar: 55 5% 15%;
-  --sidebar-foreground: 50 8% 92%;
-  --sidebar-primary: 22 100% 25%;
+   --sidebar: 24 9% 15%;
+   --sidebar-foreground: 35 30% 92%;
+   --sidebar-primary: 20 63% 48%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 50 5% 22%;
-  --sidebar-accent-foreground: 50 8% 92%;
-  --sidebar-border: 50 5% 22%;
-  --sidebar-ring: 22 100% 25%;
+   --sidebar-accent: 24 8% 23%;
+   --sidebar-accent-foreground: 35 30% 92%;
+   --sidebar-border: 24 8% 28%;
+   --sidebar-ring: 20 70% 65%;
   --primary-icon-bg: 0 0% 86%;
   /* Dark mode: the pill stays light (86%), so the FG must be dark to meet
      contrast. 25% lightness + primary hue gives ~9.5:1 — passes AAA. */
-  --primary-icon-fg: 22 100% 25%;
+   --primary-icon-fg: 20 63% 40%;
   --header-logo: 0 0% 100%;
-  --primary-on-card: 50 8% 92%;
+   --primary-on-card: 20 70% 65%;
   /* Darker inset shadow keeps the primary button's depth visible against
      dark backgrounds without bleeding rust into the surrounding surface. */
-  --primary-shadow: 22 100% 12%;
+   --primary-shadow: 20 63% 25%;
 }
 
 /* Tailwind v4 @theme — semantic utilities from CSS vars (HSL) */
@@ -180,15 +181,19 @@
   --color-sidebar-accent: hsl(var(--sidebar-accent));
   --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
   --color-sidebar-border: hsl(var(--sidebar-border));
-  --color-sidebar-ring: hsl(var(--sidebar-ring));
+   --color-sidebar-ring: hsl(var(--sidebar-ring));
+   --font-sans: var(--font-body), system-ui, sans-serif;
+   --font-serif: var(--font-display), Georgia, serif;
+   --font-ui: var(--font-body), system-ui, sans-serif;
+   --font-editorial: var(--font-display), Georgia, serif;
   --radius-xs: 0.125rem;
-  --radius-sm: calc(var(--radius) - 6px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-input: 10px;
+   --radius-sm: 0.25rem;
+   --radius-md: 0.375rem;
+   --radius-lg: 0.5rem;
+   --radius-xl: 0.75rem;
+   --radius-2xl: 1rem;
+   --radius-3xl: 1.25rem;
+   --radius-input: 6px;
 }
 
 /* 10px radius for inputs and buttons (single source of truth) */
@@ -304,9 +309,8 @@
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   border-radius: var(--radius-input);
-  box-shadow:
-    0 1px 0 hsl(var(--primary-shadow)) inset,
-    0 4px 12px -4px hsl(var(--primary) / 0.4);
+  border: 1px solid hsl(var(--primary));
+  box-shadow: none;
   transition:
     transform 150ms ease-out,
     box-shadow 150ms ease-out,
@@ -317,17 +321,10 @@
   cursor: not-allowed;
 }
 .btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    0 1px 0 hsl(var(--primary-shadow)) inset,
-    0 8px 20px -4px hsl(var(--primary) / 0.5);
-  filter: brightness(1.05);
+  background: hsl(var(--primary) / 0.9);
 }
 .btn-primary:active {
   transform: translateY(0);
-  box-shadow:
-    0 1px 0 hsl(var(--primary-shadow)) inset,
-    0 2px 6px -2px hsl(var(--primary) / 0.4);
 }
 .btn-primary:focus-visible {
   outline: 2px solid hsl(var(--ring));
@@ -342,21 +339,19 @@
   font-size: 0.875rem;  /* text-sm  */
   line-height: 1.25rem;
   font-weight: 600;     /* font-semibold */
-  background: hsl(var(--secondary));
+  background: hsl(var(--card));
   color: hsl(var(--secondary-foreground));
   border-radius: var(--radius-input);
   border: 1px solid hsl(var(--border));
-  transition:
-    transform 150ms ease-out,
-    background-color 150ms ease-out;
+  transition: background-color 150ms ease-out, border-color 150ms ease-out;
 }
 .btn-secondary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 .btn-secondary:hover {
-  transform: translateY(-1px);
   background: hsl(var(--accent));
+  border-color: hsl(var(--primary) / 0.35);
 }
 .btn-secondary:active {
   transform: translateY(0);

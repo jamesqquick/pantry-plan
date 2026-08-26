@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { Badge } from "./Badge";
 
 export type TagBadgeSize = "sm" | "default";
 
@@ -19,14 +20,14 @@ const sizes = {
  */
 export function TagBadge({ name, size = "default", className }: TagBadgeProps) {
   return (
-    <span
+    <Badge
       className={cn(
-        "inline-flex items-center rounded-full bg-primary-icon-bg font-semibold text-primary-icon-fg",
+        "inline-flex items-center rounded-full bg-secondary font-ui font-medium text-primary-on-card",
         sizes[size],
         className,
       )}
     >
       {name}
-    </span>
+    </Badge>
   );
 }

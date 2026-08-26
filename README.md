@@ -66,13 +66,25 @@ Secrets required:
 ```bash
 # Local: put in astro-app/.dev.vars
 AUTH_SECRET="<openssl rand -base64 32>"
-AUTH_URL="http://localhost:5175"   # match the port wrangler dev uses
+AUTH_URL="http://localhost:4321"
+GOOGLE_CLIENT_ID="<Google OAuth client ID>"
+GOOGLE_CLIENT_SECRET="<Google OAuth client secret>"
 
 # Production: set via wrangler
 wrangler secret put AUTH_SECRET
+wrangler secret put GOOGLE_CLIENT_ID
+wrangler secret put GOOGLE_CLIENT_SECRET
 ```
 
 `AUTH_URL` for production is set as a `var` in wrangler.jsonc (not a secret).
+Add these authorized redirect URIs to the Google OAuth client:
+
+- Local: `http://localhost:4321/api/auth/callback/google`
+- Production: `https://pantry-plan.jamesqquick.workers.dev/api/auth/callback/google`
+
+Existing password users connect Google from `/profile` after signing in with
+their password. This explicit linking step prevents an unverified matching email
+from taking over an existing account.
 
 ## Data migration from Turso
 

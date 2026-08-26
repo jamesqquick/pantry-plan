@@ -9,3 +9,7 @@ AUTH_SECRET=""
 # and to validate the Origin header on mutating requests.
 # `npm run dev` pins astro to port 4321.
 AUTH_URL="http://localhost:4321"
+
+# Google OAuth credentials from Google Cloud Console.
+GOOGLE_CLIENT_ID=""
+GOOGLE_CLIENT_SECRET=""

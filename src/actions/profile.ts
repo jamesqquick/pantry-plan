@@ -65,8 +65,7 @@ export const profile = {
       if (!credentialAccount?.password) {
         throw new ActionError({
           code: "BAD_REQUEST",
-          message:
-            "No password is set on this account. Please use the forgot-password flow to set one.",
+          message: "This account does not have a password sign-in method.",
         });
       }
 
