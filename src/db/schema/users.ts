@@ -33,7 +33,7 @@ export const user = sqliteTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex("user_email_key").on(t.email)]
+  (t) => [uniqueIndex("user_email_key").on(t.email)],
 );
 
 /**
@@ -54,7 +54,7 @@ export const session = sqliteTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex("session_token_key").on(t.token)]
+  (t) => [uniqueIndex("session_token_key").on(t.token)],
 );
 
 /**
@@ -89,7 +89,7 @@ export const account = sqliteTable(
   },
   (t) => [
     uniqueIndex("account_issuer_account_id_key").on(t.issuer, t.accountId),
-  ]
+  ],
 );
 
 /**

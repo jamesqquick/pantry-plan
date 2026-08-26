@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "10d08db9-1d7e-4614-a1d4-9a4b33309c1b",
-  "prevId": "ba46fadb-9b0b-46d7-987e-dd31a76be53f",
+  "id": "592c1659-5627-4a73-848b-57d4e7eb6727",
+  "prevId": "10d08db9-1d7e-4614-a1d4-9a4b33309c1b",
   "tables": {
     "account": {
       "name": "account",
@@ -20,6 +20,14 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "issuer": {
+          "name": "issuer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'local:credential'"
         },
         "accountId": {
           "name": "accountId",
@@ -101,7 +109,16 @@
           "default": "(unixepoch() * 1000)"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "account_issuer_account_id_key": {
+          "name": "account_issuer_account_id_key",
+          "columns": [
+            "issuer",
+            "accountId"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "account_userId_user_id_fk": {
           "name": "account_userId_user_id_fk",

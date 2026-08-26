@@ -16,7 +16,6 @@ import {
   recipeIngredient,
   recipeInstruction,
   recipeTag,
-  tag,
   ingredient,
   ingredientAlias,
 } from "@/db";
@@ -29,20 +28,11 @@ import {
   getDisplayTextFromIngredientLine,
 } from "@/lib/ingredients/parse-ingredient-line-structured";
 import { getDb, requireUser } from "./_shared";
-
-/** Filter tagIds to ones the user actually owns. */
-async function filterOwnedTagIds(
-  db: ReturnType<typeof getDb>,
-  userId: string,
-  tagIds: readonly string[],
-): Promise<string[]> {
-  if (tagIds.length === 0) return [];
-  const owned = await db
-    .select({ id: tag.id })
-    .from(tag)
-    .where(and(eq(tag.userId, userId), inArray(tag.id, [...tagIds])));
-  return owned.map((r) => r.id);
-}
+import {
+  createTextOnlyRecipe,
+  filterOwnedTagIds,
+  RecipeCreationError,
+} from "@/features/recipes/create-text-recipe";
 
 export const recipeImport = {
   /**
@@ -352,82 +342,15 @@ export const recipeImport = {
     input: saveImportedRecipeTextOnlySchema,
     handler: async (input, ctx) => {
       const user = requireUser(ctx);
-      const db = getDb();
-
-      const { recipe: recipeData, ingredients } = input;
-
-      const [row] = await db
-        .insert(recipe)
-        .values({
-          userId: user.id,
-          title: recipeData.title,
-          sourceUrl: recipeData.sourceUrl || null,
-          imageUrl: recipeData.imageUrl || null,
-          servings: recipeData.servings ?? null,
-          prepTimeMinutes: recipeData.prepTimeMinutes ?? null,
-          cookTimeMinutes: recipeData.cookTimeMinutes ?? null,
-          totalTimeMinutes: recipeData.totalTimeMinutes ?? null,
-          notes: recipeData.notes ?? null,
-        })
-        .returning({ id: recipe.id });
-      if (!row) {
+      try {
+        return await createTextOnlyRecipe(getDb(), user.id, input);
+      } catch (error) {
+        if (!(error instanceof RecipeCreationError)) throw error;
         throw new ActionError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create recipe",
+          message: error.message,
         });
       }
-      const recipeId = row.id;
-
-      // Resolve tags before the atomic batch
-      const validTagIds = await filterOwnedTagIds(
-        db,
-        user.id,
-        recipeData.tagIds,
-      );
-
-      // Atomically insert instructions + ingredients + tags.
-      // D1 guarantees all statements in a batch succeed or fail together.
-      // Param-per-row counts (incl. cuid id from $defaultFn):
-      //   recipeInstruction: 4, recipeIngredient (text-only): 8, recipeTag: 3
-      const instructionRows = recipeData.instructions.map(
-        (text, sortOrder) => ({
-          recipeId,
-          sortOrder,
-          text: text.trim() || "\u2014",
-        }),
-      );
-      const ingredientRows = ingredients.map((line, i) => ({
-        recipeId,
-        ingredientId: null,
-        quantity: null,
-        unit: null,
-        displayText: line.trim(),
-        rawText: line.trim(),
-        sortOrder: i,
-      }));
-      const tagRows = validTagIds.map((tagId) => ({ recipeId, tagId }));
-
-      const batchQueries = [
-        ...chunkRows(instructionRows, 4).map((chunk) =>
-          db.insert(recipeInstruction).values(chunk),
-        ),
-        ...chunkRows(ingredientRows, 8).map((chunk) =>
-          db.insert(recipeIngredient).values(chunk),
-        ),
-        ...chunkRows(tagRows, 3).map((chunk) =>
-          db.insert(recipeTag).values(chunk),
-        ),
-      ];
-      if (batchQueries.length > 0) {
-        await db.batch(
-          batchQueries as [
-            (typeof batchQueries)[0],
-            ...typeof batchQueries,
-          ],
-        );
-      }
-
-      return { recipeId };
     },
   }),
 };
