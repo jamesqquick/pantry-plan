@@ -2,10 +2,20 @@
 import AppLayout from "@/layouts/AppLayout.astro";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { ChangePasswordForm } from "@/components/profile/ChangePasswordForm";
+import { McpApiKeys } from "@/components/profile/McpApiKeys";
+import { env } from "cloudflare:workers";
+import { createDb } from "@/db";
+import { listMcpApiKeys } from "@/lib/mcp/api-keys";
 
 export const prerender = false;
 
 const user = Astro.locals.user!;
+const apiKeys = await listMcpApiKeys(createDb(env.DB), user.id);
+const serializedApiKeys = apiKeys.map((key) => ({
+  ...key,
+  createdAt: key.createdAt.toISOString(),
+  lastUsedAt: key.lastUsedAt?.toISOString() ?? null,
+}));
 ---
 
 <AppLayout title="Profile — Pantry Plan">
@@ -13,7 +23,7 @@ const user = Astro.locals.user!;
     <header class="space-y-1">
       <h1 class="text-3xl font-bold text-foreground">Profile</h1>
       <p class="text-sm text-muted-foreground">
-        Manage your account details and password.
+        Manage your account details, password, and integrations.
       </p>
     </header>
 
@@ -25,5 +35,11 @@ const user = Astro.locals.user!;
     />
 
     <ChangePasswordForm client:load />
+
+    <McpApiKeys
+      client:load
+      endpoint={`${Astro.url.origin}/mcp`}
+      initialKeys={serializedApiKeys}
+    />
   </div>
 </AppLayout>

@@ -8,3 +8,4 @@ export * from "./recipes";
 export * from "./tags";
 export * from "./orders";
 export * from "./meal-plan";
+export * from "./mcp-api-keys";
