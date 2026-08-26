@@ -5,11 +5,13 @@ import { saveImportedRecipeTextOnlySchema } from "@/features/import/import.schem
 import {
   createRecipeToolSchema,
   importRecipeFromUrlToolSchema,
+  searchRecipesToolSchema,
 } from "@/features/mcp/mcp.schemas";
 import { createTextOnlyRecipe } from "@/features/recipes/create-text-recipe";
 import { parseRecipeFromUrl } from "@/lib/parse/parse-recipe";
 import { isSafeHttpUrl } from "@/lib/url";
 import { authenticateMcpApiKey } from "./api-keys";
+import { searchRecipes } from "./search-recipes";
 
 function toolError(message: string) {
   return {
@@ -142,6 +144,47 @@ function createServer(
           }),
         );
         return toolError("Could not import a recipe from that URL.");
+      }
+    },
+  );
+
+  server.registerTool(
+    "search_recipes",
+    {
+      description:
+        "Search the authenticated user's Pantry Plan recipes by title.",
+      inputSchema: searchRecipesToolSchema.shape,
+    },
+    async ({ query, limit }) => {
+      if (await isRateLimited(rateLimit, keyId)) {
+        return toolError("Too many requests. Please try again later.");
+      }
+      try {
+        const results = await searchRecipes(db, userId, query, limit);
+        const recipes = results.map((result) => ({
+          ...result,
+          recipeUrl: new URL(`/recipes/${result.id}`, origin).toString(),
+        }));
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text:
+                recipes.length === 0
+                  ? `No recipes found for "${query}".`
+                  : `Found ${recipes.length} recipe${recipes.length === 1 ? "" : "s"} matching "${query}".\n${recipes.map((recipe) => `- ${recipe.title}: ${recipe.recipeUrl}`).join("\n")}`,
+            },
+          ],
+          structuredContent: { query, count: recipes.length, recipes },
+        };
+      } catch (error) {
+        console.error(
+          JSON.stringify({
+            message: "MCP recipe search failed",
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
+        return toolError("Could not search recipes.");
       }
     },
   );
