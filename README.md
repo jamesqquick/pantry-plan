@@ -1,133 +1,142 @@
-# Pantry Plan — Astro 6 on Cloudflare
+# Pantry Plan
 
-Migration target for the Pantry Plan app. See the root repo for the current Next.js app.
+Pantry Plan keeps your recipes, weekly meals, and grocery shopping in one place.
 
-## Stack
+[Open Pantry Plan](https://pantry-plan.jamesqquick.workers.dev)
 
-- **Astro 6** (server output) with React integration
-- **Tailwind CSS v4** with shadcn-style design tokens (Potluck Pal)
-- **Cloudflare Workers** (via `@astrojs/cloudflare` v13 adapter)
-- **Cloudflare KV** for Astro sessions (auto-provisioned as `SESSION`)
-- **Cloudflare D1** with **Drizzle ORM** (bound as `DB`)
-- **Better Auth** (email/password) with scrypt via `@noble/hashes` (Workers-compatible)
-- Coming in later phases: **Workers AI**, **R2**
+## What You Can Do
 
-## Scripts
+### Import recipes
 
-```bash
-npm run dev              # Astro dev server (workerd runtime)
-npm run build            # Build for production
-npm run preview          # Preview built output with wrangler dev
-npm run deploy           # Build + deploy to Cloudflare Workers
-npm run cf-typegen       # Regenerate worker-configuration.d.ts from wrangler.jsonc
+Add recipes from a URL, from a cookbook or recipe photo when photo import is
+available, or by entering one manually. Review the imported draft before saving
+it to your collection.
 
-# Database (D1 + Drizzle)
-npm run db:generate      # Generate SQL migration from schema changes
-npm run db:migrate:local # Apply migrations to local D1
-npm run db:migrate:remote # Apply migrations to remote D1
-npm run db:studio        # Open Drizzle Studio (requires CLOUDFLARE_* env vars)
+### Organize your recipes
 
-# Tests (Vitest)
-npm test                 # Run all tests once
-npm run test:watch       # Watch mode
+Browse and search your saved recipes, filter them with tags, view ingredients
+and instructions, and edit, duplicate, or delete recipes.
+
+### Plan your week
+
+Use the weekly meal plan to assign recipes to meals and move or edit planned
+meals as your week changes.
+
+### Build a grocery list
+
+Create an order from selected recipes and batch sizes. Pantry Plan combines the
+ingredients into a grocery list, converts compatible units, and estimates the
+cost for each batch.
+
+### Manage your kitchen
+
+Maintain your ingredient catalog and manage your account from Profile. Profile
+settings include your name, password, connected Google account, and integrations.
+
+## Getting Started
+
+1. [Create an account](https://pantry-plan.jamesqquick.workers.dev/register) or [sign in](https://pantry-plan.jamesqquick.workers.dev/login).
+2. Add your first recipe from a URL, a photo if the option is available, or manual entry.
+3. Review and save the recipe.
+4. Add recipes to a week in **Meal plan**.
+5. Create an order to generate your grocery list and cost estimate.
+
+Your recipes, ingredients, meal plans, and orders are private to your account.
+
+## AI-Powered Import
+
+Recipe URLs are parsed for structured recipe data, while photo-based recipe
+extraction uses Cloudflare Workers AI. Import features include clear error and
+loading states, and expensive import requests are rate limited. Photo import
+may be enabled selectively, so the **From photo** option is not guaranteed to
+appear for every account.
+
+## MCP Integration
+
+Pantry Plan can connect to AI clients that support the Model Context Protocol
+(MCP). To configure access:
+
+1. Sign in and open **Profile**.
+2. Create a named MCP key for the client you want to connect.
+3. Copy the key immediately. Pantry Plan cannot show it again.
+4. Configure the client with the MCP endpoint and bearer token.
+
+The hosted MCP endpoint is:
+
+```text
+https://pantry-plan.jamesqquick.workers.dev/mcp
 ```
 
-## Local setup
+Each key authenticates access to your own Pantry Plan account. You can revoke
+keys from Profile at any time. Treat MCP keys like passwords.
 
-1. `cp .dev.vars.example .dev.vars` and fill in secrets
-2. `npm run dev` — starts Astro dev server on port 4321 (falls through to 4322+ if busy)
-3. `npm run preview` — runs the built app against real `workerd` runtime
+The current MCP tools are:
 
-## Deployment
+- `create_recipe` creates a recipe in your account.
+- `import_recipe_from_url` fetches and saves a recipe from a URL.
+- `search_recipes` searches your recipes by title.
 
-Deployed at: https://pantry-plan.jamesqquick.workers.dev
+## For Contributors
 
-Bindings:
+Pantry Plan is an Astro application deployed to Cloudflare Workers.
 
-- `DB` — D1 database `pantry-plan` (id: `c34f212d-1ce2-478a-9366-bb6f764d9f23`)
-- `SESSION` — KV namespace for Astro sessions
-- `IMAGES` — Cloudflare Images
-- `ASSETS` — static assets
+### Stack
 
-## Verification pages (auth-protected)
+- Astro 6 with server-rendered pages and React islands
+- Cloudflare Workers with D1, KV sessions, Workers AI, and feature flags
+- Drizzle ORM for database access
+- Better Auth for email/password and Google account authentication
+- Tailwind CSS v4
+- Vitest and Zod
 
-- `/dev/db-test` — renders ingredient catalog from D1 to prove Drizzle → D1
-- `/dev/auth-debug` — dumps the current session, user/session/account table rows
-- `/dev/actions` — action playground: click buttons to round-trip every action
+### Prerequisites
 
-## Auth
+- Node.js `>=22.12.0`
+- pnpm `10.11.1`
 
-Email/password via **Better Auth** (`src/lib/auth.ts`). Sessions stored in the
-D1 `session` table, keyed by a `better-auth.session_token` cookie. Password
-hashes live in `account.password` (scrypt via `@noble/hashes`).
-
-Secrets required:
+### Local development
 
 ```bash
-# Local: put in astro-app/.dev.vars
-AUTH_SECRET="<openssl rand -base64 32>"
-AUTH_URL="http://localhost:4321"
-GOOGLE_CLIENT_ID="<Google OAuth client ID>"
-GOOGLE_CLIENT_SECRET="<Google OAuth client secret>"
-
-# Production: set via wrangler
-wrangler secret put AUTH_SECRET
-wrangler secret put GOOGLE_CLIENT_ID
-wrangler secret put GOOGLE_CLIENT_SECRET
+pnpm install
+cp .dev.vars.example .dev.vars
+pnpm db:migrate:local
+pnpm dev
 ```
 
-`AUTH_URL` for production is set as a `var` in wrangler.jsonc (not a secret).
-Add these authorized redirect URIs to the Google OAuth client:
+The development server runs on `http://localhost:4321` by default. Fill in the
+local values in `.dev.vars` before using authenticated or AI-backed features.
+For Google sign-in locally, configure `GOOGLE_CLIENT_ID` and
+`GOOGLE_CLIENT_SECRET`, and add this callback URL to the Google OAuth client:
 
-- Local: `http://localhost:4321/api/auth/callback/google`
-- Production: `https://pantry-plan.jamesqquick.workers.dev/api/auth/callback/google`
+```text
+http://localhost:4321/api/auth/callback/google
+```
 
-Existing password users connect Google from `/profile` after signing in with
-their password. This explicit linking step prevents an unverified matching email
-from taking over an existing account.
+The production callback URL is:
 
-## Data migration from Turso
+```text
+https://pantry-plan.jamesqquick.workers.dev/api/auth/callback/google
+```
 
-Two-step process: snapshot the live Turso DB to local JSON, then transform
-that into a D1-compatible SQL file and apply it.
+Never commit `.dev.vars` or real credentials.
+
+### Commands
 
 ```bash
-# 1. Capture snapshot (read-only; requires ../.env with TURSO_* vars)
-npm run snapshot:turso
+pnpm dev                    # Start the Astro development server
+pnpm build                  # Build for production
+pnpm preview                # Preview the built Worker locally (run pnpm build first)
+pnpm deploy                 # Build and deploy to Cloudflare Workers
+pnpm cf-typegen             # Regenerate Cloudflare worker types
 
-# 2. Generate load.sql from the snapshot
-npm run migrate:from-snapshot
+pnpm db:generate            # Generate a Drizzle migration
+pnpm db:migrate:local       # Apply D1 migrations locally
+pnpm db:migrate:remote      # Apply D1 migrations remotely
+pnpm db:studio              # Open Drizzle Studio
 
-# 3. Apply to local D1
-npx wrangler d1 execute pantry-plan --local --file=data/turso-snapshot/load.sql
-
-# 4. Apply to remote D1 (production)
-npx wrangler d1 execute pantry-plan --remote --file=data/turso-snapshot/load.sql
+pnpm test                   # Run the test suite once
+pnpm test:watch             # Run Vitest in watch mode
 ```
 
-The snapshot dir and `load.sql` are both gitignored (they contain real user
-data). Every migrated user gets a sentinel `account.password` that always
-fails scrypt verification — they must use "forgot password" on first login.
-(bcrypt hashes from Turso can't be re-wrapped as scrypt.)
-
-## Migration Phases
-
-- [x] **Phase 0** — Scaffolding, design tokens, deploy
-- [x] **Phase 1** — D1 + Drizzle ORM schema
-- [x] **Phase 2** — Better Auth (email + password, middleware protection)
-- [x] **Phase 2.5** — Data migration: import Turso snapshot into D1 (1053 rows)
-- [x] **Phase 3** — Layouts & navigation (header, user menu, mobile menu, 404)
-- [x] **Phase 4** — Query-layer library + Zod schemas + test suite (78 tests passing)
-- [x] **Phase 5** — Astro actions: tags, ingredients, recipes, recipeIngredients, orders, mealPlan
-- [x] **Phase 6** — Recipe pages: list, detail, create, edit, delete, duplicate
-- [ ] **Phase 4** — Query layer & utilities
-- [ ] **Phase 5** — Astro actions
-- [ ] **Phase 6** — Recipe pages
-- [ ] **Phase 7** — Recipe import (URL + AI)
-- [ ] **Phase 8** — Ingredients catalog
-- [ ] **Phase 9** — Orders & grocery lists
-- [ ] **Phase 10** — Meal planning
-- [ ] **Phase 11** — Profile & settings
-- [ ] **Phase 12** — Workers AI integration
-- [ ] **Phase 13** — R2 storage (optional)
-- [ ] **Phase 14** — Polish & production
+See [`docs/HANDOFF.md`](docs/HANDOFF.md) for internal migration history and
+engineering notes.
