@@ -20,6 +20,11 @@ export const importRecipeFromUrlToolSchema = z.object({
   url: z.string().max(2_048),
 });
 
+export const searchRecipesToolSchema = z.object({
+  query: z.string().trim().min(1).max(200),
+  limit: z.number().int().min(1).max(25).default(10),
+});
+
 export const createMcpApiKeySchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
 });
