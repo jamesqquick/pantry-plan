@@ -32,12 +32,11 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "astro": "^6.1.8",
-    "better-auth": "^1.6.5",
+    "better-auth": "1.7.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.8.0",
-
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "rehype-sanitize": "^6.0.0",

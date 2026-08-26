@@ -2,10 +2,23 @@
 import AppLayout from "@/layouts/AppLayout.astro";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { ChangePasswordForm } from "@/components/profile/ChangePasswordForm";
+import { ConnectedAccounts } from "@/components/profile/ConnectedAccounts";
+import { env } from "cloudflare:workers";
+import { createDb } from "@/db";
+import { account } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export const prerender = false;
 
 const user = Astro.locals.user!;
+const db = createDb(env.DB);
+const accounts = await db
+  .select({ providerId: account.providerId })
+  .from(account)
+  .where(eq(account.userId, user.id));
+const hasPassword = accounts.some((item) => item.providerId === "credential");
+const hasGoogle = accounts.some((item) => item.providerId === "google");
+const authError = Astro.url.searchParams.get("auth_error") ?? Astro.url.searchParams.get("error");
 ---
 
 <AppLayout title="Profile — Pantry Plan">
@@ -13,7 +26,7 @@ const user = Astro.locals.user!;
     <header class="space-y-1">
       <h1 class="text-3xl font-bold text-foreground">Profile</h1>
       <p class="text-sm text-muted-foreground">
-        Manage your account details and password.
+        Manage your account details and sign-in methods.
       </p>
     </header>
 
@@ -24,6 +37,14 @@ const user = Astro.locals.user!;
       role={user.role ?? "USER"}
     />
 
-    <ChangePasswordForm client:load />
+    <ConnectedAccounts client:load hasPassword={hasPassword} hasGoogle={hasGoogle} />
+
+    {authError === "google_link_failed" && (
+      <p role="alert" class="text-sm text-destructive">
+        Google could not be connected. Please try again.
+      </p>
+    )}
+
+    {hasPassword && <ChangePasswordForm client:load />}
   </div>
 </AppLayout>

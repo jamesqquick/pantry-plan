@@ -101,6 +101,19 @@ function buildOptions(db: Db, env: Env): BetterAuthOptions {
       autoSignIn: true,
       password: { hash: hashPassword, verify: verifyPassword },
     },
+    socialProviders: {
+      google: {
+        clientId: env.GOOGLE_CLIENT_ID,
+        clientSecret: env.GOOGLE_CLIENT_SECRET,
+      },
+    },
+    account: {
+      accountLinking: {
+        trustedProviders: ["google"],
+        disableImplicitLinking: true,
+        allowDifferentEmails: false,
+      },
+    },
     user: {
       additionalFields: {
         role: {
