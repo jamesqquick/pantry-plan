@@ -3,6 +3,8 @@ import { signIn } from "@/lib/auth-client";
 import { safeRelativePath } from "@/lib/navigate";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { getGoogleAuthErrorMessage } from "@/lib/auth-errors";
 
 interface Props {
   /** Optional post-login redirect target. */
@@ -15,12 +17,26 @@ export function LoginForm({ next }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
+  const oauthError = typeof window !== "undefined"
+    ? (() => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get("auth_error") ?? params.get("error");
+      })()
+    : null;
+
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setPending(true);
 
-    const { error: err } = await signIn.email({ email, password });
+    let err: { message?: string } | null = null;
+    try {
+      ({ error: err } = await signIn.email({ email, password }));
+    } catch {
+      setError("Unable to reach the sign-in service. Please try again.");
+      setPending(false);
+      return;
+    }
 
     if (err) {
       setError(err.message || "Invalid email or password");
@@ -74,9 +90,23 @@ export function LoginForm({ next }: Props) {
         </p>
       )}
 
+      {oauthError && !error && (
+        <p role="alert" className="text-sm text-destructive">
+          {getGoogleAuthErrorMessage(oauthError)}
+        </p>
+      )}
+
       <Button type="submit" disabled={pending} className="w-full py-2.5">
         {pending ? "Signing in…" : "Sign in"}
       </Button>
+
+      <div className="relative flex items-center py-1" aria-hidden="true">
+        <div className="grow border-t border-border" />
+        <span className="px-3 text-xs text-muted-foreground">OR</span>
+        <div className="grow border-t border-border" />
+      </div>
+
+      <GoogleSignInButton next={next} />
 
       <p className="text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{" "}

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { signUp } from "@/lib/auth-client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 export function RegisterForm() {
   const [name, setName] = useState("");
@@ -15,7 +16,14 @@ export function RegisterForm() {
     setError(null);
     setPending(true);
 
-    const { error: err } = await signUp.email({ name, email, password });
+    let err: { message?: string } | null = null;
+    try {
+      ({ error: err } = await signUp.email({ name, email, password }));
+    } catch {
+      setError("Unable to reach the sign-up service. Please try again.");
+      setPending(false);
+      return;
+    }
 
     if (err) {
       setError(err.message || "Could not create account");
@@ -89,6 +97,14 @@ export function RegisterForm() {
       <Button type="submit" disabled={pending} className="w-full py-2.5">
         {pending ? "Creating account…" : "Create account"}
       </Button>
+
+      <div className="relative flex items-center py-1" aria-hidden="true">
+        <div className="grow border-t border-border" />
+        <span className="px-3 text-xs text-muted-foreground">OR</span>
+        <div className="grow border-t border-border" />
+      </div>
+
+      <GoogleSignInButton label="Sign up with Google" />
 
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{" "}
