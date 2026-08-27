@@ -197,7 +197,7 @@ export function AddOrEditMealModal({
                 Day
               </label>
               <Select value={date} onValueChange={setDate}>
-                <SelectTrigger id="meal-date" className="min-w-0">
+                <SelectTrigger id="meal-date" className="min-h-11 min-w-0">
                   <SelectValue placeholder="Day" />
                 </SelectTrigger>
                 <SelectContent>
@@ -221,7 +221,7 @@ export function AddOrEditMealModal({
                 Meal
               </label>
               <Select value={mealSlot} onValueChange={setMealSlot}>
-                <SelectTrigger id="meal-slot" className="min-w-0">
+                <SelectTrigger id="meal-slot" className="min-h-11 min-w-0">
                   <SelectValue placeholder="Meal" />
                 </SelectTrigger>
                 <SelectContent>
@@ -256,6 +256,7 @@ export function AddOrEditMealModal({
               aria-expanded={showDropdown && filteredRecipes.length > 0}
               aria-controls="recipe-search-listbox"
               aria-autocomplete="list"
+              className="min-h-11"
             />
             {showDropdown && filteredRecipes.length > 0 && (
               <ul
@@ -268,7 +269,7 @@ export function AddOrEditMealModal({
                     <button
                       type="button"
                       onClick={() => handleSelectRecipe(r)}
-                      className={`w-full cursor-pointer px-3 py-2 text-left text-sm transition-colors hover:bg-primary/10 ${
+                      className={`min-h-11 w-full cursor-pointer px-3 py-2 text-left text-sm transition-colors hover:bg-primary/10 ${
                         r.id === recipeId
                           ? "bg-primary/10 font-medium text-primary-on-card"
                           : "text-card-foreground"
@@ -299,7 +300,7 @@ export function AddOrEditMealModal({
                 type="submit"
                 disabled={!recipeId.trim() || pending}
                 aria-busy={pending}
-                className="btn-primary"
+                className="btn-primary min-h-11"
               >
                 {pending
                   ? mode === "add"
@@ -313,7 +314,7 @@ export function AddOrEditMealModal({
                 type="button"
                 onClick={onClose}
                 disabled={anyPending}
-                className="btn-secondary"
+                className="btn-secondary min-h-11"
               >
                 Cancel
               </button>
@@ -324,7 +325,7 @@ export function AddOrEditMealModal({
                 onClick={handleDelete}
                 disabled={anyPending}
                 aria-busy={deletePending}
-                className="inline-flex w-full cursor-pointer items-center justify-center rounded-input border border-destructive bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground transition-colors hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed sm:w-auto"
+                className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-input border border-destructive bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               >
                 {deletePending ? "Deleting\u2026" : "Delete"}
               </button>

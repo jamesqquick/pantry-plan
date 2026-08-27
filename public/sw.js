@@ -1,27 +1,48 @@
-const CACHE_NAME = "pantry-plan-offline-v1";
+const CACHE_NAME = "pantry-plan-offline-v2";
 const OFFLINE_URL = "/offline.html";
 const BYPASS_PATHS = ["/_actions/", "/api/", "/mcp"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.add(OFFLINE_URL)),
+    Promise.all([
+      caches.open(CACHE_NAME).then(async (cache) => {
+        const response = await fetch(OFFLINE_URL);
+
+        // Cloudflare serves offline.html at /offline. Strip that redirect so the
+        // cached response can be used directly when the network is unavailable.
+        await cache.put(
+          OFFLINE_URL,
+          new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers,
+          }),
+        );
+      }),
+      self.skipWaiting(),
+    ]),
   );
-  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((cacheNames) =>
-        Promise.all(
-          cacheNames
-            .filter((cacheName) => cacheName.startsWith("pantry-plan-offline-") && cacheName !== CACHE_NAME)
-            .map((cacheName) => caches.delete(cacheName)),
+    Promise.all([
+      caches
+        .keys()
+        .then((cacheNames) =>
+          Promise.all(
+            cacheNames
+              .filter(
+                (cacheName) =>
+                  cacheName.startsWith("pantry-plan-offline-") &&
+                  cacheName !== CACHE_NAME,
+              )
+              .map((cacheName) => caches.delete(cacheName)),
+          ),
         ),
-      ),
+      self.clients.claim(),
+    ]),
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
@@ -38,6 +59,17 @@ self.addEventListener("fetch", (event) => {
   }
 
   event.respondWith(
-    fetch(request).catch(() => caches.match(OFFLINE_URL)),
+    fetch(request, { cache: "no-store" }).catch(async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const offlineResponse = await cache.match(OFFLINE_URL);
+
+      return (
+        offlineResponse ??
+        new Response("Pantry Plan is offline. Reconnect and try again.", {
+          status: 503,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        })
+      );
+    }),
   );
 });

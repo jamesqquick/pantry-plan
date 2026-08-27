@@ -97,7 +97,7 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
           type="button"
           className={cn(
             ICON_BUTTON_CLASS,
-            "h-10 w-10 shrink-0 cursor-pointer sm:hidden"
+            "h-11 w-11 shrink-0 cursor-pointer sm:hidden"
           )}
           aria-label="Open menu"
           aria-expanded={mounted}
@@ -131,7 +131,7 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
             <button
               ref={closeButtonRef}
               type="button"
-              className={cn(ICON_BUTTON_CLASS, "h-10 w-10 cursor-pointer")}
+              className={cn(ICON_BUTTON_CLASS, "h-11 w-11 cursor-pointer")}
               aria-label="Close menu"
               onClick={closeMenu}
             >

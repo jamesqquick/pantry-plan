@@ -121,7 +121,7 @@ export function ImportImageTab({
           ref={fileRef}
           type="file"
           accept="image/jpeg,image/png,image/webp"
-          className="hidden"
+          className="sr-only"
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) handleFileSelect(file);
