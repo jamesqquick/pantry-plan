@@ -82,12 +82,12 @@ export function ImportImageTab({
   return (
     <div className="space-y-4">
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-foreground">
+        <div className="mb-1.5 block text-sm font-medium text-foreground">
           Recipe photo
-        </label>
-        <div
-          className="flex cursor-pointer flex-col items-center gap-2 rounded-input border-2 border-dashed border-input p-8 text-center transition-colors hover:border-primary"
-          onClick={() => fileRef.current?.click()}
+        </div>
+        <label
+          htmlFor="recipe-image-upload"
+          className="flex min-h-44 cursor-pointer flex-col items-center justify-center gap-2 rounded-input border-2 border-dashed border-input p-6 text-center transition-colors hover:border-primary focus-within:border-primary focus-within:ring-2 focus-within:ring-ring"
         >
           {/* Upload icon (Lucide Upload) */}
           <svg
@@ -109,14 +109,15 @@ export function ImportImageTab({
             {parsing
               ? "Extracting recipe..."
               : fileName
-                ? fileName
+                ? <span className="max-w-full break-all">{fileName}</span>
                 : "Click to upload a recipe photo"}
           </span>
           <span className="text-xs text-muted-foreground">
             JPEG, PNG, or WebP. Max 4 MB.
           </span>
-        </div>
+        </label>
         <input
+          id="recipe-image-upload"
           ref={fileRef}
           type="file"
           accept="image/jpeg,image/png,image/webp"

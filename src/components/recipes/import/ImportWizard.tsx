@@ -33,7 +33,7 @@ export interface ImportWizardProps {
 export function ImportWizard({ allTags, imageUploadEnabled }: ImportWizardProps) {
   return (
     <Tabs defaultValue="url" className="space-y-6">
-      <TabsList>
+      <TabsList aria-label="Recipe import method" className="gap-1">
         <TabsTrigger value="url">From URL</TabsTrigger>
         {imageUploadEnabled && (
           <TabsTrigger value="photo">From photo</TabsTrigger>

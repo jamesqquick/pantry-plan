@@ -97,6 +97,7 @@ export default function OrderForm(props: OrderFormProps) {
         </label>
         <Input
           id="order-name"
+          autoComplete="off"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Thanksgiving 2025"
@@ -112,6 +113,7 @@ export default function OrderForm(props: OrderFormProps) {
         </label>
         <Textarea
           id="order-notes"
+          autoComplete="off"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={2}

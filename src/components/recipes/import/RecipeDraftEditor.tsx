@@ -305,62 +305,78 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
       {/* Metadata */}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label className="mb-1 block text-sm font-medium">Title</label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+          <label htmlFor="draft-title" className="mb-1 block text-sm font-medium">Title</label>
+          <Input id="draft-title" autoComplete="off" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">Source URL</label>
+          <label htmlFor="draft-source-url" className="mb-1 block text-sm font-medium">Source URL</label>
           <Input
+            id="draft-source-url"
             type="url"
+            autoComplete="url"
             value={sourceUrl}
             onChange={(e) => setSourceUrl(e.target.value)}
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">Image URL</label>
+          <label htmlFor="draft-image-url" className="mb-1 block text-sm font-medium">Image URL</label>
           <Input
+            id="draft-image-url"
             type="url"
+            autoComplete="url"
             value={imageUrl}
             onChange={(e) => setImageUrl(e.target.value)}
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">Servings</label>
+          <label htmlFor="draft-servings" className="mb-1 block text-sm font-medium">Servings</label>
           <Input
+            id="draft-servings"
             type="number"
+            inputMode="numeric"
+            autoComplete="off"
             value={servings}
             onChange={(e) => setServings(e.target.value)}
             min="0"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">
+          <label htmlFor="draft-prep-time" className="mb-1 block text-sm font-medium">
             Prep time (min)
           </label>
           <Input
+            id="draft-prep-time"
             type="number"
+            inputMode="numeric"
+            autoComplete="off"
             value={prepTime}
             onChange={(e) => setPrepTime(e.target.value)}
             min="0"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">
+          <label htmlFor="draft-cook-time" className="mb-1 block text-sm font-medium">
             Cook time (min)
           </label>
           <Input
+            id="draft-cook-time"
             type="number"
+            inputMode="numeric"
+            autoComplete="off"
             value={cookTime}
             onChange={(e) => setCookTime(e.target.value)}
             min="0"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">
+          <label htmlFor="draft-total-time" className="mb-1 block text-sm font-medium">
             Total time (min)
           </label>
           <Input
+            id="draft-total-time"
             type="number"
+            inputMode="numeric"
+            autoComplete="off"
             value={totalTime}
             onChange={(e) => setTotalTime(e.target.value)}
             min="0"
@@ -390,6 +406,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                 variant="secondary"
                 size="sm"
                 onClick={() => runMapping(ingredients)}
+                className="min-h-11"
               >
                 Re-map ingredients
               </Button>
@@ -415,14 +432,15 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                       handleIngredientChange(idx, e.target.value)
                     }
                     placeholder={`Ingredient ${idx + 1}`}
-                    className="flex-1"
+                    className="min-w-0 flex-1"
                   />
                   {ingredients.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeIngredient(idx)}
-                      className="cursor-pointer rounded-input px-2 py-1 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                      className="min-h-11 min-w-11 cursor-pointer rounded-input px-3 py-2 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
                       title="Remove ingredient"
+                      aria-label={`Remove ingredient ${idx + 1}`}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -443,7 +461,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                 </div>
                 {badge && (
                   <span
-                    className={`inline-block rounded-full px-2 py-0.5 text-[10px] leading-tight font-medium ${badge.className}`}
+                    className={`inline-block max-w-full break-words rounded-full px-2 py-0.5 text-[10px] leading-tight font-medium ${badge.className}`}
                   >
                     {badge.label}
                   </span>
@@ -483,8 +501,9 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                 <button
                   type="button"
                   onClick={() => removeInstruction(idx)}
-                  className="cursor-pointer self-start rounded-input px-2 py-1 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                  className="min-h-11 min-w-11 cursor-pointer self-start rounded-input px-3 py-2 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
                   title="Remove step"
+                  aria-label={`Remove step ${idx + 1}`}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -545,15 +564,15 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
       )}
 
       {/* Actions */}
-      <div className="flex gap-3 border-t border-border pt-4">
-        <Button onClick={handleSave} disabled={saving || mappingLoading}>
+      <div className="flex flex-col-reverse gap-3 border-t border-border pt-4 sm:flex-row">
+        <Button onClick={handleSave} disabled={saving || mappingLoading} className="w-full sm:w-auto">
           {saving
             ? "Saving..."
             : mappings && !mappingStale
               ? "Save with mappings"
               : "Save recipe"}
         </Button>
-        <Button variant="secondary" onClick={onBack} disabled={saving}>
+        <Button variant="secondary" onClick={onBack} disabled={saving} className="w-full sm:w-auto">
           Cancel
         </Button>
       </div>

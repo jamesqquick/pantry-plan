@@ -115,7 +115,7 @@ export function ProfileForm({ initialName, email, role }: Props) {
           type="submit"
           disabled={pending || !isDirty}
           aria-busy={pending}
-          className="btn-primary cursor-pointer"
+          className="btn-primary min-h-11 w-full cursor-pointer sm:w-auto"
         >
           {pending ? "Saving…" : "Save"}
         </button>
