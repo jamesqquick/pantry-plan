@@ -1,0 +1,17 @@
+{
+  "name": "Pantry Plan",
+  "install": "bash .cursor/setup.sh",
+  "terminals": [
+    {
+      "name": "dev",
+      "command": "CLOUDFLARE_VITE_FORCE_LOCAL=true pnpm dev",
+      "description": "Astro dev server on http://localhost:4321. CLOUDFLARE_VITE_FORCE_LOCAL keeps Cloudflare bindings local so the server starts without a Cloudflare API token (Workers AI features degrade gracefully in local dev)."
+    }
+  ],
+  "ports": [
+    {
+      "name": "dev server",
+      "port": 4321
+    }
+  ]
+}
