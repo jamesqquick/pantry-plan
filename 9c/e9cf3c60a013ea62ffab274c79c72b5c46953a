@@ -1,0 +1,19 @@
+src/styles/globals.css
+  s_f87df7d7e6726a::t_68e79aaac5cedd 484-520
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "9ce9cf3c60a013ea62ffab274c79c72b5c46953a",
+  "prompts": {},
+  "sessions": {
+    "s_f87df7d7e6726a": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fbc8968e3ffec44k6zr0jKDyvH",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
