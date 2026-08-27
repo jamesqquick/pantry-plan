@@ -82,23 +82,25 @@ export function GroceryListDisplay({
         <div className="inline-flex rounded-lg border border-border bg-panel p-0.5">
           <button
             type="button"
-            className={`cursor-pointer rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+            className={`min-h-11 cursor-pointer rounded-md px-3 py-2 text-sm font-medium transition-colors ${
               mode === "shopper"
                 ? "bg-card text-card-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
             onClick={() => setMode("shopper")}
+            aria-pressed={mode === "shopper"}
           >
             Shopper
           </button>
           <button
             type="button"
-            className={`cursor-pointer rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+            className={`min-h-11 cursor-pointer rounded-md px-3 py-2 text-sm font-medium transition-colors ${
               mode === "kitchen"
                 ? "bg-card text-card-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
             onClick={() => setMode("kitchen")}
+            aria-pressed={mode === "kitchen"}
           >
             Kitchen
           </button>
@@ -107,7 +109,7 @@ export function GroceryListDisplay({
         <button
           type="button"
           onClick={handleCopy}
-          className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border bg-card px-3 py-1 text-xs font-medium text-card-foreground transition-colors hover:bg-primary/5"
+          className="inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-card-foreground transition-colors hover:bg-primary/5"
         >
           {/* Lucide Copy */}
           <svg
@@ -131,7 +133,7 @@ export function GroceryListDisplay({
           <button
             type="button"
             onClick={handleShare}
-            className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border bg-card px-3 py-1 text-xs font-medium text-card-foreground transition-colors hover:bg-primary/5"
+            className="inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-card-foreground transition-colors hover:bg-primary/5"
           >
             {/* Lucide Share */}
             <svg
@@ -161,16 +163,18 @@ export function GroceryListDisplay({
           return (
             <li
               key={row.ingredientId}
-              className="flex items-center justify-between gap-4 px-4 py-2.5"
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-1 px-4 py-3"
             >
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-card-foreground">
+                <p className="whitespace-normal text-sm font-medium text-card-foreground [overflow-wrap:anywhere]">
                   {row.name}
                 </p>
-                <p className="text-xs text-muted-foreground">{qtyText}</p>
+                <p className="whitespace-normal text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                  {qtyText}
+                </p>
               </div>
               {showCost && row.estimatedCostCents != null && (
-                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                <span className="max-w-[40%] min-w-0 text-right text-xs tabular-nums text-muted-foreground [overflow-wrap:anywhere]">
                   {formatDollars(row.estimatedCostCents)}
                 </span>
               )}
@@ -181,11 +185,11 @@ export function GroceryListDisplay({
 
       {/* Total cost */}
       {showCost && grocery.totalEstimatedCostCents > 0 && (
-        <div className="flex items-baseline justify-between rounded-lg border border-border bg-card px-4 py-3">
+        <div className="flex min-w-0 items-baseline justify-between gap-4 rounded-lg border border-border bg-card px-4 py-3">
           <span className="text-sm font-medium text-card-foreground">
             Estimated total
           </span>
-          <span className="font-display text-lg font-bold tabular-nums text-primary-on-card">
+          <span className="min-w-0 text-right font-display text-lg font-bold tabular-nums text-primary-on-card [overflow-wrap:anywhere]">
             {formatDollars(grocery.totalEstimatedCostCents)}
           </span>
         </div>

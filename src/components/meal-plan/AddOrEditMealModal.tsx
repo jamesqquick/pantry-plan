@@ -175,7 +175,7 @@ export function AddOrEditMealModal({
       }}
     >
       <DialogContent
-        className="max-w-md"
+        className="max-h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-[calc(100%-1rem)] max-w-md overscroll-contain p-4 sm:w-full sm:p-6"
         aria-describedby={undefined}
         onPointerDownOutside={(e) => {
           if (anyPending) e.preventDefault();
