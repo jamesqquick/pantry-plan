@@ -4,9 +4,15 @@ const BYPASS_PATHS = ["/_actions/", "/api/", "/mcp"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    Promise.all([
-      caches.open(CACHE_NAME).then(async (cache) => {
+    caches
+      .open(CACHE_NAME)
+      .then(async (cache) => {
         const response = await fetch(OFFLINE_URL);
+        const contentType = response.headers.get("content-type") ?? "";
+
+        if (!response.ok || !contentType.includes("text/html")) {
+          throw new Error("Unable to cache the offline fallback.");
+        }
 
         // Cloudflare serves offline.html at /offline. Strip that redirect so the
         // cached response can be used directly when the network is unavailable.
@@ -18,9 +24,8 @@ self.addEventListener("install", (event) => {
             headers: response.headers,
           }),
         );
-      }),
-      self.skipWaiting(),
-    ]),
+      })
+      .then(() => self.skipWaiting()),
   );
 });
 

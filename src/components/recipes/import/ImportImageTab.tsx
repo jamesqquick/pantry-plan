@@ -115,19 +115,19 @@ export function ImportImageTab({
           <span className="text-xs text-muted-foreground">
             JPEG, PNG, or WebP. Max 4 MB.
           </span>
+          <input
+            id="recipe-image-upload"
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="sr-only"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFileSelect(file);
+            }}
+            disabled={parsing}
+          />
         </label>
-        <input
-          id="recipe-image-upload"
-          ref={fileRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          className="sr-only"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) handleFileSelect(file);
-          }}
-          disabled={parsing}
-        />
       </div>
 
       {parsing && (
