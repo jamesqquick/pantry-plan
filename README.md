@@ -43,6 +43,16 @@ settings include your name, password, connected Google account, and integrations
 
 Your recipes, ingredients, meal plans, and orders are private to your account.
 
+## Install on iPhone
+
+1. Open [Pantry Plan](https://pantry-plan.jamesqquick.workers.dev) in Safari.
+2. Tap the **Share** button.
+3. Select **Add to Home Screen**, then tap **Add**.
+
+The first PWA release requires a network connection to load live recipes, meal
+plans, orders, grocery lists, and edits. If the connection is unavailable,
+Pantry Plan shows an offline message until you reconnect.
+
 ## AI-Powered Import
 
 Recipe URLs are parsed for structured recipe data, while photo-based recipe
