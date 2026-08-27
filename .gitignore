@@ -31,6 +31,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# npm lockfile — this repo uses pnpm (see packageManager in package.json)
+package-lock.json
+
 # typescript
 *.tsbuildinfo
 
