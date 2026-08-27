@@ -43,6 +43,13 @@ const { title = "Pantry Plan", description = "Recipe management and meal plannin
         } catch (e) {}
       })();
     </script>
+    <script is:inline>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("/sw.js").catch(function () {});
+        });
+      }
+    </script>
   </head>
   <body class="min-h-screen bg-background text-foreground antialiased">
     <a href="#main-content" class="skip-to-content">Skip to content</a>
