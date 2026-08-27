@@ -69,10 +69,10 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
 
   return (
     <header className="border-b border-border bg-background">
-      <div className="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center justify-between gap-2 px-5 py-5 sm:flex-nowrap sm:gap-0 sm:px-8">
+      <div className="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center justify-between gap-2 px-5 py-3 sm:flex-nowrap sm:gap-0 sm:px-8 sm:py-5">
         <a
           href="/recipes"
-          className="font-display flex shrink-0 items-baseline gap-1 text-3xl sm:text-4xl"
+          className="font-display flex shrink-0 items-baseline gap-1 text-2xl sm:text-4xl"
           aria-label="Pantry Plan home"
         >
           <span className="text-header-logo">Pantry</span>
@@ -108,6 +108,10 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
         </button>
       </div>
 
+      <nav className="mobile-primary-nav sm:hidden" aria-label="Primary">
+        <AppNav pathname={pathname} />
+      </nav>
+
       {mounted && (
         <div
           role="dialog"
@@ -135,7 +139,7 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
             </button>
           </div>
           <nav
-            className="flex flex-1 flex-col items-center justify-center gap-8 px-4 [&_a]:py-2 [&_a]:text-xl"
+            className="flex flex-1 flex-col items-center justify-center gap-8 px-4 [&_a]:inline-flex [&_a]:min-h-12 [&_a]:items-center [&_a]:py-2 [&_a]:text-xl"
             aria-label="Main"
           >
             <div className="flex flex-col items-center gap-6">

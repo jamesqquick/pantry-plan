@@ -31,7 +31,7 @@ const pathname = Astro.url.pathname;
       userEmail={user.email}
       pathname={pathname}
     />
-    <main id="main-content" class={containerClass}>
+    <main id="main-content" class:list={[containerClass, "mobile-main-content"]}>
       <slot />
     </main>
   </div>
