@@ -64,9 +64,10 @@
   ],
   "send_email": [
     {
+      // Local Wrangler development logs messages instead of sending them.
       "name": "EMAIL",
       "allowed_sender_addresses": ["pantry-plan@jamesqquick.com"],
-      "remote": true
+      "remote": false
     }
   ],
   "flagship": [
