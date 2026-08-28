@@ -85,6 +85,8 @@ The current MCP tools are:
 - `create_recipe` creates a recipe in your account.
 - `import_recipe_from_url` fetches and saves a recipe from a URL.
 - `search_recipes` searches your recipes by title.
+- `create_weekly_meal_plan` replaces a week with saved recipe IDs. Use
+  `search_recipes` and `create_recipe` first when a recipe is not already saved.
 
 ## For Contributors
 

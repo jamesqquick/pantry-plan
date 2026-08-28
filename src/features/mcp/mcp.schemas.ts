@@ -1,6 +1,14 @@
 import { z } from "zod";
 import { optionalHttpUrlSchema } from "@/lib/url";
 
+const validDateStringSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((value) => {
+    const date = new Date(`${value}T00:00:00.000Z`);
+    return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
+  });
+
 const recipeToolFields = {
   title: z.string().trim().min(1).max(500),
   sourceUrl: optionalHttpUrlSchema,
@@ -24,6 +32,22 @@ export const searchRecipesToolSchema = z.object({
   query: z.string().trim().min(1).max(200),
   limit: z.number().int().min(1).max(25).default(10),
 });
+
+const plannedMealToolSchema = z.object({
+  date: validDateStringSchema,
+  mealSlot: z.enum(["BREAKFAST", "LUNCH", "DINNER"]),
+  recipeId: z.string().trim().min(1),
+  servings: z.number().int().min(1).optional(),
+}).strict();
+
+export const createWeeklyMealPlanToolSchema = z.object({
+  weekStart: validDateStringSchema,
+  meals: z.array(plannedMealToolSchema).max(100),
+});
+
+export type CreateWeeklyMealPlanToolInput = z.infer<
+  typeof createWeeklyMealPlanToolSchema
+>;
 
 export const createMcpApiKeySchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
