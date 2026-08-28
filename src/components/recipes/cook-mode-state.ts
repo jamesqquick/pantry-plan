@@ -7,10 +7,3 @@ export function toggleCheckedItem(
   else next.add(index);
   return next;
 }
-
-export function getCheckedProgress(
-  checked: ReadonlySet<number>,
-  total: number,
-): string {
-  return `${checked.size} of ${total}`;
-}

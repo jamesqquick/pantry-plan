@@ -61,7 +61,7 @@ describe("RecipeCookMode", () => {
   it("opens an isolated cooking surface, tracks progress, and resets on exit", async () => {
     const user = userEvent.setup();
     const lock = new FakeWakeLockSentinel();
-    setWakeLock(async () => lock);
+    const request = setWakeLock(async () => lock);
     const skipLink = document.createElement("a");
     skipLink.href = "#main-content";
     skipLink.textContent = "Skip to content";
@@ -80,7 +80,7 @@ describe("RecipeCookMode", () => {
       screen.getByRole("button", { name: "Exit" }),
     );
     expect(window.location.href).toBe(initialUrl);
-    await screen.findByText("Screen awake");
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
 
     await user.tab({ shift: true });
     expect(document.activeElement).toBe(
@@ -95,7 +95,17 @@ describe("RecipeCookMode", () => {
     await user.click(
       screen.getByRole("checkbox", { name: "Step 1: Mix the dough." }),
     );
-    expect(screen.getAllByText("1 of 2")).toHaveLength(2);
+    expect(
+      (screen.getByRole("checkbox", { name: "2 cups flour" }) as HTMLInputElement)
+        .checked,
+    ).toBe(true);
+    expect(
+      (
+        screen.getByRole("checkbox", {
+          name: "Step 1: Mix the dough.",
+        }) as HTMLInputElement
+      ).checked,
+    ).toBe(true);
 
     await user.keyboard("{Escape}");
 
@@ -106,20 +116,31 @@ describe("RecipeCookMode", () => {
     expect(lock.released).toBe(true);
 
     await user.click(trigger);
-    expect(screen.getAllByText("0 of 2")).toHaveLength(2);
+    expect(
+      (screen.getByRole("checkbox", { name: "2 cups flour" }) as HTMLInputElement)
+        .checked,
+    ).toBe(false);
+    expect(
+      (
+        screen.getByRole("checkbox", {
+          name: "Step 1: Mix the dough.",
+        }) as HTMLInputElement
+      ).checked,
+    ).toBe(false);
   });
 
   it("continues when wake lock is unsupported or denied", async () => {
     render(<RecipeCookMode {...recipe} />);
     fireEvent.click(screen.getByRole("button", { name: "Cook mode" }));
-    expect(await screen.findByText("Screen may sleep")).toBeTruthy();
+    expect(screen.getByRole("dialog", { name: recipe.title })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Exit" }));
 
-    setWakeLock(async () => {
+    const request = setWakeLock(async () => {
       throw new DOMException("Not allowed", "NotAllowedError");
     });
     fireEvent.click(screen.getByRole("button", { name: "Cook mode" }));
-    expect(await screen.findByText("Screen may sleep")).toBeTruthy();
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole("dialog", { name: recipe.title })).toBeTruthy();
   });
 
   it("releases and reacquires the wake lock across visibility changes", async () => {
@@ -130,7 +151,7 @@ describe("RecipeCookMode", () => {
     );
     render(<RecipeCookMode {...recipe} />);
     fireEvent.click(screen.getByRole("button", { name: "Cook mode" }));
-    await screen.findByText("Screen awake");
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
 
     setVisibility("hidden");
     fireEvent(document, new Event("visibilitychange"));
@@ -139,7 +160,6 @@ describe("RecipeCookMode", () => {
     setVisibility("visible");
     fireEvent(document, new Event("visibilitychange"));
     await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
-    await screen.findByText("Screen awake");
 
     fireEvent.click(screen.getByRole("button", { name: "Exit" }));
     await waitFor(() => expect(secondLock.released).toBe(true));
@@ -153,17 +173,16 @@ describe("RecipeCookMode", () => {
     );
     render(<RecipeCookMode {...recipe} />);
     fireEvent.click(screen.getByRole("button", { name: "Cook mode" }));
-    await screen.findByText("Screen awake");
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
 
     setVisibility("hidden");
     fireEvent(document, new Event("visibilitychange"));
     setVisibility("visible");
     fireEvent(document, new Event("visibilitychange"));
     await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
-    await screen.findByText("Screen awake");
 
     firstLock.emitRelease();
-    expect(screen.getByText("Screen awake")).toBeTruthy();
+    expect(secondLock.released).toBe(false);
   });
 
   it("does not start a second wake-lock request while one is pending", async () => {
@@ -186,7 +205,7 @@ describe("RecipeCookMode", () => {
     expect(request).toHaveBeenCalledTimes(1);
 
     resolveRequest?.(lock);
-    await screen.findByText("Screen awake");
+    await waitFor(() => expect(lock.released).toBe(false));
     fireEvent.click(screen.getByRole("button", { name: "Exit" }));
     await waitFor(() => expect(lock.released).toBe(true));
   });
@@ -236,7 +255,7 @@ describe("RecipeCookMode", () => {
     setVisibility("visible");
     fireEvent(document, new Event("visibilitychange"));
     await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
-    await screen.findByText("Screen awake");
+    expect(secondLock.released).toBe(false);
   });
 
   it("keeps a reopened session active when the previous request resolves", async () => {
@@ -244,7 +263,7 @@ describe("RecipeCookMode", () => {
     const firstLock = new FakeWakeLockSentinel();
     const secondLock = new FakeWakeLockSentinel();
     let requestCount = 0;
-    setWakeLock(() => {
+    const request = setWakeLock(() => {
       requestCount += 1;
       if (requestCount === 1) {
         return new Promise<FakeWakeLockSentinel>((resolve) => {
@@ -258,12 +277,11 @@ describe("RecipeCookMode", () => {
     fireEvent.click(trigger);
     fireEvent.click(screen.getByRole("button", { name: "Exit" }));
     fireEvent.click(trigger);
-    await screen.findByText("Screen awake");
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
 
     resolveFirstRequest?.(firstLock);
 
     await waitFor(() => expect(firstLock.released).toBe(true));
-    expect(screen.getByText("Screen awake")).toBeTruthy();
     expect(secondLock.released).toBe(false);
   });
 });

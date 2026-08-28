@@ -3,7 +3,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { ChefHat, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
-import { getCheckedProgress, toggleCheckedItem } from "./cook-mode-state";
+import { toggleCheckedItem } from "./cook-mode-state";
 
 interface RecipeMetaItem {
   label: string;
@@ -16,8 +16,6 @@ interface RecipeCookModeProps {
   ingredients: string[];
   instructions: string[];
 }
-
-type WakeLockStatus = "idle" | "requesting" | "active" | "unavailable";
 
 export function RecipeCookMode({
   title,
@@ -32,13 +30,10 @@ export function RecipeCookMode({
   const [checkedInstructions, setCheckedInstructions] = useState<Set<number>>(
     () => new Set(),
   );
-  const [wakeLockStatus, setWakeLockStatus] =
-    useState<WakeLockStatus>("idle");
   function exitCookMode() {
     setIsActive(false);
     setCheckedIngredients(new Set());
     setCheckedInstructions(new Set());
-    setWakeLockStatus("idle");
   }
 
   useEffect(() => {
@@ -53,7 +48,6 @@ export function RecipeCookMode({
 
     async function requestWakeLock() {
       if (!("wakeLock" in navigator)) {
-        setWakeLockStatus("unavailable");
         return;
       }
       if (
@@ -64,7 +58,6 @@ export function RecipeCookMode({
         return;
       }
 
-      setWakeLockStatus("requesting");
       const request = navigator.wakeLock.request("screen");
       wakeLockRequest = request;
       try {
@@ -80,17 +73,12 @@ export function RecipeCookMode({
         }
 
         wakeLock = lock;
-        setWakeLockStatus("active");
         lock.addEventListener("release", () => {
           if (wakeLock !== lock) return;
           wakeLock = null;
-          if (!disposed && document.visibilityState === "visible") {
-            setWakeLockStatus("unavailable");
-          }
         });
       } catch {
         if (wakeLockRequest === request) wakeLockRequest = null;
-        if (!disposed) setWakeLockStatus("unavailable");
       }
     }
 
@@ -157,33 +145,13 @@ export function RecipeCookMode({
               <span className="font-semibold tabular-nums">{item.value}</span>
             </div>
           ))}
-          <span
-            aria-live="polite"
-            className={cn(
-              "ml-auto rounded-full px-2.5 py-1 text-xs font-semibold",
-              wakeLockStatus === "active"
-                ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300"
-                : "bg-secondary text-muted-foreground",
-            )}
-          >
-            {wakeLockStatus === "active"
-              ? "Screen awake"
-              : wakeLockStatus === "requesting"
-                ? "Keeping screen awake..."
-                : "Screen may sleep"}
-          </span>
         </div>
 
         <div className="grid gap-10 lg:grid-cols-5 lg:gap-12">
           <section className="lg:col-span-2" aria-labelledby="cook-ingredients-title">
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 id="cook-ingredients-title" className="font-editorial text-3xl">
-                Ingredients
-              </h2>
-              <span className="font-ui text-xs text-muted-foreground">
-                {getCheckedProgress(checkedIngredients, ingredients.length)}
-              </span>
-            </div>
+            <h2 id="cook-ingredients-title" className="font-editorial text-3xl">
+              Ingredients
+            </h2>
             {ingredients.length === 0 ? (
               <p className="mt-4 text-muted-foreground">No ingredients listed.</p>
             ) : (
@@ -220,14 +188,9 @@ export function RecipeCookMode({
           </section>
 
           <section className="lg:col-span-3" aria-labelledby="cook-instructions-title">
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 id="cook-instructions-title" className="font-editorial text-3xl">
-                Instructions
-              </h2>
-              <span className="font-ui text-xs text-muted-foreground">
-                {getCheckedProgress(checkedInstructions, instructions.length)}
-              </span>
-            </div>
+            <h2 id="cook-instructions-title" className="font-editorial text-3xl">
+              Instructions
+            </h2>
             {instructions.length === 0 ? (
               <p className="mt-4 text-muted-foreground">No instructions listed.</p>
             ) : (
