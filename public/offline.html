@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#a64b25" />
+    <title>Pantry Plan is offline</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #3d241b;
+        background: #fffaf0;
+      }
+
+      body {
+        box-sizing: border-box;
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      main {
+        width: min(100%, 420px);
+        padding: 32px;
+        border: 1px solid #e7d8c8;
+        border-radius: 20px;
+        background: #ffffff;
+        box-shadow: 0 16px 40px rgba(61, 36, 27, 0.1);
+        text-align: center;
+      }
+
+      .mark {
+        display: grid;
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 20px;
+        place-items: center;
+        border-radius: 18px;
+        background: #a64b25;
+        color: #fffaf0;
+        font-size: 30px;
+        font-weight: 700;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.75rem;
+        line-height: 1.2;
+      }
+
+      p {
+        margin: 16px 0 24px;
+        color: #6d5549;
+        line-height: 1.6;
+      }
+
+      a {
+        display: inline-block;
+        min-width: 140px;
+        padding: 13px 20px;
+        border-radius: 10px;
+        background: #a64b25;
+        color: #ffffff;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      a:focus-visible {
+        outline: 3px solid #e5a227;
+        outline-offset: 3px;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          color: #fffaf0;
+          background: #241914;
+        }
+
+        main {
+          border-color: #5f463b;
+          background: #33241e;
+          box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+        }
+
+        p {
+          color: #d7c2b4;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main id="main-content" aria-labelledby="offline-title">
+      <div class="mark" aria-hidden="true">P</div>
+      <h1 id="offline-title">You are offline</h1>
+      <p>Pantry Plan needs a network connection to load live recipes, meal plans, orders, and edits.</p>
+      <a href="/recipes">Try again</a>
+    </main>
+  </body>
+</html>

@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/Dialog";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
   Select,
   SelectContent,
@@ -53,7 +54,9 @@ export function AddOrEditMealModal({
   const [mealSlot, setMealSlot] = useState(initialMealSlot);
   const [pending, setPending] = useState(false);
   const [deletePending, setDeletePending] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -73,6 +76,8 @@ export function AddOrEditMealModal({
     setDate(initialDate);
     setMealSlot(initialMealSlot);
     setError(null);
+    setDeleteError(null);
+    setDeleteDialogOpen(false);
   }, [open, initialDate, initialMealSlot, initialMeal, initialRecipeIdForAdd, recipeOptions]);
 
   // Close dropdown when clicking outside.
@@ -151,7 +156,7 @@ export function AddOrEditMealModal({
   const handleDelete = useCallback(async () => {
     if (!initialMeal) return;
     setDeletePending(true);
-    setError(null);
+    setDeleteError(null);
 
     try {
       const formData = new FormData();
@@ -161,7 +166,7 @@ export function AddOrEditMealModal({
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message ?? "Something went wrong.");
+      setDeleteError(err.message ?? "Something went wrong.");
     } finally {
       setDeletePending(false);
     }
@@ -175,7 +180,7 @@ export function AddOrEditMealModal({
       }}
     >
       <DialogContent
-        className="max-w-md"
+        className="max-h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-[calc(100%-1rem)] max-w-md overscroll-contain p-4 sm:w-full sm:p-6"
         aria-describedby={undefined}
         onPointerDownOutside={(e) => {
           if (anyPending) e.preventDefault();
@@ -197,7 +202,7 @@ export function AddOrEditMealModal({
                 Day
               </label>
               <Select value={date} onValueChange={setDate}>
-                <SelectTrigger id="meal-date" className="min-w-0">
+                <SelectTrigger id="meal-date" className="min-h-11 min-w-0">
                   <SelectValue placeholder="Day" />
                 </SelectTrigger>
                 <SelectContent>
@@ -221,7 +226,7 @@ export function AddOrEditMealModal({
                 Meal
               </label>
               <Select value={mealSlot} onValueChange={setMealSlot}>
-                <SelectTrigger id="meal-slot" className="min-w-0">
+                <SelectTrigger id="meal-slot" className="min-h-11 min-w-0">
                   <SelectValue placeholder="Meal" />
                 </SelectTrigger>
                 <SelectContent>
@@ -256,6 +261,7 @@ export function AddOrEditMealModal({
               aria-expanded={showDropdown && filteredRecipes.length > 0}
               aria-controls="recipe-search-listbox"
               aria-autocomplete="list"
+              className="min-h-11"
             />
             {showDropdown && filteredRecipes.length > 0 && (
               <ul
@@ -268,7 +274,7 @@ export function AddOrEditMealModal({
                     <button
                       type="button"
                       onClick={() => handleSelectRecipe(r)}
-                      className={`w-full cursor-pointer px-3 py-2 text-left text-sm transition-colors hover:bg-primary/10 ${
+                      className={`min-h-11 w-full cursor-pointer px-3 py-2 text-left text-sm transition-colors hover:bg-primary/10 ${
                         r.id === recipeId
                           ? "bg-primary/10 font-medium text-primary-on-card"
                           : "text-card-foreground"
@@ -299,7 +305,7 @@ export function AddOrEditMealModal({
                 type="submit"
                 disabled={!recipeId.trim() || pending}
                 aria-busy={pending}
-                className="btn-primary"
+                className="btn-primary min-h-11"
               >
                 {pending
                   ? mode === "add"
@@ -313,7 +319,7 @@ export function AddOrEditMealModal({
                 type="button"
                 onClick={onClose}
                 disabled={anyPending}
-                className="btn-secondary"
+                className="btn-secondary min-h-11"
               >
                 Cancel
               </button>
@@ -321,16 +327,29 @@ export function AddOrEditMealModal({
             {mode === "edit" && initialMeal && (
               <button
                 type="button"
-                onClick={handleDelete}
+                onClick={() => {
+                  setDeleteError(null);
+                  setDeleteDialogOpen(true);
+                }}
                 disabled={anyPending}
-                aria-busy={deletePending}
-                className="inline-flex w-full cursor-pointer items-center justify-center rounded-input border border-destructive bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground transition-colors hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed sm:w-auto"
+                className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-input border border-destructive bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               >
-                {deletePending ? "Deleting\u2026" : "Delete"}
+                Delete
               </button>
             )}
           </div>
         </form>
+        <ConfirmDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title="Remove planned meal?"
+          description="This meal will be removed from your plan. This cannot be undone."
+          confirmLabel="Yes, remove"
+          pendingLabel="Removing..."
+          pending={deletePending}
+          error={deleteError}
+          onConfirm={handleDelete}
+        />
       </DialogContent>
     </Dialog>
   );

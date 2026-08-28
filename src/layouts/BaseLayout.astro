@@ -16,8 +16,11 @@ const { title = "Pantry Plan", description = "Recipe management and meal plannin
   <head>
     <meta charset="UTF-8" />
     <meta name="description" content={description} />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png?v=2" />
+    <meta name="theme-color" content="#a64b25" />
     <ClientRouter />
     <Font cssVariable="--font-body" preload />
     <Font cssVariable="--font-display" preload />
@@ -40,8 +43,17 @@ const { title = "Pantry Plan", description = "Recipe management and meal plannin
         } catch (e) {}
       })();
     </script>
+    <script is:inline>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("/sw.js").catch(function (error) {
+            console.error("Pantry Plan service worker registration failed.", error);
+          });
+        });
+      }
+    </script>
   </head>
-  <body class="min-h-screen bg-background text-foreground antialiased">
+  <body class="min-h-screen supports-[height:100dvh]:min-h-dvh bg-background text-foreground antialiased">
     <a href="#main-content" class="skip-to-content">Skip to content</a>
     <slot />
 

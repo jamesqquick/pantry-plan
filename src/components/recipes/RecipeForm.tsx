@@ -166,6 +166,12 @@ export default function RecipeForm({
       tagIds: Array.from(tagIds),
     };
 
+    if (cleanInstructions.length === 0) {
+      setError("At least one instruction is required.");
+      setPending(false);
+      return;
+    }
+
     if (mode === "create") {
       const { data, error: err } = await actions.recipes.create(payload);
       if (err) {
@@ -214,6 +220,7 @@ export default function RecipeForm({
             id="title"
             name="title"
             required
+            autoComplete="off"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             aria-invalid={!!fieldErrors.title}
@@ -233,6 +240,7 @@ export default function RecipeForm({
               id="sourceUrl"
               name="sourceUrl"
               type="url"
+              autoComplete="url"
               value={sourceUrl}
               onChange={(e) => setSourceUrl(e.target.value)}
               placeholder="https://example.com/recipe"
@@ -247,6 +255,7 @@ export default function RecipeForm({
               id="imageUrl"
               name="imageUrl"
               type="url"
+              autoComplete="url"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
               placeholder="https://example.com/image.jpg"
@@ -270,6 +279,7 @@ export default function RecipeForm({
                 type="number"
                 min={0}
                 inputMode="numeric"
+                autoComplete="off"
                 value={field.value}
                 onChange={(e) => field.setter(e.target.value)}
               />
@@ -284,7 +294,7 @@ export default function RecipeForm({
           <button
             type="button"
             onClick={addIngredient}
-            className="cursor-pointer rounded-input px-2 py-1 text-xs font-semibold text-primary-on-card transition-colors hover:bg-primary/10"
+            className="min-h-11 cursor-pointer rounded-input px-3 py-2 text-xs font-semibold text-primary-on-card transition-colors hover:bg-primary/10"
           >
             + Add ingredient
           </button>
@@ -301,6 +311,8 @@ export default function RecipeForm({
                   onChange={(e) => setIngredient(idx, { quantityText: e.target.value })}
                   placeholder="Qty"
                   aria-label="Quantity"
+                  inputMode="decimal"
+                  autoComplete="off"
                   className="sm:w-16 sm:shrink-0"
                 />
                 <Select
@@ -336,7 +348,7 @@ export default function RecipeForm({
                   type="button"
                   onClick={() => removeIngredient(idx)}
                   aria-label="Remove ingredient"
-                  className="flex h-8 w-full cursor-pointer items-center justify-center gap-1 rounded-input text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:w-8 sm:shrink-0"
+                  className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-1 rounded-input px-3 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:h-11 sm:w-11 sm:shrink-0"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -378,7 +390,7 @@ export default function RecipeForm({
           <button
             type="button"
             onClick={addInstruction}
-            className="cursor-pointer rounded-input px-2 py-1 text-xs font-semibold text-primary-on-card transition-colors hover:bg-primary/10"
+            className="min-h-11 cursor-pointer rounded-input px-3 py-2 text-xs font-semibold text-primary-on-card transition-colors hover:bg-primary/10"
           >
             + Add step
           </button>
@@ -403,7 +415,7 @@ export default function RecipeForm({
                 type="button"
                 onClick={() => removeInstruction(idx)}
                 aria-label="Remove step"
-                className="flex h-8 w-full cursor-pointer items-center justify-center gap-1 rounded-input text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:mt-1 sm:w-8 sm:shrink-0"
+                className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-1 rounded-input px-3 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:mt-1 sm:h-11 sm:w-11 sm:shrink-0"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -467,15 +479,14 @@ export default function RecipeForm({
         </div>
       )}
 
-      <div className="flex items-center justify-end gap-3">
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
         <Button
           variant="secondary"
           href={mode === "edit" && initial.id ? `/recipes/${initial.id}` : "/recipes"}
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={pending} className="px-5">
-        
+        <Button type="submit" disabled={pending} className="w-full px-5 sm:w-auto">
           {pending
             ? mode === "create"
               ? "Creating…"

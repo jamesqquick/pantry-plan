@@ -75,7 +75,7 @@ export function OrderItemsEditor({
         <label className="text-sm font-medium text-foreground">
           Recipes & batches
         </label>
-        <Button type="button" variant="secondary" size="sm" onClick={addRow}>
+        <Button type="button" variant="secondary" size="sm" onClick={addRow} className="min-h-11">
           {/* Lucide Plus */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -150,6 +150,7 @@ export function OrderItemsEditor({
                     onClick={() => removeRow(index)}
                     disabled={items.length <= 1}
                     aria-label="Remove recipe"
+                    className="min-h-11 min-w-11 sm:min-h-0 sm:min-w-0"
                   >
                     {/* Lucide X */}
                     <svg
@@ -219,7 +220,7 @@ function RecipePickerInput({
             <li key={r.id}>
               <button
                 type="button"
-                className={`w-full cursor-pointer px-3 py-2 text-left text-sm hover:bg-primary/10 ${
+                className={`min-h-11 w-full cursor-pointer px-3 py-2 text-left text-sm hover:bg-primary/10 ${
                   r.id === value ? "font-semibold text-primary-on-card" : "text-card-foreground"
                 }`}
                 onMouseDown={(e) => {

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { actions } from "astro:actions";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { runActionWithRecovery } from "@/lib/action-error";
 
 interface DeleteOrderButtonProps {
   orderId: string;
@@ -8,28 +10,30 @@ interface DeleteOrderButtonProps {
 }
 
 export function DeleteOrderButton({ orderId, orderName }: DeleteOrderButtonProps) {
-  const [confirming, setConfirming] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleDelete() {
     setDeleting(true);
     setError(null);
-    const fd = new FormData();
-    fd.set("id", orderId);
-    const { error: err } = await actions.orders.delete(fd);
-    if (err) {
-      setError(err.message);
-      setDeleting(false);
-      setConfirming(false);
-    } else {
-      window.location.href = "/orders";
-    }
+
+    const formData = new FormData();
+    formData.set("id", orderId);
+    await runActionWithRecovery({
+      action: () => actions.orders.delete(formData),
+      fallback: "Could not delete order.",
+      onError: setError,
+      onSuccess: () => {
+        window.location.href = "/orders";
+      },
+      onSettled: () => setDeleting(false),
+    });
   }
 
-  if (!confirming) {
-    return (
-      <Button variant="ghost-danger" size="sm" onClick={() => setConfirming(true)}>
+  return (
+    <>
+      <Button variant="ghost-danger" size="sm" onClick={() => setDialogOpen(true)}>
         {/* Lucide Trash2 */}
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -50,28 +54,20 @@ export function DeleteOrderButton({ orderId, orderName }: DeleteOrderButtonProps
         </svg>
         Delete order
       </Button>
-    );
-  }
-
-  return (
-    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
-      <p className="text-sm text-destructive">
-        Are you sure you want to delete <strong>{orderName || "this order"}</strong>?
-      </p>
-      {error && <p className="text-sm font-medium text-destructive">{error}</p>}
-      <div className="flex gap-2">
-        <Button variant="danger" size="sm" onClick={handleDelete} disabled={deleting}>
-          {deleting ? "Deleting…" : "Yes, delete"}
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => { setConfirming(false); setError(null); }}
-          disabled={deleting}
-        >
-          Cancel
-        </Button>
-      </div>
-    </div>
+      <ConfirmDialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open && !deleting) setError(null);
+        }}
+        title="Delete order?"
+        description={`Are you sure you want to delete ${orderName || "this order"}? This cannot be undone.`}
+        confirmLabel="Yes, delete"
+        pendingLabel="Deleting..."
+        pending={deleting}
+        error={error}
+        onConfirm={handleDelete}
+      />
+    </>
   );
 }

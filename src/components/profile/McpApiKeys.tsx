@@ -2,6 +2,8 @@ import { useState } from "react";
 import { actions } from "astro:actions";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { runActionWithRecovery } from "@/lib/action-error";
 
 type ApiKeySummary = {
   id: string;
@@ -30,6 +32,7 @@ export function McpApiKeys({ endpoint, initialKeys }: Props) {
   const [newToken, setNewToken] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [keyToRevoke, setKeyToRevoke] = useState<ApiKeySummary | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -71,17 +74,22 @@ export function McpApiKeys({ endpoint, initialKeys }: Props) {
     setCopied(true);
   }
 
-  async function handleRevoke(key: ApiKeySummary) {
-    if (!window.confirm(`Revoke the MCP key "${key.name}"?`)) return;
+  async function handleRevoke() {
+    if (!keyToRevoke) return;
+    const key = keyToRevoke;
     setRevokingId(key.id);
     setError(null);
-    const { error: actionError } = await actions.mcpKeys.revoke({ id: key.id });
-    setRevokingId(null);
-    if (actionError) {
-      setError(actionError.message || "Could not revoke MCP key.");
-      return;
-    }
-    setKeys((current) => current.filter((item) => item.id !== key.id));
+
+    await runActionWithRecovery({
+      action: () => actions.mcpKeys.revoke({ id: key.id }),
+      fallback: "Could not revoke MCP key.",
+      onError: setError,
+      onSuccess: () => {
+        setKeys((current) => current.filter((item) => item.id !== key.id));
+        setKeyToRevoke(null);
+      },
+      onSettled: () => setRevokingId(null),
+    });
   }
 
   return (
@@ -137,7 +145,7 @@ export function McpApiKeys({ endpoint, initialKeys }: Props) {
         </div>
       )}
 
-      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      {error && !keyToRevoke && <p role="alert" className="text-sm text-destructive">{error}</p>}
 
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-foreground">Active keys</h3>
@@ -161,7 +169,10 @@ export function McpApiKeys({ endpoint, initialKeys }: Props) {
                   variant="ghost-danger"
                   size="sm"
                   disabled={revokingId === key.id}
-                  onClick={() => handleRevoke(key)}
+                  onClick={() => {
+                    setError(null);
+                    setKeyToRevoke(key);
+                  }}
                   className="justify-center"
                 >
                   {revokingId === key.id ? "Revoking..." : "Revoke"}
@@ -171,6 +182,23 @@ export function McpApiKeys({ endpoint, initialKeys }: Props) {
           </ul>
         )}
       </div>
+      <ConfirmDialog
+        open={keyToRevoke !== null}
+        onOpenChange={(open) => {
+          if (!open && revokingId === null) setKeyToRevoke(null);
+        }}
+        title="Revoke MCP key?"
+        description={
+          keyToRevoke
+            ? `The key "${keyToRevoke.name}" will stop working immediately. This cannot be undone.`
+            : "This key will stop working immediately. This cannot be undone."
+        }
+        confirmLabel="Yes, revoke"
+        pendingLabel="Revoking..."
+        pending={revokingId !== null}
+        error={error}
+        onConfirm={handleRevoke}
+      />
     </section>
   );
 }

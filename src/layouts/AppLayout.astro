@@ -12,7 +12,7 @@ interface Props {
 const {
   title,
   description,
-  containerClass = "mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-10",
+  containerClass = "mx-auto max-w-6xl px-5 pt-8 sm:px-8 sm:pt-10",
 } = Astro.props;
 
 // Middleware guarantees locals.user is set on protected routes, but be
@@ -25,13 +25,16 @@ const pathname = Astro.url.pathname;
 ---
 
 <BaseLayout title={title} description={description}>
-  <div class="min-h-screen bg-background">
+  <div class="min-h-screen supports-[height:100dvh]:min-h-dvh bg-background pt-[env(safe-area-inset-top)]">
     <AppHeader
       client:load
       userEmail={user.email}
       pathname={pathname}
     />
-    <main id="main-content" class={containerClass}>
+    <main
+      id="main-content"
+      class:list={[containerClass, "pb-[calc(5rem+env(safe-area-inset-bottom))]", "lg:pb-[calc(2rem+env(safe-area-inset-bottom))]"]}
+    >
       <slot />
     </main>
   </div>

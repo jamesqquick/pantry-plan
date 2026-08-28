@@ -2,9 +2,9 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/recipes", label: "Recipes" },
-  { href: "/ingredients", label: "Ingredients" },
-  { href: "/orders", label: "Orders" },
   { href: "/meal-plan", label: "Meal plan" },
+  { href: "/orders", label: "Orders" },
+  { href: "/ingredients", label: "Ingredients" },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {
@@ -22,6 +22,7 @@ function NavItem({ href, label, active, onNavigate }: NavItemProps) {
   return (
     <a
       href={href}
+      aria-current={active ? "page" : undefined}
       className={cn(
         "shrink-0 whitespace-nowrap font-ui text-sm transition-colors",
         active ? "font-semibold text-header-logo" : "text-muted-foreground hover:text-header-logo",

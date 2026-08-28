@@ -115,7 +115,7 @@ export function ProfileForm({ initialName, email, role }: Props) {
           type="submit"
           disabled={pending || !isDirty}
           aria-busy={pending}
-          className="btn-primary cursor-pointer"
+          className="btn-primary min-h-11 w-full cursor-pointer sm:w-auto"
         >
           {pending ? "Saving…" : "Save"}
         </button>
@@ -132,7 +132,7 @@ export function ProfileForm({ initialName, email, role }: Props) {
       {success && (
         <div
           role="status"
-          className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-lg border border-green-600/30 bg-green-600 px-4 py-3 text-sm font-medium text-white shadow-lg animate-toast-in"
+          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-lg border border-green-600/30 bg-green-600 px-4 py-3 text-center text-sm font-medium text-white shadow-lg animate-toast-in lg:bottom-[calc(1rem+env(safe-area-inset-bottom))]"
         >
           Profile updated
         </div>

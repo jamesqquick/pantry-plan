@@ -60,7 +60,7 @@ function CategoryCombobox({
           <li>
             <button
               type="button"
-              className="w-full cursor-pointer px-3 py-1.5 text-left text-sm text-muted-foreground hover:bg-primary/10"
+              className="min-h-11 w-full cursor-pointer px-3 py-2 text-left text-sm text-muted-foreground hover:bg-primary/10"
               onMouseDown={(e) => {
                 e.preventDefault();
                 onChange("");
@@ -75,7 +75,7 @@ function CategoryCombobox({
             <li key={c}>
               <button
                 type="button"
-                className={`w-full cursor-pointer px-3 py-1.5 text-left text-sm hover:bg-primary/10 ${
+                className={`min-h-11 w-full cursor-pointer px-3 py-2 text-left text-sm hover:bg-primary/10 ${
                   c === value ? "font-semibold text-primary-on-card" : "text-card-foreground"
                 }`}
                 onMouseDown={(e) => {
@@ -326,6 +326,7 @@ export default function IngredientForm(props: IngredientFormProps) {
         </label>
         <Input
           id="name"
+          autoComplete="off"
           value={values.name}
           onChange={(e) => set("name", e.target.value)}
           placeholder="e.g. All-purpose flour"
@@ -352,7 +353,7 @@ export default function IngredientForm(props: IngredientFormProps) {
             value={values.defaultUnit || "__none__"}
             onValueChange={(v) => set("defaultUnit", v === "__none__" ? "" : v)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="min-h-11">
               <SelectValue placeholder="None" />
             </SelectTrigger>
             <SelectContent>
@@ -374,7 +375,7 @@ export default function IngredientForm(props: IngredientFormProps) {
             value={values.costBasisUnit}
             onValueChange={(v) => set("costBasisUnit", v)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="min-h-11">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -399,6 +400,8 @@ export default function IngredientForm(props: IngredientFormProps) {
         <Input
           id="estimatedCost"
           type="number"
+          inputMode="decimal"
+          autoComplete="off"
           step="0.01"
           min="0"
           value={values.estimatedCost}
@@ -418,7 +421,7 @@ export default function IngredientForm(props: IngredientFormProps) {
             value={values.preferredDisplayUnit}
             onValueChange={(v) => set("preferredDisplayUnit", v)}
           >
-            <SelectTrigger className="w-full sm:w-48">
+            <SelectTrigger className="min-h-11 w-full sm:w-48">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

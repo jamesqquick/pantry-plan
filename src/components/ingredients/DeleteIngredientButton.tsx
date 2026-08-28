@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { actions } from "astro:actions";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { runActionWithRecovery } from "@/lib/action-error";
 
 interface DeleteIngredientButtonProps {
   ingredientId: string;
@@ -11,32 +13,34 @@ export function DeleteIngredientButton({
   ingredientId,
   ingredientName,
 }: DeleteIngredientButtonProps) {
-  const [confirming, setConfirming] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleDelete() {
     setDeleting(true);
     setError(null);
+
     const formData = new FormData();
     formData.set("id", ingredientId);
-    const { error: err } = await actions.ingredients.delete(formData);
-    if (err) {
-      setError(err.message);
-      setDeleting(false);
-      setConfirming(false);
-    } else {
-      window.location.href = "/ingredients";
-    }
+    await runActionWithRecovery({
+      action: () => actions.ingredients.delete(formData),
+      fallback: "Could not delete ingredient.",
+      onError: setError,
+      onSuccess: () => {
+        window.location.href = "/ingredients";
+      },
+      onSettled: () => setDeleting(false),
+    });
   }
 
-  if (!confirming) {
-    return (
+  return (
+    <>
       <div>
         <Button
           variant="ghost-danger"
           size="sm"
-          onClick={() => setConfirming(true)}
+          onClick={() => setDialogOpen(true)}
         >
           {/* Lucide Trash2 */}
           <svg
@@ -59,38 +63,20 @@ export function DeleteIngredientButton({
           Delete
         </Button>
       </div>
-    );
-  }
-
-  return (
-    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
-      <p className="text-sm text-destructive">
-        Are you sure you want to delete <strong>{ingredientName}</strong>? This cannot be undone.
-      </p>
-      {error && (
-        <p className="text-sm font-medium text-destructive">{error}</p>
-      )}
-      <div className="flex gap-2">
-        <Button
-          variant="danger"
-          size="sm"
-          onClick={handleDelete}
-          disabled={deleting}
-        >
-          {deleting ? "Deleting…" : "Yes, delete"}
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => {
-            setConfirming(false);
-            setError(null);
-          }}
-          disabled={deleting}
-        >
-          Cancel
-        </Button>
-      </div>
-    </div>
+      <ConfirmDialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open && !deleting) setError(null);
+        }}
+        title="Delete ingredient?"
+        description={`Are you sure you want to delete ${ingredientName}? This cannot be undone.`}
+        confirmLabel="Yes, delete"
+        pendingLabel="Deleting..."
+        pending={deleting}
+        error={error}
+        onConfirm={handleDelete}
+      />
+    </>
   );
 }

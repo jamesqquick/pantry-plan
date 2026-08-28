@@ -12,10 +12,10 @@ const { title, heading, subheading } = Astro.props;
 ---
 
 <BaseLayout title={title ?? heading}>
-  <div class="absolute top-4 right-4 z-10">
+  <div class="absolute top-[calc(1rem+env(safe-area-inset-top))] right-4 z-10">
     <ThemeToggle client:load />
   </div>
-  <main id="main-content" class="min-h-screen flex flex-col items-center justify-center bg-background text-foreground px-6 py-12">
+  <main id="main-content" class="min-h-screen supports-[height:100dvh]:min-h-dvh flex flex-col items-center justify-center bg-background px-6 pt-[calc(3rem+env(safe-area-inset-top))] pb-[calc(3rem+env(safe-area-inset-bottom))] text-foreground">
     <div class="w-full max-w-md space-y-6">
       <header class="text-center space-y-2">
         <a

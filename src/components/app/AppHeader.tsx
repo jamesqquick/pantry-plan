@@ -69,10 +69,10 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
 
   return (
     <header className="border-b border-border bg-background">
-      <div className="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center justify-between gap-2 px-5 py-5 sm:flex-nowrap sm:gap-0 sm:px-8">
+      <div className="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center justify-between gap-2 px-5 py-3 sm:flex-nowrap sm:gap-0 sm:px-8 sm:py-5">
         <a
           href="/recipes"
-          className="font-display flex shrink-0 items-baseline gap-1 text-3xl sm:text-4xl"
+          className="font-display flex shrink-0 items-baseline gap-1 text-2xl sm:text-4xl"
           aria-label="Pantry Plan home"
         >
           <span className="text-header-logo">Pantry</span>
@@ -80,7 +80,7 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
         </a>
 
         <nav
-          className="hidden flex-wrap items-center gap-2 sm:flex sm:gap-4"
+          className="hidden flex-wrap items-center gap-2 lg:flex lg:gap-4"
           aria-label="Main"
         >
           <AppNav pathname={pathname} />
@@ -97,7 +97,7 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
           type="button"
           className={cn(
             ICON_BUTTON_CLASS,
-            "h-10 w-10 shrink-0 cursor-pointer sm:hidden"
+            "h-11 w-11 shrink-0 cursor-pointer lg:hidden"
           )}
           aria-label="Open menu"
           aria-expanded={mounted}
@@ -108,12 +108,19 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
         </button>
       </div>
 
+      <nav
+        className="fixed inset-x-0 bottom-0 z-40 grid min-h-16 grid-cols-4 gap-1 border-t border-border bg-background/95 px-2 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] shadow-[0_-4px_16px_hsl(22_30%_20%_/_0.08)] backdrop-blur-md lg:hidden [&_a]:flex [&_a]:min-w-0 [&_a]:min-h-[3.25rem] [&_a]:items-center [&_a]:justify-center [&_a]:whitespace-normal [&_a]:px-1 [&_a]:py-1 [&_a]:text-center [&_a]:leading-tight [&_a]:[overflow-wrap:anywhere]"
+        aria-label="Primary"
+      >
+        <AppNav pathname={pathname} />
+      </nav>
+
       {mounted && (
         <div
           role="dialog"
           aria-modal="true"
           aria-label="Main menu"
-          className="fixed inset-0 z-50 mobile-menu-slide-panel bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80"
+          className="fixed inset-0 z-50 mobile-menu-slide-panel bg-background/95 pt-[env(safe-area-inset-top)] backdrop-blur-md supports-[backdrop-filter]:bg-background/80"
           data-state={
             phase === "open"
               ? "open"
@@ -127,7 +134,7 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
             <button
               ref={closeButtonRef}
               type="button"
-              className={cn(ICON_BUTTON_CLASS, "h-10 w-10 cursor-pointer")}
+              className={cn(ICON_BUTTON_CLASS, "h-11 w-11 cursor-pointer")}
               aria-label="Close menu"
               onClick={closeMenu}
             >
@@ -135,7 +142,7 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
             </button>
           </div>
           <nav
-            className="flex flex-1 flex-col items-center justify-center gap-8 px-4 [&_a]:py-2 [&_a]:text-xl"
+            className="flex flex-1 flex-col items-center justify-center gap-8 px-4 [&_a]:inline-flex [&_a]:min-h-12 [&_a]:items-center [&_a]:py-2 [&_a]:text-xl"
             aria-label="Main"
           >
             <div className="flex flex-col items-center gap-6">

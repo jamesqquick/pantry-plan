@@ -86,7 +86,7 @@ export function MealPlanDayCard({
   return (
     <article
       className={cn(
-        "flex min-h-[14rem] min-w-0 w-full flex-col rounded-input border border-border bg-card p-3 shadow-sm transition-colors",
+        "flex min-h-[11rem] w-full min-w-0 flex-col rounded-input border border-border bg-card p-3 shadow-sm transition-colors lg:min-h-[14rem]",
         isDragOver && canDrop && "border-primary bg-primary/10 ring-2 ring-primary/30",
       )}
       onDragOver={handleDragOver}
@@ -114,13 +114,16 @@ export function MealPlanDayCard({
               onDragStart={(e) => handleMealDragStart(e, meal)}
               onDragEnd={() => onDragEnd?.()}
               className={cn(
-                "flex w-full cursor-grab active:cursor-grabbing items-start gap-1 rounded-input px-2 py-1.5 text-left transition-opacity hover:opacity-90",
+                "flex min-h-11 w-full cursor-grab items-start gap-1 rounded-input px-3 py-2 text-left transition-opacity hover:opacity-90 active:cursor-grabbing",
                 swatch,
               )}
               aria-label={`Edit ${title} (${slotLabel}). Drag to move to another day.`}
             >
               <div className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium" title={title}>
+                <span
+                  className="block whitespace-normal text-sm font-medium [overflow-wrap:anywhere]"
+                  title={title}
+                >
                   {title}
                 </span>
                 <p className="text-xs opacity-90">{slotLabel}</p>
@@ -133,7 +136,7 @@ export function MealPlanDayCard({
       <button
         type="button"
         onClick={onAdd}
-        className="mt-2 w-full cursor-pointer rounded-input border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
+        className="mt-2 min-h-11 w-full cursor-pointer rounded-input border border-dashed border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
         aria-label={`Add meal for ${dayAbbr}`}
       >
         {/* Lucide Plus */}

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { actions } from "astro:actions";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { runActionWithRecovery } from "@/lib/action-error";
 
 export interface RecipeActionsProps {
   recipeId: string;
@@ -20,7 +22,7 @@ export default function RecipeActions({
   const [pending, setPending] = useState<
     "duplicate" | "delete" | "enhance" | null
   >(null);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [enhanceResult, setEnhanceResult] = useState<string | null>(null);
 
@@ -62,16 +64,18 @@ export default function RecipeActions({
   async function handleDelete() {
     setPending("delete");
     setError(null);
+
     const form = new FormData();
     form.append("id", recipeId);
-    const { error: err } = await actions.recipes.delete(form);
-    if (err) {
-      setError(err.message || "Could not delete recipe");
-      setPending(null);
-      setConfirmingDelete(false);
-      return;
-    }
-    window.location.href = "/recipes";
+    await runActionWithRecovery({
+      action: () => actions.recipes.delete(form),
+      fallback: "Could not delete recipe.",
+      onError: setError,
+      onSuccess: () => {
+        window.location.href = "/recipes";
+      },
+      onSettled: () => setPending(null),
+    });
   }
 
   return (
@@ -152,52 +156,32 @@ export default function RecipeActions({
           </svg>
           {pending === "duplicate" ? "Copying…" : "Duplicate"}
         </Button>
-        {confirmingDelete ? (
-          <>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={handleDelete}
-              disabled={pending !== null}
-            >
-              {pending === "delete" ? "Deleting…" : "Yes, delete"}
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setConfirmingDelete(false)}
-              disabled={pending !== null}
-            >
-              Cancel
-            </Button>
-          </>
-        ) : (
-          <Button
-            variant="ghost-danger"
-            size="sm"
-            onClick={() => setConfirmingDelete(true)}
-            className="gap-1.5"
+        <Button
+          variant="ghost-danger"
+          size="sm"
+          onClick={() => setDeleteDialogOpen(true)}
+          disabled={pending !== null}
+          className="gap-1.5"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-3.5 w-3.5"
+            aria-hidden="true"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-3.5 w-3.5"
-              aria-hidden="true"
-            >
-              <path d="M3 6h18" />
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-            </svg>
-            Delete
-          </Button>
-        )}
+            <path d="M3 6h18" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          </svg>
+          Delete
+        </Button>
       </div>
-      {error && (
+      {error && !deleteDialogOpen && (
         <p role="alert" className="text-xs text-destructive">
           {error}
         </p>
@@ -207,6 +191,17 @@ export default function RecipeActions({
           {enhanceResult}
         </p>
       )}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete recipe?"
+        description="This recipe and its ingredients, instructions, and tags will be permanently deleted. This cannot be undone."
+        confirmLabel="Yes, delete"
+        pendingLabel="Deleting..."
+        pending={pending === "delete"}
+        error={error}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

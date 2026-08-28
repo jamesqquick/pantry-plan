@@ -171,7 +171,7 @@ export function MealPlanWeek({
     <div className="space-y-8">
       {/* Weekly grid */}
       <section className="rounded-lg border border-border bg-card shadow-sm">
-        <div className="border-b border-border px-6 py-4">
+        <div className="border-b border-border px-4 py-4 sm:px-6">
           <h2 className="font-display text-xl text-card-foreground">
             Meals this week
           </h2>
@@ -179,9 +179,9 @@ export function MealPlanWeek({
             Add or move meals by day. Drag a meal to another day to reschedule.
           </p>
         </div>
-        <div className="space-y-4 p-6">
-          <div className="overflow-x-auto" aria-label="Weekly meal grid">
-            <div className="grid grid-cols-1 gap-2 min-[1024px]:grid-cols-[repeat(7,minmax(0,160px))] min-[1024px]:min-w-[280px]">
+        <div className="space-y-4 p-4 sm:p-6">
+          <div aria-label="Weekly meal grid">
+            <div className="grid grid-cols-1 gap-2 lg:grid-cols-7">
               {weekDates.map((date) => (
                 <div
                   key={date}
@@ -214,7 +214,7 @@ export function MealPlanWeek({
       {/* This week's recipes */}
       {hasRecipeMeals && recipesInPlan.length > 0 && (
         <section className="rounded-lg border border-border bg-card shadow-sm">
-          <div className="border-b border-border px-6 py-4">
+          <div className="border-b border-border px-4 py-4 sm:px-6">
             <h2 className="font-display text-xl text-card-foreground">
               This week's recipes
             </h2>
@@ -227,7 +227,7 @@ export function MealPlanWeek({
               <li key={r.id}>
                 <a
                   href={`/recipes/${r.id}`}
-                  className="flex cursor-pointer items-center px-6 py-3 text-sm font-medium text-card-foreground transition-colors hover:bg-primary/5 hover:text-primary-on-card"
+                  className="flex min-h-11 min-w-0 cursor-pointer items-center px-4 py-3 text-sm font-medium text-card-foreground transition-colors [overflow-wrap:anywhere] hover:bg-primary/5 hover:text-primary-on-card sm:px-6"
                 >
                   {r.title}
                 </a>
@@ -240,7 +240,7 @@ export function MealPlanWeek({
       {/* Grocery list */}
       {(hasRecipeMeals || displayMeals.length > 0) && (
         <section className="rounded-lg border border-border bg-card shadow-sm">
-          <div className="border-b border-border px-6 py-4">
+          <div className="border-b border-border px-4 py-4 sm:px-6">
             <h2 className="font-display text-xl text-card-foreground">
               Grocery list
               {grocery.totals.length > 0 && (
@@ -255,7 +255,7 @@ export function MealPlanWeek({
                 : "Add recipe-based meals above to generate a merged grocery list."}
             </p>
           </div>
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {hasRecipeMeals ? (
               <GroceryListDisplay grocery={grocery} showCost={true} />
             ) : (
@@ -287,7 +287,7 @@ export function MealPlanWeek({
       {moveError && (
         <div
           role="alert"
-          className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-lg border border-destructive/30 bg-destructive px-4 py-3 text-sm font-medium text-destructive-foreground shadow-lg"
+          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-lg border border-destructive/30 bg-destructive px-4 py-3 text-sm font-medium text-destructive-foreground shadow-lg lg:bottom-[calc(1rem+env(safe-area-inset-bottom))]"
         >
           {moveError}
         </div>
