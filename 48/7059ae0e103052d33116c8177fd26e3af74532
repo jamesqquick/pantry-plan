@@ -1,0 +1,21 @@
+src/env.d.ts
+  s_4baa5e4e85c1dc::t_e4c1d06c605672 15
+src/lib/auth.ts
+  s_4baa5e4e85c1dc::t_58c32bb80c0813 120-122
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "487059ae0e103052d33116c8177fd26e3af74532",
+  "prompts": {},
+  "sessions": {
+    "s_4baa5e4e85c1dc": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fb650f8beffeB2Eaamtjg2v1Xi",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
