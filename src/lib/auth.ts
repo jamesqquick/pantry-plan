@@ -117,6 +117,9 @@ function buildOptions(db: Db, env: Env): BetterAuthOptions {
       resetPasswordTokenExpiresIn: PASSWORD_RESET_TOKEN_TTL,
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => {
+        if (env.PASSWORD_RESET_LOG_LINKS === "true") {
+          console.info(`[password-reset] ${url}`);
+        }
         await env.EMAIL.send({
           from: { email: "pantry-plan@jamesqquick.com", name: "Pantry Plan" },
           to: { email: user.email, name: user.name },

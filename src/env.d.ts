@@ -12,6 +12,7 @@ declare namespace Cloudflare {
     GOOGLE_CLIENT_ID: string;
     GOOGLE_CLIENT_SECRET: string;
     AI: Ai;
+    PASSWORD_RESET_LOG_LINKS?: string;
   }
 }
 
