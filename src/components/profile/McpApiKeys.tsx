@@ -3,6 +3,7 @@ import { actions } from "astro:actions";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { runActionWithRecovery } from "@/lib/action-error";
 
 type ApiKeySummary = {
   id: string;
@@ -78,15 +79,17 @@ export function McpApiKeys({ endpoint, initialKeys }: Props) {
     const key = keyToRevoke;
     setRevokingId(key.id);
     setError(null);
-    const { error: actionError } = await actions.mcpKeys.revoke({ id: key.id });
-    if (actionError) {
-      setError(actionError.message || "Could not revoke MCP key.");
-      setRevokingId(null);
-      return;
-    }
-    setKeys((current) => current.filter((item) => item.id !== key.id));
-    setRevokingId(null);
-    setKeyToRevoke(null);
+
+    await runActionWithRecovery({
+      action: () => actions.mcpKeys.revoke({ id: key.id }),
+      fallback: "Could not revoke MCP key.",
+      onError: setError,
+      onSuccess: () => {
+        setKeys((current) => current.filter((item) => item.id !== key.id));
+        setKeyToRevoke(null);
+      },
+      onSettled: () => setRevokingId(null),
+    });
   }
 
   return (

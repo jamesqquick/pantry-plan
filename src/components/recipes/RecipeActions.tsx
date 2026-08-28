@@ -3,6 +3,7 @@ import { actions } from "astro:actions";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { runActionWithRecovery } from "@/lib/action-error";
 
 export interface RecipeActionsProps {
   recipeId: string;
@@ -63,15 +64,18 @@ export default function RecipeActions({
   async function handleDelete() {
     setPending("delete");
     setError(null);
+
     const form = new FormData();
     form.append("id", recipeId);
-    const { error: err } = await actions.recipes.delete(form);
-    if (err) {
-      setError(err.message || "Could not delete recipe");
-      setPending(null);
-      return;
-    }
-    window.location.href = "/recipes";
+    await runActionWithRecovery({
+      action: () => actions.recipes.delete(form),
+      fallback: "Could not delete recipe.",
+      onError: setError,
+      onSuccess: () => {
+        window.location.href = "/recipes";
+      },
+      onSettled: () => setPending(null),
+    });
   }
 
   return (

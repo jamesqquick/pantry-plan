@@ -2,6 +2,7 @@ import { useState } from "react";
 import { actions } from "astro:actions";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { runActionWithRecovery } from "@/lib/action-error";
 
 interface DeleteOrderButtonProps {
   orderId: string;
@@ -16,15 +17,18 @@ export function DeleteOrderButton({ orderId, orderName }: DeleteOrderButtonProps
   async function handleDelete() {
     setDeleting(true);
     setError(null);
-    const fd = new FormData();
-    fd.set("id", orderId);
-    const { error: err } = await actions.orders.delete(fd);
-    if (err) {
-      setError(err.message);
-      setDeleting(false);
-    } else {
-      window.location.href = "/orders";
-    }
+
+    const formData = new FormData();
+    formData.set("id", orderId);
+    await runActionWithRecovery({
+      action: () => actions.orders.delete(formData),
+      fallback: "Could not delete order.",
+      onError: setError,
+      onSuccess: () => {
+        window.location.href = "/orders";
+      },
+      onSettled: () => setDeleting(false),
+    });
   }
 
   return (
