@@ -1,0 +1,35 @@
+README.md
+  s_a4001dbb440b04::t_f3b46b50889d81 88-89
+src/features/mcp/mcp.schemas.test.ts
+  s_a71aad8fdd2bd7::t_bc81c56b107cb3 4,41-90
+src/features/mcp/mcp.schemas.ts
+  s_a71aad8fdd2bd7::t_e33aa8c82b7f4f 4-11,36-51
+src/lib/mcp/create-weekly-meal-plan.ts
+  s_a71aad8fdd2bd7::t_7d49cea95e1c2e 1-72
+src/lib/mcp/server.ts
+  s_a71aad8fdd2bd7::t_756cdb039675d3 7,16-19,197-238
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "582e06ffd7c90c15c2b5927806d06a3745b89fd2",
+  "prompts": {},
+  "sessions": {
+    "s_a4001dbb440b04": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fb6f94f3fffefggpu90GfGcbES",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    },
+    "s_a71aad8fdd2bd7": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fb6e62c02ffeOI3vtvwbxC11Mx",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
