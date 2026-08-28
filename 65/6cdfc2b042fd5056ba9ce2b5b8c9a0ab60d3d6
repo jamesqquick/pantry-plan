@@ -1,0 +1,21 @@
+src/components/ingredients/DeleteIngredientButton.tsx
+  s_b1ba6fc27b198d::t_c38e5e31932d56 4,15,33-34,39,62-76
+src/components/orders/DeleteOrderButton.tsx
+  s_b1ba6fc27b198d::t_4a73bf2f5a02c1 4,12,30-32,53-67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "656cdfc2b042fd5056ba9ce2b5b8c9a0ab60d3d6",
+  "prompts": {},
+  "sessions": {
+    "s_b1ba6fc27b198d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fbbd40be5ffe1Xjdkli2MSMk90",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
