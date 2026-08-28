@@ -1,0 +1,19 @@
+src/lib/action-error.test.ts
+  s_19cfa27923d1d2::t_597f01cf6524f4 1-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "3fc2bdf52a1ac5accf7da3ac17ed9bdd8340276c",
+  "prompts": {},
+  "sessions": {
+    "s_19cfa27923d1d2": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fbb04ae02ffeeWwodbyRZmzuV1",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
