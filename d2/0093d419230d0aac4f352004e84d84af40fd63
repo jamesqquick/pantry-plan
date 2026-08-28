@@ -1,0 +1,27 @@
+src/components/auth/LoginForm.tsx
+  s_2ba8baaebceed0::t_693f286d168c54 103-108
+src/lib/auth-client.ts
+  s_2ba8baaebceed0::t_298b2497819ed8 11-19
+src/middleware.ts
+  s_2ba8baaebceed0::t_c0736fba00df28 27-28
+src/pages/login.astro
+  s_2ba8baaebceed0::t_e65be90dc2ab8f 8,12
+wrangler.jsonc
+  s_2ba8baaebceed0::t_02d3a53da586d2 41-49,65-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "d20093d419230d0aac4f352004e84d84af40fd63",
+  "prompts": {},
+  "sessions": {
+    "s_2ba8baaebceed0": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fb74d2e2cffeu7gJOU54aqdX1D",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
