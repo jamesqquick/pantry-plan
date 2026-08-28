@@ -3,6 +3,7 @@ import { env } from "cloudflare:workers";
 import { and, asc, eq } from "drizzle-orm";
 import AppLayout from "@/layouts/AppLayout.astro";
 import RecipeActions from "@/components/recipes/RecipeActions";
+import { RecipeCookMode } from "@/components/recipes/RecipeCookMode";
 import { TagBadge } from "@/components/ui/TagBadge";
 import { renderMarkdownToHtml } from "@/features/markdown/render-markdown";
 import { formatQuantity } from "@/lib/quantity/quantity";
@@ -194,6 +195,13 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
 
       {/* Actions on their own row so they never squeeze the title */}
       <div class="flex flex-wrap items-center gap-3">
+        <RecipeCookMode
+          client:load
+          title={r.title}
+          meta={meta}
+          ingredients={ingredients.map(formatIngredientLine)}
+          instructions={instructions.map((instruction) => instruction.text)}
+        />
         <RecipeActions client:load recipeId={r.id} hasUnmappedIngredients={hasUnmappedIngredients} />
         <a
           href={`/meal-plan?addRecipe=${r.id}`}
