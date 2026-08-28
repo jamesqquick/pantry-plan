@@ -65,6 +65,7 @@
   "send_email": [
     {
       "name": "EMAIL",
+      "allowed_sender_addresses": ["pantry-plan@jamesqquick.com"],
       "remote": true
     }
   ],

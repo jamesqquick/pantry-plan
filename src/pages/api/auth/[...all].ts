@@ -21,14 +21,26 @@ export const ALL: APIRoute = async (ctx) => {
       { status, headers: { "content-type": "application/json" } },
     );
     const rateLimit = env.PASSWORD_RESET_RATE_LIMIT;
-    const contentLengthHeader = ctx.request.headers.get("content-length");
-    const contentLength = Number(contentLengthHeader);
     if (!rateLimit) return genericResponse(503);
-    if (!contentLengthHeader || !Number.isSafeInteger(contentLength) || contentLength > 16_384) {
-      return genericResponse();
-    }
+    const clone = ctx.request.clone();
+    const reader = clone.body?.getReader();
+    if (!reader) return genericResponse();
 
-    const body: unknown = await ctx.request.clone().json().catch(() => null);
+    let bodyText = "";
+    const decoder = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bodyText += decoder.decode(value, { stream: true });
+      if (bodyText.length > 16_384) return genericResponse();
+    }
+    bodyText += decoder.decode();
+    let body: unknown = null;
+    try {
+      body = JSON.parse(bodyText) as unknown;
+    } catch {
+      // Let Better Auth return its normal validation response.
+    }
     const email = typeof body === "object" && body !== null && "email" in body && typeof body.email === "string"
       ? body.email
       : undefined;
