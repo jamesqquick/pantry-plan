@@ -31,7 +31,10 @@ const pathname = Astro.url.pathname;
       userEmail={user.email}
       pathname={pathname}
     />
-    <main id="main-content" class:list={[containerClass, "mobile-main-content"]}>
+    <main
+      id="main-content"
+      class:list={[containerClass, "pb-[calc(5rem+env(safe-area-inset-bottom))]", "lg:pb-8"]}
+    >
       <slot />
     </main>
   </div>

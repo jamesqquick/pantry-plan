@@ -166,6 +166,12 @@ export default function RecipeForm({
       tagIds: Array.from(tagIds),
     };
 
+    if (cleanInstructions.length === 0) {
+      setError("At least one instruction is required.");
+      setPending(false);
+      return;
+    }
+
     if (mode === "create") {
       const { data, error: err } = await actions.recipes.create(payload);
       if (err) {
