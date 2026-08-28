@@ -56,6 +56,7 @@ export function AddOrEditMealModal({
   const [deletePending, setDeletePending] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -75,6 +76,7 @@ export function AddOrEditMealModal({
     setDate(initialDate);
     setMealSlot(initialMealSlot);
     setError(null);
+    setDeleteError(null);
     setDeleteDialogOpen(false);
   }, [open, initialDate, initialMealSlot, initialMeal, initialRecipeIdForAdd, recipeOptions]);
 
@@ -154,7 +156,7 @@ export function AddOrEditMealModal({
   const handleDelete = useCallback(async () => {
     if (!initialMeal) return;
     setDeletePending(true);
-    setError(null);
+    setDeleteError(null);
 
     try {
       const formData = new FormData();
@@ -164,7 +166,7 @@ export function AddOrEditMealModal({
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message ?? "Something went wrong.");
+      setDeleteError(err.message ?? "Something went wrong.");
     } finally {
       setDeletePending(false);
     }
@@ -325,7 +327,10 @@ export function AddOrEditMealModal({
             {mode === "edit" && initialMeal && (
               <button
                 type="button"
-                onClick={() => setDeleteDialogOpen(true)}
+                onClick={() => {
+                  setDeleteError(null);
+                  setDeleteDialogOpen(true);
+                }}
                 disabled={anyPending}
                 className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-input border border-destructive bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               >
@@ -342,7 +347,7 @@ export function AddOrEditMealModal({
           confirmLabel="Yes, remove"
           pendingLabel="Removing..."
           pending={deletePending}
-          error={error}
+          error={deleteError}
           onConfirm={handleDelete}
         />
       </DialogContent>

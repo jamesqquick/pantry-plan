@@ -109,7 +109,7 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
       </div>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 grid min-h-16 grid-cols-4 gap-1 border-t border-border bg-background/95 px-2 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] shadow-[0_-4px_16px_hsl(22_30%_20%_/_0.08)] backdrop-blur-md lg:hidden [&_a]:flex [&_a]:min-w-0 [&_a]:min-h-[3.25rem] [&_a]:items-center [&_a]:justify-center [&_a]:px-1 [&_a]:py-1 [&_a]:text-center [&_a]:[overflow-wrap:anywhere]"
+        className="fixed inset-x-0 bottom-0 z-40 grid min-h-16 grid-cols-4 gap-1 border-t border-border bg-background/95 px-2 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] shadow-[0_-4px_16px_hsl(22_30%_20%_/_0.08)] backdrop-blur-md lg:hidden [&_a]:flex [&_a]:min-w-0 [&_a]:min-h-[3.25rem] [&_a]:items-center [&_a]:justify-center [&_a]:whitespace-normal [&_a]:px-1 [&_a]:py-1 [&_a]:text-center [&_a]:leading-tight [&_a]:[overflow-wrap:anywhere]"
         aria-label="Primary"
       >
         <AppNav pathname={pathname} />
