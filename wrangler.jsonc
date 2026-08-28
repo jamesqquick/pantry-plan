@@ -39,6 +39,15 @@
   ],
   "ratelimits": [
     {
+      // Password reset requests (5 per minute per IP or email address).
+      "name": "PASSWORD_RESET_RATE_LIMIT",
+      "namespace_id": "1002",
+      "simple": {
+        "limit": 5,
+        "period": 60
+      }
+    },
+    {
       // AI parsing endpoints (recipe-from-image, recipe-from-URL).
       // 5 calls per 60s per user.id. Note: rate-limit counters are
       // per-Cloudflare-location, so the effective ceiling for a user
@@ -51,6 +60,12 @@
         "limit": 5,
         "period": 60
       }
+    }
+  ],
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "remote": true
     }
   ],
   "flagship": [

@@ -100,6 +100,12 @@ export function LoginForm({ next }: Props) {
         {pending ? "Signing in…" : "Sign in"}
       </Button>
 
+      <p className="text-center text-sm">
+        <a href="/forgot-password" className="font-medium text-primary-on-card hover:underline">
+          Forgot your password?
+        </a>
+      </p>
+
       <div className="relative flex items-center py-1" aria-hidden="true">
         <div className="grow border-t border-border" />
         <span className="px-3 text-xs text-muted-foreground">OR</span>

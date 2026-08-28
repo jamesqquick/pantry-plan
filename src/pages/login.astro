@@ -5,8 +5,10 @@ import { LoginForm } from "@/components/auth/LoginForm";
 export const prerender = false;
 
 const nextParam = Astro.url.searchParams.get("next") ?? undefined;
+const passwordReset = Astro.url.searchParams.get("password_reset") === "success";
 ---
 
 <AuthLayout title="Sign in" heading="Welcome back" subheading="Sign in to your Pantry Plan account.">
+  {passwordReset && <p class="text-sm text-green-700 dark:text-green-400">Your password was reset. Sign in with your new password.</p>}
   <LoginForm client:load next={nextParam} />
 </AuthLayout>

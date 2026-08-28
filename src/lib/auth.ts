@@ -9,6 +9,21 @@ import {
 import { createDb, type Db } from "@/db";
 import * as schema from "@/db/schema";
 
+const PASSWORD_RESET_TOKEN_TTL = 60 * 60;
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => {
+    const entities: Record<string, string> = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    };
+    return entities[character] ?? character;
+  });
+}
+
 /** Constant-time equality on equal-length byte arrays. */
 function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
@@ -99,6 +114,17 @@ function buildOptions(db: Db, env: Env): BetterAuthOptions {
       enabled: true,
       minPasswordLength: 8,
       autoSignIn: true,
+      resetPasswordTokenExpiresIn: PASSWORD_RESET_TOKEN_TTL,
+      revokeSessionsOnPasswordReset: true,
+      sendResetPassword: async ({ user, url }) => {
+        await env.EMAIL.send({
+          from: { email: "pantry-plan@jamesqquick.com", name: "Pantry Plan" },
+          to: { email: user.email, name: user.name },
+          subject: "Reset your Pantry Plan password",
+          text: `Hi ${user.name},\n\nReset your Pantry Plan password here:\n${url}\n\nThis link expires in one hour and can only be used once. If you did not request this, you can ignore this email.`,
+          html: `<p>Hi ${escapeHtml(user.name)},</p><p>Reset your Pantry Plan password by clicking the link below.</p><p><a href="${escapeHtml(url)}">Reset password</a></p><p>This link expires in one hour and can only be used once. If you did not request this, you can ignore this email.</p>`,
+        });
+      },
       password: { hash: hashPassword, verify: verifyPassword },
     },
     socialProviders: {

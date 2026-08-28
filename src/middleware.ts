@@ -24,6 +24,8 @@ const ALWAYS_PUBLIC_PATHS = new Set<string>([
   "/",
   "/login",
   "/register",
+  "/forgot-password",
+  "/reset-password",
   "/404",
 ]);
 
