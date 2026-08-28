@@ -1,0 +1,19 @@
+wrangler.jsonc
+  s_f2a62fac812eb2::t_770139e450b59b 67,70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "b48c2e52ca4bb2fc06f7778cd0a931e43d6447fc",
+  "prompts": {},
+  "sessions": {
+    "s_f2a62fac812eb2": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fb6fa2d3dffe5n4nK20ky8fGvt",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
