@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/Dialog";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
   Select,
   SelectContent,
@@ -53,6 +54,7 @@ export function AddOrEditMealModal({
   const [mealSlot, setMealSlot] = useState(initialMealSlot);
   const [pending, setPending] = useState(false);
   const [deletePending, setDeletePending] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -73,6 +75,7 @@ export function AddOrEditMealModal({
     setDate(initialDate);
     setMealSlot(initialMealSlot);
     setError(null);
+    setDeleteDialogOpen(false);
   }, [open, initialDate, initialMealSlot, initialMeal, initialRecipeIdForAdd, recipeOptions]);
 
   // Close dropdown when clicking outside.
@@ -322,16 +325,26 @@ export function AddOrEditMealModal({
             {mode === "edit" && initialMeal && (
               <button
                 type="button"
-                onClick={handleDelete}
+                onClick={() => setDeleteDialogOpen(true)}
                 disabled={anyPending}
-                aria-busy={deletePending}
                 className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-input border border-destructive bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               >
-                {deletePending ? "Deleting\u2026" : "Delete"}
+                Delete
               </button>
             )}
           </div>
         </form>
+        <ConfirmDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title="Remove planned meal?"
+          description="This meal will be removed from your plan. This cannot be undone."
+          confirmLabel="Yes, remove"
+          pendingLabel="Removing..."
+          pending={deletePending}
+          error={error}
+          onConfirm={handleDelete}
+        />
       </DialogContent>
     </Dialog>
   );
