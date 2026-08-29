@@ -1,0 +1,19 @@
+src/lib/mcp/create-weekly-meal-plan.ts
+  s_dae9c2282ec6c9::t_1650eac3ebde80 34-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "a6fbf8e09dc97a7a9e8d6273b9cce569b470fa1d",
+  "prompts": {},
+  "sessions": {
+    "s_dae9c2282ec6c9": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fb15c2463ffeN2wiXqlkHAUX2H",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
