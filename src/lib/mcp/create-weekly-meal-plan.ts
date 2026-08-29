@@ -31,10 +31,18 @@ export async function createWeeklyMealPlan(
 
   const recipeIds = [...new Set(input.meals.map((meal) => meal.recipeId))];
   if (recipeIds.length > 0) {
-    const ownedRecipes = await db
-      .select({ id: recipe.id })
-      .from(recipe)
-      .where(and(eq(recipe.userId, userId), inArray(recipe.id, recipeIds)));
+    const ownedRecipes = [];
+    for (let i = 0; i < recipeIds.length; i += 99) {
+      const recipeIdChunk = recipeIds.slice(i, i + 99);
+      ownedRecipes.push(
+        ...(await db
+          .select({ id: recipe.id })
+          .from(recipe)
+          .where(
+            and(eq(recipe.userId, userId), inArray(recipe.id, recipeIdChunk)),
+          )),
+      );
+    }
     if (ownedRecipes.length !== recipeIds.length) {
       throw new WeeklyMealPlanValidationError(
         "One or more recipes do not belong to the user.",
