@@ -4,6 +4,7 @@ import type { Db } from "@/db";
 import { saveImportedRecipeTextOnlySchema } from "@/features/import/import.schemas";
 import {
   createRecipeToolSchema,
+  createWeeklyMealPlanToolSchema,
   importRecipeFromUrlToolSchema,
   searchRecipesToolSchema,
 } from "@/features/mcp/mcp.schemas";
@@ -12,6 +13,10 @@ import { parseRecipeFromUrl } from "@/lib/parse/parse-recipe";
 import { isSafeHttpUrl } from "@/lib/url";
 import { authenticateMcpApiKey } from "./api-keys";
 import { searchRecipes } from "./search-recipes";
+import {
+  createWeeklyMealPlan,
+  WeeklyMealPlanValidationError,
+} from "./create-weekly-meal-plan";
 
 function toolError(message: string) {
   return {
@@ -185,6 +190,48 @@ function createServer(
           }),
         );
         return toolError("Could not search recipes.");
+      }
+    },
+  );
+
+  server.registerTool(
+    "create_weekly_meal_plan",
+    {
+      description:
+        "Replace an entire week of meals with saved recipes from the authenticated user's Pantry Plan account.",
+      inputSchema: createWeeklyMealPlanToolSchema.shape,
+    },
+    async (input) => {
+      if (await isRateLimited(rateLimit, keyId)) {
+        return toolError("Too many requests. Please try again later.");
+      }
+      try {
+        const result = await createWeeklyMealPlan(db, userId, input);
+        const mealPlanUrl = new URL(
+          `/meal-plan/${result.weekStart}`,
+          origin,
+        ).toString();
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Replaced the week starting ${result.weekStart} with ${result.mealCount} meal${result.mealCount === 1 ? "" : "s"}: ${mealPlanUrl}`,
+            },
+          ],
+          structuredContent: { ...result, mealPlanUrl },
+        };
+      } catch (error) {
+        console.error(
+          JSON.stringify({
+            message: "MCP weekly meal plan creation failed",
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
+        return toolError(
+          error instanceof WeeklyMealPlanValidationError
+            ? error.message
+            : "Could not create the weekly meal plan.",
+        );
       }
     },
   );
