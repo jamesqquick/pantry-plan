@@ -5,6 +5,9 @@
 
 const ALLOWED_PROTOCOLS = ["http:", "https:"];
 const MAX_HTML_BYTES = 1_000_000;
+const MAX_REDIRECTS = 3;
+const FETCH_TIMEOUT_MS = 15_000;
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
 function isUrlAllowed(url: URL): boolean {
   if (!ALLOWED_PROTOCOLS.includes(url.protocol)) return false;
@@ -17,15 +20,46 @@ function isUrlAllowed(url: URL): boolean {
 }
 
 export async function fetchHtml(urlString: string): Promise<string> {
-  const url = new URL(urlString);
-  if (!isUrlAllowed(url)) {
+  let currentUrl = new URL(urlString);
+  if (!isUrlAllowed(currentUrl)) {
     throw new Error("URL not allowed (localhost or private network)");
   }
-  const res = await fetch(urlString, {
-    headers: { "User-Agent": "RecipesApp/1.0 (compatible; parse)" },
-    redirect: "error",
-    signal: AbortSignal.timeout(15_000),
-  });
+
+  const deadline = Date.now() + FETCH_TIMEOUT_MS;
+  let redirects = 0;
+  let res: Response;
+
+  while (true) {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) throw new Error("Recipe page request timed out");
+
+    res = await fetch(currentUrl, {
+      headers: { "User-Agent": "RecipesApp/1.0 (compatible; parse)" },
+      redirect: "manual",
+      signal: AbortSignal.timeout(remainingMs),
+    });
+
+    if (!REDIRECT_STATUSES.has(res.status)) break;
+
+    if (redirects >= MAX_REDIRECTS) {
+      throw new Error("Recipe page redirected too many times");
+    }
+
+    const location = res.headers.get("location");
+    if (!location) {
+      throw new Error("Recipe page redirect did not include a destination");
+    }
+
+    const nextUrl = new URL(location, currentUrl);
+    if (!isUrlAllowed(nextUrl)) {
+      throw new Error("Recipe page redirected to an unsafe or unsupported URL");
+    }
+
+    await res.body?.cancel();
+    currentUrl = nextUrl;
+    redirects += 1;
+  }
+
   if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
   const contentType = res.headers.get("content-type") ?? "";
   if (!contentType.includes("text/html")) {
