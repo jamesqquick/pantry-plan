@@ -14,6 +14,7 @@
  */
 
 import { ActionError } from "astro:actions";
+import { isRateLimited } from "@/lib/rate-limit-utils";
 
 /**
  * Enforce a rate limit using the supplied binding and key. If the
@@ -31,10 +32,7 @@ export async function enforceRateLimit(
   key: string,
   errorMsg = "You're making requests too quickly. Please wait a moment and try again.",
 ): Promise<void> {
-  if (!binding) return; // Local dev / missing binding: allow through.
-
-  const { success } = await binding.limit({ key });
-  if (!success) {
+  if (await isRateLimited(binding, key)) {
     throw new ActionError({
       code: "TOO_MANY_REQUESTS",
       message: errorMsg,
