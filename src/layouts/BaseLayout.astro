@@ -8,7 +8,7 @@ interface Props {
   description?: string;
 }
 
-const { title = "Pantry Plan", description = "Recipe management and meal planning" } = Astro.props;
+const { title = "Quick Pantry", description = "Recipe management and meal planning" } = Astro.props;
 ---
 
 <!doctype html>
@@ -17,9 +17,9 @@ const { title = "Pantry Plan", description = "Recipe management and meal plannin
     <meta charset="UTF-8" />
     <meta name="description" content={description} />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png?v=2" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png?v=3" />
     <meta name="theme-color" content="#a64b25" />
     <ClientRouter />
     <Font cssVariable="--font-body" preload />
@@ -47,7 +47,7 @@ const { title = "Pantry Plan", description = "Recipe management and meal plannin
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
           navigator.serviceWorker.register("/sw.js").catch(function (error) {
-            console.error("Pantry Plan service worker registration failed.", error);
+            console.error("Quick Pantry service worker registration failed.", error);
           });
         });
       }

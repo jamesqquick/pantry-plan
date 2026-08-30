@@ -73,10 +73,10 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
         <a
           href="/recipes"
           className="font-display flex shrink-0 items-baseline gap-1 text-2xl sm:text-4xl"
-          aria-label="Pantry Plan home"
+          aria-label="Quick Pantry home"
         >
+          <span className="text-header-logo">Quick</span>
           <span className="text-header-logo">Pantry</span>
-          <span className="text-header-logo">Plan</span>
         </a>
 
         <nav

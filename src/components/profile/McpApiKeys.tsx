@@ -128,7 +128,7 @@ export function McpApiKeys({ endpoint, initialKeys }: Props) {
           <div>
             <p className="text-sm font-semibold text-foreground">Copy your new key now</p>
             <p className="text-xs text-muted-foreground">
-              Pantry Plan cannot show this secret again.
+              Quick Pantry cannot show this secret again.
             </p>
           </div>
           <code className="block break-all rounded-input bg-background p-3 text-xs text-foreground">

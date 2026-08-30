@@ -70,7 +70,7 @@ self.addEventListener("fetch", (event) => {
 
       return (
         offlineResponse ??
-        new Response("Pantry Plan is offline. Reconnect and try again.", {
+        new Response("Quick Pantry is offline. Reconnect and try again.", {
           status: 503,
           headers: { "Content-Type": "text/plain; charset=utf-8" },
         })

@@ -1,8 +1,8 @@
-# Pantry Plan
+# Quick Pantry
 
-Pantry Plan keeps your recipes, weekly meals, and grocery shopping in one place.
+Quick Pantry keeps your recipes, weekly meals, and grocery shopping in one place.
 
-[Open Pantry Plan](https://pantry-plan.jamesqquick.workers.dev)
+[Open Quick Pantry](https://quickpantry.app)
 
 ## What You Can Do
 
@@ -24,7 +24,7 @@ meals as your week changes.
 
 ### Build a grocery list
 
-Create an order from selected recipes and batch sizes. Pantry Plan combines the
+Create an order from selected recipes and batch sizes. Quick Pantry combines the
 ingredients into a grocery list, converts compatible units, and estimates the
 cost for each batch.
 
@@ -33,9 +33,14 @@ cost for each batch.
 Maintain your ingredient catalog and manage your account from Profile. Profile
 settings include your name, password, connected Google account, and integrations.
 
+### Reset your password
+
+Use [Forgot password](https://quickpantry.app/forgot-password) to receive a
+reset link by email. Transactional email is sent from `noreply@quickpantry.app`.
+
 ## Getting Started
 
-1. [Create an account](https://pantry-plan.jamesqquick.workers.dev/register) or [sign in](https://pantry-plan.jamesqquick.workers.dev/login).
+1. [Create an account](https://quickpantry.app/register) or [sign in](https://quickpantry.app/login).
 2. Add your first recipe from a URL, a photo if the option is available, or manual entry.
 3. Review and save the recipe.
 4. Add recipes to a week in **Meal plan**.
@@ -45,13 +50,13 @@ Your recipes, ingredients, meal plans, and orders are private to your account.
 
 ## Install on iPhone
 
-1. Open [Pantry Plan](https://pantry-plan.jamesqquick.workers.dev) in Safari.
+1. Open [Quick Pantry](https://quickpantry.app) in Safari.
 2. Tap the **Share** button.
 3. Select **Add to Home Screen**, then tap **Add**.
 
 The first PWA release requires a network connection to load live recipes, meal
 plans, orders, grocery lists, and edits. If the connection is unavailable,
-Pantry Plan shows an offline message until you reconnect.
+Quick Pantry shows an offline message until you reconnect.
 
 ## AI-Powered Import
 
@@ -63,21 +68,21 @@ appear for every account.
 
 ## MCP Integration
 
-Pantry Plan can connect to AI clients that support the Model Context Protocol
+Quick Pantry can connect to AI clients that support the Model Context Protocol
 (MCP). To configure access:
 
 1. Sign in and open **Profile**.
 2. Create a named MCP key for the client you want to connect.
-3. Copy the key immediately. Pantry Plan cannot show it again.
+3. Copy the key immediately. Quick Pantry cannot show it again.
 4. Configure the client with the MCP endpoint and bearer token.
 
 The hosted MCP endpoint is:
 
 ```text
-https://pantry-plan.jamesqquick.workers.dev/mcp
+https://quickpantry.app/mcp
 ```
 
-Each key authenticates access to your own Pantry Plan account. You can revoke
+Each key authenticates access to your own Quick Pantry account. You can revoke
 keys from Profile at any time. Treat MCP keys like passwords.
 
 The current MCP tools are:
@@ -90,12 +95,12 @@ The current MCP tools are:
 
 ## For Contributors
 
-Pantry Plan is an Astro application deployed to Cloudflare Workers.
+Quick Pantry is an Astro application deployed to Cloudflare Workers.
 
 ### Stack
 
 - Astro 6 with server-rendered pages and React islands
-- Cloudflare Workers with D1, KV sessions, Workers AI, and feature flags
+- Cloudflare Workers with D1, KV sessions, Workers AI, feature flags, and Email Sending
 - Drizzle ORM for database access
 - Better Auth for email/password and Google account authentication
 - Tailwind CSS v4
@@ -119,3 +124,7 @@ The development server runs on `http://localhost:4321` by default. Fill in the
 local values in `.dev.vars` before using authenticated or AI-backed features.
 For Google sign-in locally, configure `GOOGLE_CLIENT_ID` and
 `GOOGLE_CLIENT_SECRET`.
+
+Production email uses the `EMAIL` Cloudflare Email Sending binding and the
+onboarded `quickpantry.app` domain. Local development keeps using the remote
+Email Sending binding from `wrangler.jsonc`.

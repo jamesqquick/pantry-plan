@@ -31,7 +31,7 @@ function createRecipeResult(origin: string, recipeId: string, title: string) {
     content: [
       {
         type: "text" as const,
-        text: `Created recipe "${title}" in Pantry Plan: ${recipeUrl}`,
+         text: `Created recipe "${title}" in Quick Pantry: ${recipeUrl}`,
       },
     ],
     structuredContent: { recipeId, title, recipeUrl },
@@ -54,13 +54,13 @@ function createServer(
   keyId: string,
   rateLimit: RateLimit | undefined,
 ) {
-  const server = new McpServer({ name: "pantry-plan", version: "1.0.0" });
+  const server = new McpServer({ name: "quick-pantry", version: "1.0.0" });
 
   server.registerTool(
     "create_recipe",
     {
       description:
-        "Create a recipe in the authenticated user's Pantry Plan account.",
+        "Create a recipe in the authenticated user's Quick Pantry account.",
       inputSchema: createRecipeToolSchema.shape,
     },
     async (input) => {
@@ -100,7 +100,7 @@ function createServer(
     "import_recipe_from_url",
     {
       description:
-        "Fetch a recipe URL, extract its structured recipe data, and save it in the authenticated user's Pantry Plan account.",
+        "Fetch a recipe URL, extract its structured recipe data, and save it in the authenticated user's Quick Pantry account.",
       inputSchema: importRecipeFromUrlToolSchema.shape,
     },
     async ({ url }) => {
@@ -157,7 +157,7 @@ function createServer(
     "search_recipes",
     {
       description:
-        "Search the authenticated user's Pantry Plan recipes by title.",
+        "Search the authenticated user's Quick Pantry recipes by title.",
       inputSchema: searchRecipesToolSchema.shape,
     },
     async ({ query, limit }) => {
@@ -198,7 +198,7 @@ function createServer(
     "create_weekly_meal_plan",
     {
       description:
-        "Replace an entire week of meals with saved recipes from the authenticated user's Pantry Plan account.",
+        "Replace an entire week of meals with saved recipes from the authenticated user's Quick Pantry account.",
       inputSchema: createWeeklyMealPlanToolSchema.shape,
     },
     async (input) => {
@@ -252,7 +252,7 @@ export async function handleMcpRequest(
   if (!auth) {
     return new Response("Unauthorized", {
       status: 401,
-      headers: { "WWW-Authenticate": 'Bearer realm="Pantry Plan MCP"' },
+      headers: { "WWW-Authenticate": 'Bearer realm="Quick Pantry MCP"' },
     });
   }
 

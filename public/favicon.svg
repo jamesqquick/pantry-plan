@@ -1,5 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <rect width="128" height="128" rx="28" fill="#fffaf0" />
-  <text x="64" y="59" text-anchor="middle" fill="#a64b25" font-family="Georgia, 'Times New Roman', serif" font-size="28" font-weight="700">Pantry</text>
-  <text x="64" y="92" text-anchor="middle" fill="#a64b25" font-family="Georgia, 'Times New Roman', serif" font-size="28" font-weight="700">Plan</text>
+  <g fill="none" stroke="#a64b25" stroke-linecap="round" stroke-linejoin="round" stroke-width="8">
+    <path d="M85.3 105a4 4 0 0 0 3.7-4v-21.4c0-1.8 1.3-3.4 2.9-4.2a16 16 0 0 0-8.5-30.4 20 20 0 0 0-36.8 0 16 16 0 0 0-8.5 30.4c1.6.8 2.9 2.3 2.9 4.2V101a4 4 0 0 0 4 4Z" />
+    <path d="M36 85h56" />
+  </g>
 </svg>

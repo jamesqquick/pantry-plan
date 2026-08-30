@@ -1,17 +1,17 @@
-# Pantry Plan Migration — Hand-off Prompt
+# Quick Pantry Migration — Hand-off Prompt
 
 Copy everything below the `---` into a new session to pick up where we left off.
 
 ---
 
-You are continuing a multi-phase migration of the **Pantry Plan** recipe/meal-planning app from Next.js (on Vercel/Turso) to **Astro 6 on Cloudflare Workers with D1**. Work happens in the `astro-app/` subdirectory of the `pantry-plan` repo. The existing Next.js app still lives at the repo root for reference — keep it untouched.
+You are continuing a multi-phase migration of the **Quick Pantry** recipe/meal-planning app from Next.js (on Vercel/Turso) to **Astro 6 on Cloudflare Workers with D1**. Work happens in the `astro-app/` subdirectory of the `pantry-plan` repo. The existing Next.js app still lives at the repo root for reference — keep it untouched.
 
 ## Repo
 
 - Local path: `/Users/jamesqquick/code/pantry-plan`
 - Migration work lives in: `/Users/jamesqquick/code/pantry-plan/astro-app/`
 - Active branch: `migrate/astro-cloudflare`
-- Production URL: `https://pantry-plan.jamesqquick.workers.dev`
+- Production URL: `https://quickpantry.app`
 - Cloudflare account ID: `4426cbeacb457b1ca1b865d6c36ced0d` (James.q.quick@gmail.com's Account)
 
 ## Stack
@@ -20,6 +20,7 @@ You are continuing a multi-phase migration of the **Pantry Plan** recipe/meal-pl
 - **Cloudflare Workers** via `@astrojs/cloudflare` v13 adapter
 - **Cloudflare D1** (database binding: `DB`, name: `pantry-plan`, id: `c34f212d-1ce2-478a-9366-bb6f764d9f23`) with **Drizzle ORM**
 - **Cloudflare KV** session store (auto-provisioned, binding: `SESSION`)
+- **Cloudflare Email Sending** (binding: `EMAIL`, sender: `noreply@quickpantry.app`)
 - **Better Auth** (email + password, scrypt via `@noble/hashes` for Workers compatibility)
 - **Tailwind CSS v4** with custom design tokens (Potluck Pal warm neutrals + rust primary)
 - Fonts: Be Vietnam Pro (body), Lilita One (display) via Astro's built-in Fonts API
@@ -55,14 +56,14 @@ You are continuing a multi-phase migration of the **Pantry Plan** recipe/meal-pl
   - Dead code: removed 1,450 lines (14 files) of unreferenced modules, stale comments
   - Lighthouse: static audit passed — 600KB JS (code-split), 62KB fonts (swap), no CLS/LCP issues
   - Deploy checklist: secrets gitignored, bindings verified, D1 migration stable, observability enabled
-- [ ] **Phase 14** — Forgot-password flow (email transport + unauthenticated token-based reset) ← **NEXT**
+- [x] **Phase 14** — Forgot-password flow (Cloudflare Email Sending + Better Auth reset tokens)
 
 ## Key decisions already made
 
 - **ORM**: Drizzle (first-class D1 support, edge-native)
 - **Auth**: Better Auth (Astro-recommended, handles email/password + sessions)
 - **AI strategy**: Workers AI primary (`@cf/meta/llama-4-scout-17b-16e-instruct`) with OpenAI `gpt-4o-mini` fallback. Both image extraction and ingredient mapping use the dual-provider pattern. Old OpenAI-only modules are preserved as fallback code paths.
-- **Password migration**: sentinel scrypt hash on migrated users; they must use the CLI `npm run reset-password` for now. Forgot-password email flow deferred to Phase 14.5 (needs email transport like Resend or Cloudflare Email Workers).
+- **Password migration**: sentinel scrypt hash on migrated users; they can use the forgot-password flow or the CLI `npm run reset-password`.
 - **Project structure**: Astro in subdirectory (`astro-app/`) alongside old Next.js app. Delete Next.js files at the very end.
 - **Meal plan data fetching**: server-rendered in `.astro` frontmatter (not client-side). Week navigation is full page loads via `<a>` links. Mutations (add/edit/delete/move) call Astro actions from the React island, then `window.location.href` to refresh.
 - **Profile password change**: Astro action verifies current password against the `account` table scrypt hash directly (not via Better Auth's `changePassword` API), then hashes and stores the new one. Reuses `hashPassword`/`verifyPassword` exported from `src/lib/auth.ts`.
@@ -111,7 +112,7 @@ npm run migrate:from-snapshot    # regenerate data/turso-snapshot/load.sql
 Local secrets live in `astro-app/.dev.vars` (gitignored). Production secrets via `wrangler secret put`:
 
 - `AUTH_SECRET` — Better Auth signing key (set on prod)
-- `AUTH_URL` — base URL. Local: `http://localhost:4321`. Prod: `https://pantry-plan.jamesqquick.workers.dev` (declared as a `var` in `wrangler.jsonc`, not a secret)
+- `AUTH_URL` — base URL. Local: `http://localhost:4321`. Prod: `https://quickpantry.app` (declared as a `var` in `wrangler.jsonc`, not a secret)
 - `OPENAI_API_KEY` — optional fallback; Workers AI is the primary provider. If Workers AI fails, OpenAI is used as fallback when this key is set. Features gracefully degrade if both are unavailable.
 
 ## Conventions (established in earlier phases)
@@ -164,12 +165,10 @@ git log --oneline -10
 cat astro-app/docs/HANDOFF.md                # this file
 ```
 
-Then ask me which phase to tackle next. Default is **Phase 14 (Forgot-password flow)**, which should:
+Then ask me which phase to tackle next. Email Sending and the forgot-password flow are now configured.
 
-1. Set up email transport (Resend or Cloudflare Email Workers).
-2. Implement token-based password reset (generate token, send email, verify token, reset password).
-3. Unauthenticated `/forgot-password` and `/reset-password?token=...` pages.
-4. Rate-limit reset requests to prevent abuse.
+The next auth-related enhancement would be adding email verification if verified email
+addresses become a product requirement.
 
 Always:
 
