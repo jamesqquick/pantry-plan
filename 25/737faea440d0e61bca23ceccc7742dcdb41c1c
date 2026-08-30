@@ -1,0 +1,21 @@
+src/components/auth/ForgotPasswordForm.tsx
+  s_9884f63630972f::t_25ae95c2478298 1-72
+src/components/auth/ResetPasswordForm.tsx
+  s_9884f63630972f::t_c345ea94fac49c 1-119
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "25737faea440d0e61bca23ceccc7742dcdb41c1c",
+  "prompts": {},
+  "sessions": {
+    "s_9884f63630972f": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_faf8bb36effe9anUy3uNKvzAvU",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
