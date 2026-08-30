@@ -24,6 +24,8 @@ const ALWAYS_PUBLIC_PATHS = new Set<string>([
   "/",
   "/login",
   "/register",
+  "/forgot-password",
+  "/reset-password",
   "/404",
 ]);
 
@@ -38,7 +40,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // endpoint itself, not with a browser session.
   if (pathname === "/mcp") return next();
 
-  const auth = createAuth(env);
+  const waitUntil = context.locals.cfContext?.waitUntil.bind(context.locals.cfContext);
+  const auth = createAuth(env, waitUntil);
   const result = await auth.api.getSession({
     headers: context.request.headers,
   });

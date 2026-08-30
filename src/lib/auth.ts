@@ -8,6 +8,7 @@ import {
 } from "@noble/hashes/utils.js";
 import { createDb, type Db } from "@/db";
 import * as schema from "@/db/schema";
+import { sendPasswordResetEmail } from "@/lib/email";
 
 /** Constant-time equality on equal-length byte arrays. */
 function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
@@ -72,10 +73,12 @@ export async function verifyPassword({
  * Build the shared Better Auth options. The same options are passed to
  * every factory invocation; only the database binding changes per-request.
  */
-function buildOptions(db: Db, env: Env): BetterAuthOptions {
+type WaitUntil = (promise: Promise<unknown>) => void;
+
+function buildOptions(db: Db, env: Env, waitUntil?: WaitUntil): BetterAuthOptions {
   // Trust the configured base URL plus the local dev port.
   // Production must set AUTH_URL to the deployed origin
-  // (e.g. https://pantry-plan.jamesqquick.workers.dev).
+  // (e.g. https://quickpantry.app).
   const trustedOrigins = [
     env.AUTH_URL,
     "http://localhost:4321",
@@ -100,6 +103,19 @@ function buildOptions(db: Db, env: Env): BetterAuthOptions {
       minPasswordLength: 8,
       autoSignIn: true,
       password: { hash: hashPassword, verify: verifyPassword },
+      sendResetPassword: async ({ user, url }) => {
+        const send = sendPasswordResetEmail(env.EMAIL, user.email, url).catch((error) => {
+          console.error("Password reset email failed", error);
+        });
+
+        if (waitUntil) {
+          waitUntil(send);
+        } else {
+          void send;
+        }
+
+        return;
+      },
     },
     socialProviders: {
       google: {
@@ -132,9 +148,9 @@ function buildOptions(db: Db, env: Env): BetterAuthOptions {
   };
 }
 
-export function createAuth(env: Env) {
+export function createAuth(env: Env, waitUntil?: WaitUntil) {
   const db = createDb(env.DB);
-  return betterAuth(buildOptions(db, env));
+  return betterAuth(buildOptions(db, env, waitUntil));
 }
 
 export type Auth = ReturnType<typeof createAuth>;

@@ -24,8 +24,15 @@
 
   "vars": {
     // Public-ish config (not secrets). AUTH_URL must match the deployed origin.
-    "AUTH_URL": "https://pantry-plan.jamesqquick.workers.dev"
+    "AUTH_URL": "https://quickpantry.app"
   },
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "remote": true,
+      "allowed_sender_addresses": ["noreply@quickpantry.app"]
+    }
+  ],
   "ai": {
     "binding": "AI"
   },
@@ -47,6 +54,14 @@
       // automated abuse / cost runaway on Workers AI.
       "name": "AI_RATE_LIMIT",
       "namespace_id": "1001",
+      "simple": {
+        "limit": 5,
+        "period": 60
+      }
+    },
+    {
+      "name": "PASSWORD_RESET_RATE_LIMIT",
+      "namespace_id": "1002",
       "simple": {
         "limit": 5,
         "period": 60

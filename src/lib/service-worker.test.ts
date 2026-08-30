@@ -126,7 +126,7 @@ describe("service worker", () => {
     expect(runtime.self.skipWaiting).not.toHaveBeenCalled();
   });
 
-  it("deletes only stale Pantry Plan caches during activation", async () => {
+  it("deletes only stale Quick Pantry caches during activation", async () => {
     const runtime = createWorkerRuntime();
     runtime.caches.keys.mockResolvedValue([
       "pantry-plan-offline-v1",
@@ -198,7 +198,7 @@ describe("service worker", () => {
       "text/plain; charset=utf-8",
     );
     await expect(response?.text()).resolves.toBe(
-      "Pantry Plan is offline. Reconnect and try again.",
+      "Quick Pantry is offline. Reconnect and try again.",
     );
   });
 });

@@ -84,6 +84,12 @@ export function LoginForm({ next }: Props) {
         />
       </div>
 
+      <div className="text-right">
+        <a href="/forgot-password" className="text-sm font-medium text-primary-on-card hover:underline">
+          Forgot password?
+        </a>
+      </div>
+
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {error}

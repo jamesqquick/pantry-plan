@@ -2,6 +2,7 @@
 import { env } from "cloudflare:workers";
 import { and, asc, eq, isNull, or } from "drizzle-orm";
 import AppLayout from "@/layouts/AppLayout.astro";
+import PageHeader from "@/components/ui/PageHeader.astro";
 import { DeleteIngredientButton } from "@/components/ingredients/DeleteIngredientButton";
 import { renderMarkdownToHtml } from "@/features/markdown/render-markdown";
 import { formatDollars } from "@/lib/money";
@@ -113,7 +114,7 @@ if (ing.gramsPerCup != null) {
 }
 ---
 
-<AppLayout title={`${ing.name} — Pantry Plan`}>
+<AppLayout title={`${ing.name} — Quick Pantry`}>
   <article class="space-y-8">
     <nav class="text-sm">
       <a
@@ -138,9 +139,8 @@ if (ing.gramsPerCup != null) {
       </a>
     </nav>
 
-    <header class="space-y-4">
-      <div class="flex items-start justify-between gap-4">
-        <div class="min-w-0 space-y-2">
+    <PageHeader class="space-y-4">
+      <div slot="content" class="min-w-0 space-y-2">
           <div class="flex items-center gap-3">
             <h1 class="font-display text-3xl leading-tight text-foreground sm:text-4xl">
               {ing.name}
@@ -168,8 +168,9 @@ if (ing.gramsPerCup != null) {
             </p>
           )}
         </div>
-        {canEdit && (
-          <a
+      {canEdit && (
+        <a
+          slot="actions"
             href={`/ingredients/${ing.id}/edit`}
             class="btn-secondary shrink-0 gap-1.5"
           >
@@ -188,10 +189,9 @@ if (ing.gramsPerCup != null) {
               <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path>
             </svg>
             Edit
-          </a>
-        )}
-      </div>
-    </header>
+        </a>
+      )}
+    </PageHeader>
 
     {/* Detail fields */}
     {details.length > 0 && (

@@ -2,6 +2,7 @@
 import { env } from "cloudflare:workers";
 import { and, asc, eq } from "drizzle-orm";
 import AppLayout from "@/layouts/AppLayout.astro";
+import PageHeader from "@/components/ui/PageHeader.astro";
 import RecipeActions from "@/components/recipes/RecipeActions";
 import { RecipeCookMode } from "@/components/recipes/RecipeCookMode";
 import { TagBadge } from "@/components/ui/TagBadge";
@@ -107,7 +108,7 @@ if (r.totalTimeMinutes != null) meta.push({ label: "Total", value: `${r.totalTim
 if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings) });
 ---
 
-<AppLayout title={`${r.title} — Pantry Plan`}>
+<AppLayout title={`${r.title} — Quick Pantry`}>
   <article class="space-y-10 font-ui">
     <nav class="text-sm">
       <a
@@ -131,9 +132,10 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
       </a>
     </nav>
 
-    <header class="space-y-6">
+    <div class="space-y-6">
       {/* Image + title row: stacked on mobile, side-by-side on md+ */}
-      <div class="flex flex-col gap-5 md:flex-row md:items-start">
+      <PageHeader>
+        <div slot="content" class="flex flex-col gap-5 md:flex-row md:items-start">
         {r.imageUrl && (
           <img
             src={r.imageUrl}
@@ -142,7 +144,7 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
             loading="lazy"
           />
         )}
-        <div class="min-w-0 flex-1 space-y-3">
+          <div class="min-w-0 flex-1 space-y-3">
           <h1 class="font-editorial text-4xl leading-[1.02] tracking-tight text-foreground sm:text-5xl">
             {r.title}
           </h1>
@@ -190,46 +192,20 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
               </a>
             </p>
           )}
+          </div>
         </div>
-      </div>
-
-      {/* Actions on their own row so they never squeeze the title */}
-      <div class="flex flex-wrap items-center gap-3">
-        <RecipeCookMode
-          client:load
-          title={r.title}
-          meta={meta}
-          ingredients={ingredients.map(formatIngredientLine)}
-          instructions={instructions.map((instruction) => instruction.text)}
-        />
-        <RecipeActions client:load recipeId={r.id} hasUnmappedIngredients={hasUnmappedIngredients} />
-        <a
-          href={`/meal-plan?addRecipe=${r.id}`}
-          class="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
-        >
-          {/* Lucide CalendarPlus */}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="h-3.5 w-3.5"
-            aria-hidden="true"
-          >
-            <path d="M8 2v4"></path>
-            <path d="M16 2v4"></path>
-            <path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"></path>
-            <path d="M3 10h18"></path>
-            <path d="M16 19h6"></path>
-            <path d="M19 16v6"></path>
-          </svg>
-          Add to meal plan
-        </a>
-      </div>
-    </header>
+        <div slot="actions" class="flex items-center gap-2">
+          <RecipeCookMode
+            client:load
+            title={r.title}
+            meta={meta}
+            ingredients={ingredients.map(formatIngredientLine)}
+            instructions={instructions.map((instruction) => instruction.text)}
+          />
+          <RecipeActions client:load recipeId={r.id} hasUnmappedIngredients={hasUnmappedIngredients} />
+        </div>
+      </PageHeader>
+    </div>
 
     <div class="grid gap-8 lg:grid-cols-5">
       <section class="lg:col-span-2">
