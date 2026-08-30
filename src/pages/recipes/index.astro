@@ -2,6 +2,7 @@
 import { env } from "cloudflare:workers";
 import { asc, count, desc, eq } from "drizzle-orm";
 import AppLayout from "@/layouts/AppLayout.astro";
+import PageHeader from "@/components/ui/PageHeader.astro";
 import RecipeList from "@/components/recipes/RecipeList";
 import {
   createDb,
@@ -71,8 +72,8 @@ const allTags = await db
 
 <AppLayout title="Recipes — Pantry Plan">
   <div class="space-y-8">
-    <header class="flex items-start justify-between gap-4">
-      <div class="space-y-1">
+    <PageHeader>
+      <div slot="content" class="space-y-1">
         <h1 class="font-display text-4xl text-foreground">Recipes</h1>
         <p class="text-sm text-muted-foreground">
           {recipes.length === 0
@@ -80,7 +81,7 @@ const allTags = await db
             : `${recipes.length} ${recipes.length === 1 ? "recipe" : "recipes"} in your kitchen.`}
         </p>
       </div>
-      <a
+      <a slot="actions"
         href="/recipes/new"
         class="btn-primary shrink-0 gap-2"
       >
@@ -100,7 +101,7 @@ const allTags = await db
         </svg>
         New recipe
       </a>
-    </header>
+    </PageHeader>
 
     <RecipeList client:load recipes={recipesWithTags} allTags={allTags} />
   </div>
