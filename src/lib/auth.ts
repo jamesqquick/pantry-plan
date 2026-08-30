@@ -10,6 +10,8 @@ import { createDb, type Db } from "@/db";
 import * as schema from "@/db/schema";
 import { sendPasswordResetEmail } from "@/lib/email";
 
+const PASSWORD_RESET_TOKEN_TTL = 60 * 60;
+
 /** Constant-time equality on equal-length byte arrays. */
 function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
@@ -102,6 +104,8 @@ function buildOptions(db: Db, env: Env, waitUntil?: WaitUntil): BetterAuthOption
       enabled: true,
       minPasswordLength: 8,
       autoSignIn: true,
+      resetPasswordTokenExpiresIn: PASSWORD_RESET_TOKEN_TTL,
+      revokeSessionsOnPasswordReset: true,
       password: { hash: hashPassword, verify: verifyPassword },
       sendResetPassword: async ({ user, url }) => {
         const send = sendPasswordResetEmail(env.EMAIL, user.email, url).catch((error) => {
