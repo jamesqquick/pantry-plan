@@ -10,6 +10,9 @@ export default defineConfig({
   adapter: cloudflare({
     // Auto-configures Workers KV for Astro sessions
     // Default sessionKVBindingName is 'SESSION'
+    // Disable remote bindings in local dev (AI, rate-limiting, etc.
+    // degrade gracefully when their Cloudflare bindings are absent).
+    remoteBindings: false,
   }),
   // Astro Actions default body limit is 1 MB. The recipe-image upload
   // (parse.parseFromImage) accepts a real File via multipart/form-data,
