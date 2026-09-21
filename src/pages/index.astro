@@ -28,7 +28,6 @@ if (Astro.locals.session) {
           <p>Quick Pantry turns recipes you love into a flexible week and one smart shopping list.</p>
           <div class="hero-actions">
             <a class="button" href="/register">Create a free account</a>
-            <a class="underlined-link" href="#how-it-works">Show me how</a>
           </div>
         </div>
         <div class="collage" aria-label="Quick Pantry preview">
@@ -86,8 +85,6 @@ if (Astro.locals.session) {
   .hero h1 span { color: var(--landing-tomato); display: block; transform: rotate(-2deg); transform-origin: left; }
   .hero-copy > p { animation: pop-in 750ms 140ms both; color: oklch(40% 0.05 52); font: 400 clamp(1.05rem, 1.5vw, 1.2rem)/1.6 "Figtree", sans-serif; max-width: 34rem; }
   .hero-actions { align-items: center; animation: pop-in 750ms 220ms both; display: flex; gap: 1.25rem; margin-top: 1.9rem; }
-  .underlined-link { border-bottom: 2px solid var(--landing-ink); color: var(--landing-ink); font: 700 0.875rem/1 "Figtree", sans-serif; padding: 0.625rem 0.1rem; text-decoration: none; }
-  .underlined-link:hover { color: var(--landing-tomato); }
   .collage { animation: pop-in 900ms 120ms both; height: 35rem; position: relative; }
   .photo { border: 7px solid var(--landing-paper); box-shadow: 0 15px 35px oklch(30% 0.08 60 / 0.18); overflow: hidden; position: absolute; transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1); }
   .photo:hover { transform: rotate(0deg) scale(1.025); z-index: 2; }
@@ -112,7 +109,7 @@ if (Astro.locals.session) {
   .step span { color: var(--landing-olive); display: block; font: 700 0.7rem/1 "Figtree", sans-serif; letter-spacing: 0.08em; margin-top: 1.5rem; text-transform: uppercase; }
   @keyframes pop-in { from { opacity: 0; transform: translateY(1.1rem) rotate(-1deg); } to { opacity: 1; transform: none; } }
   @media (max-width: 56.25rem) { .hero { grid-template-columns: 1fr; } .hero-copy { text-align: center; } .hero-copy > p { margin-inline: auto; } .hero-actions { justify-content: center; } .collage { margin-inline: auto; max-width: 42.5rem; width: 100%; } .section-heading { gap: 1.1rem; grid-template-columns: 1fr; } }
-  @media (max-width: 38.75rem) { .page-shell { width: calc(100% - 1.75rem); } .site-header { height: 4.6rem; } .logo { font-size: 1.45rem; } .nav-link:first-child { display: none; } .nav-link { padding-inline: 0.45rem; } .button-small { min-height: 2.6rem; padding-inline: 1rem; } .hero { min-height: 0; padding-block: 2.6rem 4.2rem; } .hero h1 { font-size: 3.65rem; } .hero-copy > p { font-size: 1.05rem; } .hero-actions { align-items: stretch; flex-direction: column; } .underlined-link { text-align: center; } .collage { height: 27rem; } .photo-main { height: 86%; right: 3%; width: 94%; } .sticky-note { bottom: 0.75rem; right: 0; width: 9.1rem; } .how-it-works { padding-block: 3.7rem 4.5rem; } .steps { gap: 2.1rem; grid-template-columns: 1fr; } .step:nth-child(n) { transform: none; } }
+  @media (max-width: 38.75rem) { .page-shell { width: calc(100% - 1.75rem); } .site-header { height: 4.6rem; } .logo { font-size: 1.45rem; } .nav-link:first-child { display: none; } .nav-link { padding-inline: 0.45rem; } .button-small { min-height: 2.6rem; padding-inline: 1rem; } .hero { min-height: 0; padding-block: 2.6rem 4.2rem; } .hero h1 { font-size: 3.65rem; } .hero-copy > p { font-size: 1.05rem; } .hero-actions { align-items: stretch; flex-direction: column; } .collage { height: 27rem; } .photo-main { height: 86%; right: 3%; width: 94%; } .sticky-note { bottom: 0.75rem; right: 0; width: 9.1rem; } .how-it-works { padding-block: 3.7rem 4.5rem; } .steps { gap: 2.1rem; grid-template-columns: 1fr; } .step:nth-child(n) { transform: none; } }
   @media (max-width: 21rem) { .nav-link { display: none; } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; transition: none !important; } }
 </style>
