@@ -11,7 +11,6 @@ if (Astro.locals.session) {
 
 <BaseLayout title="Quick Pantry">
   <div class="landing-page">
-    <div class="announcement">Fresh plans, fewer errands. <strong>Quick Pantry is free to start.</strong></div>
     <header class="site-header page-shell">
       <a class="logo" href="/" aria-label="Quick Pantry home">Quick Pantry</a>
       <nav aria-label="Account navigation">
@@ -25,8 +24,8 @@ if (Astro.locals.session) {
       <section class="hero page-shell">
         <div class="hero-copy">
           <div class="eyebrow"><span aria-hidden="true"></span>Meet your new kitchen habit</div>
-          <h1>Plan less.<span>Eat better.</span></h1>
-          <p>Quick Pantry turns recipes you love into a flexible week and one smart shopping list. No spreadsheets. No forgotten cilantro.</p>
+          <h1>Plan less.<span>Cook more.</span></h1>
+          <p>Quick Pantry turns recipes you love into a flexible week and one smart shopping list.</p>
           <div class="hero-actions">
             <a class="button" href="/register">Create a free account</a>
             <a class="underlined-link" href="#how-it-works">Show me how</a>
@@ -43,13 +42,13 @@ if (Astro.locals.session) {
       <section class="how-it-works" id="how-it-works">
         <div class="page-shell">
           <div class="section-heading">
-            <h2>Your whole food week,<br>finally in one place.</h2>
+            <h2>Your food in one place.</h2>
             <p>Save the recipe when inspiration hits. Decide what to cook when you have a minute. Shop once with a list that has already done the math.</p>
           </div>
           <div class="steps">
             <article class="step"><b>1</b><h3>Toss in a recipe</h3><p>Paste a link or snap a cookbook page. We pull out the useful details and keep them tidy.</p><span>URL · Photo · Manual</span></article>
-            <article class="step"><b>2</b><h3>Build your week</h3><p>Drag favorites into breakfast, lunch, and dinner. Change your mind whenever you want.</p><span>Flexible by design</span></article>
-            <article class="step"><b>3</b><h3>Grab one list</h3><p>Duplicates combine, units convert, and costs add up before you reach the store.</p><span>Ready at the door</span></article>
+            <article class="step"><b>2</b><h3>Build your week</h3><p>Drag favorites into breakfast, lunch, and dinner. Change your mind whenever you want.</p></article>
+            <article class="step"><b>3</b><h3>Grab one list</h3><p>Duplicates combine, units convert, and costs add up before you reach the store.</p></article>
           </div>
         </div>
       </section>
@@ -70,8 +69,6 @@ if (Astro.locals.session) {
   }
 
   .landing-page { background: var(--landing-butter); color: var(--landing-ink); min-height: 100vh; }
-  .announcement { background: var(--landing-ink); color: var(--landing-paper); font: 500 0.75rem/1.25 "Figtree", sans-serif; letter-spacing: 0.04em; padding: 0.55rem 1rem; text-align: center; }
-  .announcement strong { color: var(--landing-butter); }
   .page-shell { margin-inline: auto; width: min(1200px, calc(100% - 2.75rem)); }
   .site-header { align-items: center; border-bottom: 1px solid var(--landing-line); display: flex; height: 5.375rem; justify-content: space-between; }
   .logo { color: var(--landing-tomato); flex-shrink: 0; font: 400 1.8rem/1 "Young Serif", Georgia, serif; letter-spacing: -0.04em; text-decoration: none; white-space: nowrap; }
