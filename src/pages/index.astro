@@ -23,9 +23,6 @@ if (Astro.locals.session) {
 
     <main id="main-content">
       <section class="hero page-shell">
-        <svg class="scribble" viewBox="0 0 160 75" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <path d="M3 62c28-50 80-62 148-31M128 15l24 16-27 6"></path>
-        </svg>
         <div class="hero-copy">
           <div class="eyebrow"><span aria-hidden="true"></span>Meet your new kitchen habit</div>
           <h1>Plan less.<span>Eat better.</span></h1>
@@ -36,12 +33,8 @@ if (Astro.locals.session) {
           </div>
         </div>
         <div class="collage" aria-label="Quick Pantry preview">
-          <div class="tape" aria-hidden="true"></div>
           <div class="photo photo-main">
             <img src="https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=85" alt="A vibrant bowl of roasted vegetables and greens">
-          </div>
-          <div class="photo photo-secondary">
-            <img src="https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=650&q=85" alt="Friends preparing a meal together in a home kitchen">
           </div>
           <div class="sticky-note"><small>Tuesday dinner</small>Lemony greens + crispy chickpeas</div>
         </div>
@@ -98,17 +91,13 @@ if (Astro.locals.session) {
   .hero-actions { align-items: center; animation: pop-in 750ms 220ms both; display: flex; gap: 1.25rem; margin-top: 1.9rem; }
   .underlined-link { border-bottom: 2px solid var(--landing-ink); color: var(--landing-ink); font: 700 0.875rem/1 "Figtree", sans-serif; padding: 0.625rem 0.1rem; text-decoration: none; }
   .underlined-link:hover { color: var(--landing-tomato); }
-  .scribble { color: var(--landing-tomato); left: min(35vw, 26rem); opacity: 0.8; position: absolute; top: 4.5rem; transform: rotate(12deg); width: 9.4rem; }
-  .scribble path { animation: sketch 1.2s 700ms forwards; stroke-dasharray: 250; stroke-dashoffset: 250; }
   .collage { animation: pop-in 900ms 120ms both; height: 35rem; position: relative; }
   .photo { border: 7px solid var(--landing-paper); box-shadow: 0 15px 35px oklch(30% 0.08 60 / 0.18); overflow: hidden; position: absolute; transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1); }
   .photo:hover { transform: rotate(0deg) scale(1.025); z-index: 2; }
   .photo img { display: block; height: 100%; object-fit: cover; transition: transform 800ms cubic-bezier(0.22, 1, 0.36, 1); width: 100%; }
   .photo:hover img { transform: scale(1.05); }
-  .photo-main { height: 75%; right: 0; top: 0.625rem; transform: rotate(3deg); width: 72%; }
-  .photo-secondary { bottom: 0.75rem; height: 43%; left: 4%; transform: rotate(-5deg); width: 48%; }
-  .tape { background: oklch(88% 0.06 78 / 0.84); height: 1.45rem; left: 45%; position: absolute; top: -0.35rem; transform: rotate(-8deg); width: 4.75rem; z-index: 3; }
-  .sticky-note { background: var(--landing-paper); bottom: 1.55rem; box-shadow: 5px 7px 0 var(--landing-tomato); color: var(--landing-ink); font: 400 1rem/1.35 "Young Serif", Georgia, serif; padding: 1.1rem; position: absolute; right: -1rem; transform: rotate(4deg); width: 11rem; }
+  .photo-main { height: 88%; right: 4%; top: 0.625rem; transform: rotate(2deg); width: 88%; }
+  .sticky-note { background: var(--landing-paper); bottom: 0.5rem; box-shadow: 5px 7px 0 var(--landing-tomato); color: var(--landing-ink); font: 400 1rem/1.35 "Young Serif", Georgia, serif; padding: 1.1rem; position: absolute; right: -1rem; transform: rotate(4deg); width: 11rem; z-index: 2; }
   .sticky-note small { color: var(--landing-tomato); display: block; font: 700 0.625rem/1 "Figtree", sans-serif; letter-spacing: 0.08em; margin-bottom: 0.55rem; text-transform: uppercase; }
   .how-it-works { background: var(--landing-paper); padding: 4.7rem 0 5.4rem; position: relative; }
   .how-it-works::before { background: linear-gradient(135deg, transparent 8px, var(--landing-paper) 0) 0 0 / 16px 16px repeat-x; content: ""; height: 1.05rem; left: 0; position: absolute; right: 0; top: -1rem; }
@@ -125,9 +114,8 @@ if (Astro.locals.session) {
   .step p { color: oklch(45% 0.04 52); font: 400 0.875rem/1.5 "Figtree", sans-serif; margin: 0; }
   .step span { color: var(--landing-olive); display: block; font: 700 0.7rem/1 "Figtree", sans-serif; letter-spacing: 0.08em; margin-top: 1.5rem; text-transform: uppercase; }
   @keyframes pop-in { from { opacity: 0; transform: translateY(1.1rem) rotate(-1deg); } to { opacity: 1; transform: none; } }
-  @keyframes sketch { to { stroke-dashoffset: 0; } }
-  @media (max-width: 56.25rem) { .hero { grid-template-columns: 1fr; } .hero-copy { text-align: center; } .hero-copy > p { margin-inline: auto; } .hero-actions { justify-content: center; } .scribble { left: auto; right: 5%; } .collage { margin-inline: auto; max-width: 42.5rem; width: 100%; } .section-heading { gap: 1.1rem; grid-template-columns: 1fr; } }
-  @media (max-width: 38.75rem) { .page-shell { width: calc(100% - 1.75rem); } .site-header { height: 4.6rem; } .logo { font-size: 1.45rem; } .nav-link:first-child { display: none; } .nav-link { padding-inline: 0.45rem; } .button-small { min-height: 2.6rem; padding-inline: 1rem; } .hero { min-height: 0; padding-block: 2.6rem 4.2rem; } .hero h1 { font-size: 3.65rem; } .hero-copy > p { font-size: 1.05rem; } .hero-actions { align-items: stretch; flex-direction: column; } .underlined-link { text-align: center; } .collage { height: 27rem; } .photo-main { height: 72%; width: 79%; } .photo-secondary { height: 41%; width: 54%; } .sticky-note { right: 0; width: 9.1rem; } .scribble { display: none; } .how-it-works { padding-block: 3.7rem 4.5rem; } .steps { gap: 2.1rem; grid-template-columns: 1fr; } .step:nth-child(n) { transform: none; } }
+  @media (max-width: 56.25rem) { .hero { grid-template-columns: 1fr; } .hero-copy { text-align: center; } .hero-copy > p { margin-inline: auto; } .hero-actions { justify-content: center; } .collage { margin-inline: auto; max-width: 42.5rem; width: 100%; } .section-heading { gap: 1.1rem; grid-template-columns: 1fr; } }
+  @media (max-width: 38.75rem) { .page-shell { width: calc(100% - 1.75rem); } .site-header { height: 4.6rem; } .logo { font-size: 1.45rem; } .nav-link:first-child { display: none; } .nav-link { padding-inline: 0.45rem; } .button-small { min-height: 2.6rem; padding-inline: 1rem; } .hero { min-height: 0; padding-block: 2.6rem 4.2rem; } .hero h1 { font-size: 3.65rem; } .hero-copy > p { font-size: 1.05rem; } .hero-actions { align-items: stretch; flex-direction: column; } .underlined-link { text-align: center; } .collage { height: 27rem; } .photo-main { height: 86%; right: 3%; width: 94%; } .sticky-note { bottom: 0.75rem; right: 0; width: 9.1rem; } .how-it-works { padding-block: 3.7rem 4.5rem; } .steps { gap: 2.1rem; grid-template-columns: 1fr; } .step:nth-child(n) { transform: none; } }
   @media (max-width: 21rem) { .nav-link { display: none; } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; transition: none !important; } }
 </style>
