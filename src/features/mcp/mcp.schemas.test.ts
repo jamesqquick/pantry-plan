@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   createRecipeToolSchema,
   createWeeklyMealPlanToolSchema,
+  editRecipeToolSchema,
+  getRecipeToolSchema,
   importRecipeFromUrlToolSchema,
   searchRecipesToolSchema,
 } from "./mcp.schemas";
@@ -11,18 +13,68 @@ describe("MCP tool schemas", () => {
     expect(
       createRecipeToolSchema.safeParse({
         title: "Tomato Soup",
-        ingredients: ["2 cans tomatoes"],
+        ingredients: [
+          { quantity: 2, unit: "COUNT", displayText: "cans tomatoes" },
+        ],
         instructions: ["Simmer for 20 minutes"],
       }).success,
     ).toBe(true);
   });
 
-  it("requires ingredients and instructions", () => {
+  it("requires structured ingredients and instructions", () => {
     expect(
       createRecipeToolSchema.safeParse({
         title: "Incomplete",
         ingredients: [],
         instructions: [],
+      }).success,
+    ).toBe(false);
+    expect(
+      createRecipeToolSchema.safeParse({
+        title: "Legacy",
+        ingredients: ["2 cans tomatoes"],
+        instructions: ["Simmer"],
+      }).success,
+    ).toBe(false);
+    expect(
+      createRecipeToolSchema.safeParse({
+        title: "Internal fields",
+        ingredients: [
+          { displayText: "tomatoes", ingredientId: "ingredient-1" },
+        ],
+        instructions: ["Simmer"],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts recipe lookup by id only", () => {
+    expect(getRecipeToolSchema.safeParse({ recipeId: "recipe-1" }).success).toBe(
+      true,
+    );
+    expect(getRecipeToolSchema.safeParse({ id: "recipe-1" }).success).toBe(false);
+  });
+
+  it("supports partial edits and explicit clearing", () => {
+    expect(
+      editRecipeToolSchema.safeParse({
+        recipeId: "recipe-1",
+        servings: null,
+        notes: null,
+      }).success,
+    ).toBe(true);
+    expect(
+      editRecipeToolSchema.safeParse({ recipeId: "recipe-1" }).success,
+    ).toBe(false);
+    expect(
+      editRecipeToolSchema.safeParse({
+        recipeId: "recipe-1",
+        title: undefined,
+      }).success,
+    ).toBe(false);
+    expect(
+      editRecipeToolSchema.safeParse({
+        recipeId: "recipe-1",
+        ingredients: [],
       }).success,
     ).toBe(false);
   });

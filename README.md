@@ -87,11 +87,32 @@ keys from Profile at any time. Treat MCP keys like passwords.
 
 The current MCP tools are:
 
-- `create_recipe` creates a recipe in your account.
+- `create_recipe` creates a recipe in your account. Ingredients use structured
+  objects with `quantity`, `unit`, `displayText`, and optional `rawText` fields.
 - `import_recipe_from_url` fetches and saves a recipe from a URL.
 - `search_recipes` searches your recipes by title.
+- `get_recipe` returns the complete recipe for a recipe ID, including ordered
+  instructions and structured ingredients.
+- `edit_recipe` partially edits a recipe by ID. Omitted fields remain unchanged,
+  `null` clears optional metadata, and supplied ingredients or instructions
+  replace the complete ordered list. Replacement lists must contain at least one
+  item.
 - `create_weekly_meal_plan` replaces a week with saved recipe IDs. Use
   `search_recipes` and `create_recipe` first when a recipe is not already saved.
+
+Example structured ingredient:
+
+```json
+{
+  "quantity": 2,
+  "unit": "COUNT",
+  "displayText": "cans tomatoes",
+  "rawText": "2 cans tomatoes"
+}
+```
+
+MCP recipe tools do not currently edit tags or link ingredients to pantry
+ingredient records.
 
 ## For Contributors
 

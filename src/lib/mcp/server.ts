@@ -5,6 +5,8 @@ import { saveImportedRecipeTextOnlySchema } from "@/features/import/import.schem
 import {
   createRecipeToolSchema,
   createWeeklyMealPlanToolSchema,
+  editRecipeToolSchema,
+  getRecipeToolSchema,
   importRecipeFromUrlToolSchema,
   searchRecipesToolSchema,
 } from "@/features/mcp/mcp.schemas";
@@ -13,6 +15,10 @@ import { parseRecipeFromUrl } from "@/lib/parse/parse-recipe";
 import { isSafeHttpUrl } from "@/lib/url";
 import { authenticateMcpApiKey } from "./api-keys";
 import { searchRecipes } from "./search-recipes";
+import { createMcpRecipe } from "./create-recipe";
+import { editMcpRecipe } from "./edit-recipe";
+import { getMcpRecipe } from "./get-recipe";
+import { RecipeNotFoundError } from "./recipe-errors";
 import {
   createWeeklyMealPlan,
   WeeklyMealPlanValidationError,
@@ -31,10 +37,27 @@ function createRecipeResult(origin: string, recipeId: string, title: string) {
     content: [
       {
         type: "text" as const,
-         text: `Created recipe "${title}" in Quick Pantry: ${recipeUrl}`,
+        text: `Created recipe "${title}" in Quick Pantry: ${recipeUrl}`,
       },
     ],
     structuredContent: { recipeId, title, recipeUrl },
+  };
+}
+
+function recipeDetailsResult(
+  origin: string,
+  recipe: Awaited<ReturnType<typeof getMcpRecipe>>,
+  message: string,
+) {
+  const recipeUrl = new URL(`/recipes/${recipe.id}`, origin).toString();
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: `${message} "${recipe.title}": ${recipeUrl}`,
+      },
+    ],
+    structuredContent: { ...recipe, recipeUrl },
   };
 }
 
@@ -47,7 +70,7 @@ async function isRateLimited(
   return !success;
 }
 
-function createServer(
+export function createServer(
   db: Db,
   userId: string,
   origin: string,
@@ -61,28 +84,14 @@ function createServer(
     {
       description:
         "Create a recipe in the authenticated user's Quick Pantry account.",
-      inputSchema: createRecipeToolSchema.shape,
+      inputSchema: createRecipeToolSchema,
     },
     async (input) => {
       if (await isRateLimited(rateLimit, keyId)) {
         return toolError("Too many requests. Please try again later.");
       }
       try {
-        const result = await createTextOnlyRecipe(db, userId, {
-          recipe: {
-            title: input.title,
-            sourceUrl: input.sourceUrl,
-            imageUrl: input.imageUrl,
-            servings: input.servings,
-            prepTimeMinutes: input.prepTimeMinutes,
-            cookTimeMinutes: input.cookTimeMinutes,
-            totalTimeMinutes: input.totalTimeMinutes,
-            instructions: input.instructions,
-            notes: input.notes,
-            tagIds: [],
-          },
-          ingredients: input.ingredients,
-        });
+        const result = await createMcpRecipe(db, userId, input);
         return createRecipeResult(origin, result.recipeId, input.title);
       } catch (error) {
         console.error(
@@ -97,11 +106,72 @@ function createServer(
   );
 
   server.registerTool(
+    "get_recipe",
+    {
+      description:
+        "Get the complete editable recipe, including structured ingredients and ordered instructions, from the authenticated user's Quick Pantry account.",
+      inputSchema: getRecipeToolSchema,
+    },
+    async ({ recipeId }) => {
+      if (await isRateLimited(rateLimit, keyId)) {
+        return toolError("Too many requests. Please try again later.");
+      }
+      try {
+        const result = await getMcpRecipe(db, userId, recipeId);
+        return recipeDetailsResult(origin, result, "Recipe");
+      } catch (error) {
+        console.error(
+          JSON.stringify({
+            message: "MCP recipe lookup failed",
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
+        return toolError(
+          error instanceof RecipeNotFoundError
+            ? error.message
+            : "Could not get the recipe.",
+        );
+      }
+    },
+  );
+
+  server.registerTool(
+    "edit_recipe",
+    {
+      description:
+        "Partially edit a recipe in the authenticated user's Quick Pantry account. Omitted fields remain unchanged, null clears optional metadata, and supplied ingredients or instructions replace the complete ordered list.",
+      inputSchema: editRecipeToolSchema,
+    },
+    async (input) => {
+      if (await isRateLimited(rateLimit, keyId)) {
+        return toolError("Too many requests. Please try again later.");
+      }
+      try {
+        await editMcpRecipe(db, userId, input);
+        const result = await getMcpRecipe(db, userId, input.recipeId);
+        return recipeDetailsResult(origin, result, "Updated recipe");
+      } catch (error) {
+        console.error(
+          JSON.stringify({
+            message: "MCP recipe edit failed",
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
+        return toolError(
+          error instanceof RecipeNotFoundError
+            ? error.message
+            : "Could not edit the recipe.",
+        );
+      }
+    },
+  );
+
+  server.registerTool(
     "import_recipe_from_url",
     {
       description:
         "Fetch a recipe URL, extract its structured recipe data, and save it in the authenticated user's Quick Pantry account.",
-      inputSchema: importRecipeFromUrlToolSchema.shape,
+      inputSchema: importRecipeFromUrlToolSchema,
     },
     async ({ url }) => {
       if (await isRateLimited(rateLimit, keyId)) {
@@ -158,7 +228,7 @@ function createServer(
     {
       description:
         "Search the authenticated user's Quick Pantry recipes by title.",
-      inputSchema: searchRecipesToolSchema.shape,
+      inputSchema: searchRecipesToolSchema,
     },
     async ({ query, limit }) => {
       if (await isRateLimited(rateLimit, keyId)) {
@@ -199,7 +269,7 @@ function createServer(
     {
       description:
         "Replace an entire week of meals with saved recipes from the authenticated user's Quick Pantry account.",
-      inputSchema: createWeeklyMealPlanToolSchema.shape,
+      inputSchema: createWeeklyMealPlanToolSchema,
     },
     async (input) => {
       if (await isRateLimited(rateLimit, keyId)) {
