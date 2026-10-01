@@ -3,7 +3,6 @@ import { actions } from "astro:actions";
 import { EllipsisVertical } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { Spinner } from "@/components/ui/Spinner";
 import { runActionWithRecovery } from "@/lib/action-error";
 
 export interface RecipeActionsProps {
@@ -17,11 +16,10 @@ export default function RecipeActions({
   recipeId,
   hasUnmappedIngredients = false,
 }: RecipeActionsProps) {
-  const [pending, setPending] = useState<"duplicate" | "delete" | "enhance" | null>(null);
+  const [pending, setPending] = useState<"duplicate" | "delete" | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [enhanceResult, setEnhanceResult] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -56,23 +54,6 @@ export default function RecipeActions({
       return;
     }
     if (data) window.location.href = `/recipes/${data.id}`;
-  }
-
-  async function handleEnhance() {
-    setMenuOpen(false);
-    setPending("enhance");
-    setError(null);
-    setEnhanceResult(null);
-    const { data, error: err } = await actions.enhance.recipeIngredients({ recipeId });
-    if (err) {
-      setError(err.message || "Could not enhance ingredients");
-      setPending(null);
-      return;
-    }
-    const mapped = data.items.filter((i) => i.ingredientId).length;
-    setEnhanceResult(`${mapped}/${data.items.length} ingredients mapped. Reloading...`);
-    setPending(null);
-    setTimeout(() => window.location.reload(), 800);
   }
 
   async function handleDelete() {
@@ -130,18 +111,14 @@ export default function RecipeActions({
             >
               Edit
             </a>
-            {hasUnmappedIngredients && (
-              <button
-                type="button"
-                role="menuitem"
-                onClick={handleEnhance}
-                disabled={pending !== null}
-                className="flex w-full cursor-pointer whitespace-nowrap rounded px-3 py-2 text-left text-sm text-popover-foreground hover:bg-accent disabled:pointer-events-none disabled:opacity-60"
-              >
-                {pending === "enhance" && <Spinner className="mr-2 h-3.5 w-3.5" label="Mapping ingredients" />}
-                {pending === "enhance" ? "Mapping…" : "Map ingredients"}
-              </button>
-            )}
+            <a
+              role="menuitem"
+              href={`/recipes/${recipeId}/map-ingredients`}
+              onClick={() => setMenuOpen(false)}
+              className="flex cursor-pointer whitespace-nowrap rounded px-3 py-2 text-sm text-popover-foreground hover:bg-accent"
+            >
+              {hasUnmappedIngredients ? "Map ingredients" : "Edit mappings"}
+            </a>
             <button
               type="button"
               role="menuitem"
@@ -171,9 +148,6 @@ export default function RecipeActions({
         <p role="alert" className="text-xs text-destructive">
           {error}
         </p>
-      )}
-      {enhanceResult && !error && (
-        <p className="text-xs text-green-700 dark:text-green-300">{enhanceResult}</p>
       )}
       <ConfirmDialog
         open={deleteDialogOpen}

@@ -22,7 +22,7 @@ function tokenSet(s: string): Set<string> {
   );
 }
 
-/** Token array for a string (same semantics as tokenSet). Used for LIKE-based candidate queries. */
+/** Token array for a string using the same semantics as tokenSet. */
 export function tokenize(s: string): string[] {
   return Array.from(tokenSet(s));
 }

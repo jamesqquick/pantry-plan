@@ -21,7 +21,7 @@ function normalizeForParse(input: string): string {
     s = s.split(char).join(replacement);
   }
   s = s.replace(/(\d)-(\d\s*\/\s*\d)/g, "$1 $2");
-  return s.replace(/[^\d\s./]/g, "").trim().replace(/\s+/g, " ");
+  return s.trim().replace(/\s+/g, " ");
 }
 
 /**

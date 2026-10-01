@@ -5,8 +5,7 @@
  *   1. Text chat completion with JSON mode (ingredient mapping)
  *   2. Vision chat completion with JSON mode (image → recipe)
  *
- * Model: Gemma 3 12B — multimodal with strong vision/OCR/document
- *   parsing and JSON mode support.
+ * Uses a multimodal model so text and image extraction share one client.
  *
  * All methods are pure functions that accept the `Ai` binding so they
  * can be tested and never import from `cloudflare:workers` at module scope.
@@ -15,7 +14,7 @@
 import { logLlmRequest, type LlmUsage } from "@/lib/log-llm";
 
 export const WORKERS_AI_MODEL =
-  "@cf/google/gemma-3-12b-it" as const;
+  "@cf/meta/llama-4-scout-17b-16e-instruct" as const;
 
 const AI_GATEWAY_ID = "pantry-plan" as const;
 const DEFAULT_VISION_TIMEOUT_MS = 15_000;
@@ -57,6 +56,18 @@ export type WorkersAiTextResult = {
   usage?: LlmUsage;
 };
 
+function getJsonResponseFormat(jsonSchema?: object) {
+  return jsonSchema
+    ? ({ type: "json_schema", json_schema: jsonSchema } as const)
+    : ({ type: "json_object" } as const);
+}
+
+function normalizeJsonResponse(response: unknown): string {
+  if (typeof response === "string") return response;
+  if (response == null) return "";
+  return JSON.stringify(response);
+}
+
 /**
  * Run a text-only chat completion with JSON mode.
  * Returns the raw response string (caller parses/validates).
@@ -64,24 +75,29 @@ export type WorkersAiTextResult = {
 export async function workersAiTextJson(
   ai: Ai,
   prompt: string,
-  opts?: { maxTokens?: number; temperature?: number; context?: string },
+  opts?: {
+    maxTokens?: number;
+    temperature?: number;
+    context?: string;
+    jsonSchema?: object;
+  },
 ): Promise<WorkersAiTextResult> {
   const context = opts?.context ?? "workers-ai-text";
   const startTime = Date.now();
 
   try {
-    const result = (await ai.run(
+    const result = await ai.run(
       WORKERS_AI_MODEL,
       {
         messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
+        response_format: getJsonResponseFormat(opts?.jsonSchema),
         max_tokens: opts?.maxTokens ?? 4096,
         temperature: opts?.temperature ?? 0.15,
       },
       gatewayOptions,
-    )) as { response?: string; usage?: LlmUsage };
+    );
 
-    const response = result.response ?? "";
+    const response = normalizeJsonResponse(result.response);
 
     logLlmRequest({
       context,
@@ -121,7 +137,7 @@ export async function workersAiVisionJson(
   const startTime = Date.now();
 
   try {
-    const result = (await withTimeout(
+    const result = await withTimeout(
       ai.run(
         WORKERS_AI_MODEL,
         {
@@ -142,9 +158,9 @@ export async function workersAiVisionJson(
       ),
       opts?.timeoutMs ?? DEFAULT_VISION_TIMEOUT_MS,
       "Recipe extraction timed out. The image may be too complex or the model is temporarily overloaded. Please try again.",
-    )) as { response?: string; usage?: LlmUsage };
+    );
 
-    const response = result.response ?? "";
+    const response = normalizeJsonResponse(result.response);
 
     logLlmRequest({
       context,
