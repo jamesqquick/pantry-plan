@@ -120,7 +120,7 @@ Quick Pantry is an Astro application deployed to Cloudflare Workers.
 
 ### Stack
 
-- Astro 6 with server-rendered pages and React islands
+- Astro 7 with server-rendered pages and React islands
 - Cloudflare Workers with D1, KV sessions, Workers AI, feature flags, and Email Sending
 - Drizzle ORM for database access
 - Better Auth for email/password and Google account authentication
