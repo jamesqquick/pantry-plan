@@ -7,8 +7,8 @@ const ingredientUnitSchema = z.enum(INGREDIENT_UNITS).nullable().optional();
 /** Caps for free-text fields. See recipes.schemas.ts for matching constants. */
 const MAX_RECIPE_NOTES = 20_000;
 const MAX_INSTRUCTION_LINE = 5_000;
-const MAX_INGREDIENT_LINE = 1_000;
-const MAX_LINES_PER_RECIPE = 200;
+export const MAX_INGREDIENT_LINE = 1_000;
+export const MAX_LINES_PER_RECIPE = 200;
 const MAX_INGREDIENT_NAME = 500;
 
 export const importDraftSchema = z.object({

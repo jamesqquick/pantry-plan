@@ -69,7 +69,7 @@ export function autoConvert(params: {
 
   if (hasRiskyFlag(originalLine)) return result;
 
-  const qty = quantity || 1;
+  const qty = quantity;
 
   if (isWeightUnit(unit)) {
     const g = weightToGrams(qty, unit!);

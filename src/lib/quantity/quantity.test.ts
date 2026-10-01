@@ -39,6 +39,11 @@ describe("parseQuantityText", () => {
   it("returns null for denominator 0", () => {
     expect(parseQuantityText("1/0")).toBeNull();
   });
+  it("rejects unsupported characters instead of stripping them", () => {
+    expect(parseQuantityText("1e3")).toBeNull();
+    expect(parseQuantityText("12abc34")).toBeNull();
+    expect(parseQuantityText("1abc")).toBeNull();
+  });
 });
 
 describe("formatQuantity", () => {
