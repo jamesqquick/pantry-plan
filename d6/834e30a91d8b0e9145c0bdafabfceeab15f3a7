@@ -1,0 +1,31 @@
+package.json
+  s_15b1e54a48dafe::t_3073284bf940ce 32
+pnpm-lock.yaml
+  s_15b1e54a48dafe::t_c1395a17d72ccc 35-37,1979-1991,6345-6365
+vitest.config.ts
+  s_e4437a191eec0a::t_92c08857fc556a 5-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "d6834e30a91d8b0e9145c0bdafabfceeab15f3a7",
+  "prompts": {},
+  "sessions": {
+    "s_15b1e54a48dafe": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f179a7b5affei67WflqsU8xcIM",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    },
+    "s_e4437a191eec0a": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f17bfd18fffeIHuE093M2PLSs2",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
