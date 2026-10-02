@@ -5,8 +5,12 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ==========================================================================
-   UI Token System — HSL (shadcn convention)
-   Potluck Pal–inspired: clean, airy, warm neutrals, cream + peach, soft radius.
+   UI Token System
+   Brand primitives come from the landing page (butter / paper / tomato / ink /
+   olive). Semantic vars hold complete colors so they can be used directly with
+   var(); @theme exposes them as Tailwind utilities. Every text/surface pair is
+   checked for WCAG AA (4.5:1 text, 3:1 large text and UI borders) in both
+   themes — re-check when changing a value.
    ========================================================================== */
 
 :root {
@@ -15,185 +19,249 @@
   --radius: 0.375rem;
   --font-ui: var(--font-body);
   --font-editorial: var(--font-display);
-  /* Core — white background, warm text */
-   --background: 35 100% 98%;
-   --foreground: 20 18% 17%;
-   --card: 35 100% 99%;
-   --card-foreground: 20 18% 17%;
-   --popover: 35 100% 99%;
-   --popover-foreground: 20 18% 17%;
-   /* Primary — warm burnt orange from the Clean 2 reference. */
-   --primary: 20 63% 40%;
-  --primary-foreground: 0 0% 100%;
-   --primary-on-background: 20 63% 40%;
-   --secondary: 30 43% 92%;
-   --secondary-foreground: 20 18% 17%;
-   --muted: 30 35% 94%;
-   --muted-foreground: 25 15% 49%;
-   --accent: 30 50% 95%;
-   --accent-foreground: 20 18% 17%;
-   --destructive: 8 55% 48%;
-  --destructive-foreground: 0 0% 100%;
-   --border: 28 35% 87%;
-   --input: 28 35% 87%;
-   --ring: 20 63% 40%;
+  --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Brand primitives — theme-independent */
+  --butter: oklch(92% 0.11 91);
+  --paper: oklch(98% 0.016 78);
+  --tomato: oklch(56% 0.19 35);
+  --tomato-dark: oklch(40% 0.15 35);
+  --ink: oklch(24% 0.045 38);
+  --olive: oklch(44% 0.08 115);
+  --line: oklch(74% 0.07 82);
+
+  /* Core */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: oklch(99.4% 0.008 78);
+  --card-foreground: var(--ink);
+  --popover: oklch(99.4% 0.008 78);
+  --popover-foreground: var(--ink);
+  --primary: var(--tomato);
+  --primary-foreground: var(--paper);
+  /* Tomato text on paper/card needs a slightly deeper shade for 4.5:1. */
+  --primary-on-background: oklch(50% 0.18 35);
+  --secondary: oklch(94% 0.04 85);
+  --secondary-foreground: var(--ink);
+  --muted: oklch(95.5% 0.022 80);
+  --muted-foreground: oklch(45% 0.04 52);
+  --accent: oklch(95% 0.045 88);
+  --accent-foreground: var(--ink);
+  --destructive: hsl(8 55% 48%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: oklch(88% 0.03 78);
+  --input: oklch(64% 0.05 70);
+  --ring: var(--tomato);
+
   /* Extended — app-specific */
-   --panel: 30 45% 94%;
-   --panel-foreground: 20 18% 17%;
-   --divider: 28 35% 87%;
-   --success: 125 30% 38%;
-  --success-foreground: 0 0% 98%;
-  --warning: 38 85% 48%;
-  --warning-foreground: 0 0% 10%;
-  --info: 210 55% 45%;
-  --info-foreground: 0 0% 98%;
+  --panel: oklch(96% 0.03 85);
+  --panel-foreground: var(--ink);
+  --divider: oklch(88% 0.03 78);
+  --success: hsl(125 30% 38%);
+  --success-foreground: hsl(0 0% 98%);
+  --warning: hsl(38 85% 48%);
+  --warning-foreground: hsl(0 0% 10%);
+  --info: hsl(210 55% 45%);
+  --info-foreground: hsl(0 0% 98%);
+
   /* Charts (cooking-friendly) */
-  --chart-1: 22 100% 25%;
-  --chart-2: 14 48% 59%;
-  --chart-3: 35 25% 45%;
-  --chart-4: 9 40% 50%;
-  --chart-5: 75 18% 55%;
+  --chart-1: var(--tomato);
+  --chart-2: var(--olive);
+  --chart-3: oklch(78% 0.13 85);
+  --chart-4: var(--tomato-dark);
+  --chart-5: oklch(60% 0.06 60);
+
   /* Sidebar */
-   --sidebar: 30 45% 96%;
-   --sidebar-foreground: 20 18% 17%;
-   --sidebar-primary: 20 63% 40%;
-  --sidebar-primary-foreground: 0 0% 100%;
-   --sidebar-accent: 30 50% 95%;
-   --sidebar-accent-foreground: 20 18% 17%;
-   --sidebar-border: 28 35% 87%;
-   --sidebar-ring: 20 63% 40%;
-  /* Primary icon container — light enough for primary (22 100% 25%) to meet contrast */
-  --primary-icon-bg: 0 63% 98%;
-  /* Foreground designed to contrast against --primary-icon-bg.
-     Light mode: deep primary on near-white blush → ~11:1. */
-   --primary-icon-fg: 20 63% 40%;
-  /* Header logo: primary in light; .dark on html switches --header-logo */
-   --header-logo: 20 63% 40%;
-  /* Link/hover on card or popover: primary in light; in dark use card-foreground so primary is never on dark card */
-   --primary-on-card: 20 63% 40%;
-  /* Inset shadow for .btn-primary — kept as a token so dark mode can tune it */
-   --primary-shadow: 20 63% 30%;
+  --sidebar: oklch(96% 0.03 85);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--tomato);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: oklch(95% 0.045 88);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: oklch(88% 0.03 78);
+  --sidebar-ring: var(--tomato);
+
+  /* Primary icon container — blush tile with deep tomato glyph */
+  --primary-icon-bg: oklch(94% 0.04 40);
+  --primary-icon-fg: var(--tomato-dark);
+  --header-logo: var(--tomato);
+  --primary-on-card: oklch(50% 0.18 35);
+  /* Hard bottom edge under .btn-primary (the "pressable" look) */
+  --primary-shadow: var(--tomato-dark);
+
+  /* Brand surfaces */
+  --header-bg: var(--butter);
+  --header-bg-hover: oklch(88% 0.11 91);
+  --header-border: var(--line);
+  --nav-active-bg: var(--ink);
+  --nav-active-fg: var(--paper);
+  --eyebrow: var(--olive);
+  /* Strong outline used by brand cards, chips and pill inputs */
+  --outline-strong: var(--ink);
+  --pop-shadow: var(--tomato);
+  --tag: oklch(94% 0.04 85);
+  --tag-foreground: oklch(38% 0.06 60);
+
+  /* Photo-less recipe tiles: background, monogram, dot pattern */
+  --tile-butter-bg: var(--butter);
+  --tile-butter-fg: oklch(78% 0.13 85);
+  --tile-butter-dot: oklch(85% 0.12 88);
+  --tile-tomato-bg: oklch(90% 0.06 45);
+  --tile-tomato-fg: oklch(70% 0.14 38);
+  --tile-tomato-dot: oklch(85% 0.08 42);
+  --tile-olive-bg: oklch(90% 0.05 115);
+  --tile-olive-fg: oklch(66% 0.09 115);
+  --tile-olive-dot: oklch(85% 0.06 115);
 }
 
-/* Dark: primary bumped to 40% lightness on backgrounds for 4.5:1+ contrast */
 .dark {
   /* Native UI (scrollbars, form controls, autofill) follows the theme. */
   color-scheme: dark;
-   --background: 24 10% 13%;
-   --foreground: 35 30% 92%;
-   --card: 24 9% 17%;
-   --card-foreground: 35 30% 92%;
-   --popover: 24 9% 17%;
-   --popover-foreground: 35 30% 92%;
-   --primary: 20 63% 38%;
-  --primary-foreground: 0 0% 100%;
-  /* Bumped from 25% → 48% lightness so rust on dark bg passes WCAG AA (4.5:1).
-     hsl(22 100% 48%) ≈ #F55000 on hsl(60 5% 12%) ≈ 5.1:1. */
-   --primary-on-background: 20 70% 65%;
-   --secondary: 24 8% 23%;
-   --secondary-foreground: 35 30% 92%;
-   --muted: 24 8% 23%;
-   --muted-foreground: 30 12% 66%;
-   --accent: 24 8% 27%;
-   --accent-foreground: 35 30% 92%;
-  --destructive: 9 45% 45%;
-  --destructive-foreground: 0 0% 98%;
-   --border: 24 8% 28%;
-   --input: 24 8% 28%;
-   --ring: 20 70% 65%;
-   --panel: 24 9% 21%;
-   --panel-foreground: 35 30% 92%;
-   --divider: 24 8% 28%;
-   --success: 125 28% 55%;
-  --success-foreground: 0 0% 98%;
-  --warning: 38 85% 50%;
-  --warning-foreground: 0 0% 10%;
-  --info: 210 55% 50%;
-  --info-foreground: 0 0% 98%;
-  --chart-1: 22 100% 25%;
-  --chart-2: 14 40% 55%;
-  --chart-3: 35 20% 52%;
-  --chart-4: 9 45% 45%;
-  --chart-5: 75 15% 50%;
-   --sidebar: 24 9% 15%;
-   --sidebar-foreground: 35 30% 92%;
-   --sidebar-primary: 20 63% 48%;
-  --sidebar-primary-foreground: 0 0% 100%;
-   --sidebar-accent: 24 8% 23%;
-   --sidebar-accent-foreground: 35 30% 92%;
-   --sidebar-border: 24 8% 28%;
-   --sidebar-ring: 20 70% 65%;
-  --primary-icon-bg: 0 0% 86%;
-  /* Dark mode: the pill stays light (86%), so the FG must be dark to meet
-     contrast. 25% lightness + primary hue gives ~9.5:1 — passes AAA. */
-   --primary-icon-fg: 20 63% 40%;
-  --header-logo: 0 0% 100%;
-   --primary-on-card: 20 70% 65%;
-  /* Darker inset shadow keeps the primary button's depth visible against
-     dark backgrounds without bleeding rust into the surrounding surface. */
-   --primary-shadow: 20 63% 25%;
+  --background: oklch(20% 0.022 50);
+  --foreground: oklch(94% 0.025 85);
+  --card: oklch(24.5% 0.026 50);
+  --card-foreground: oklch(94% 0.025 85);
+  --popover: oklch(24.5% 0.026 50);
+  --popover-foreground: oklch(94% 0.025 85);
+  /* Button fill stays true tomato so paper text keeps 4.5:1. */
+  --primary: var(--tomato);
+  --primary-foreground: var(--paper);
+  --primary-on-background: oklch(73% 0.15 42);
+  --secondary: oklch(31% 0.035 75);
+  --secondary-foreground: oklch(94% 0.025 85);
+  --muted: oklch(28% 0.028 55);
+  --muted-foreground: oklch(74% 0.035 75);
+  --accent: oklch(31% 0.04 70);
+  --accent-foreground: oklch(94% 0.025 85);
+  --destructive: hsl(9 45% 45%);
+  --destructive-foreground: hsl(0 0% 98%);
+  --border: oklch(33% 0.028 60);
+  --input: oklch(54% 0.035 65);
+  --ring: oklch(73% 0.15 42);
+  --panel: oklch(23% 0.028 55);
+  --panel-foreground: oklch(94% 0.025 85);
+  --divider: oklch(33% 0.028 60);
+  --success: hsl(125 28% 55%);
+  --success-foreground: hsl(0 0% 98%);
+  --warning: hsl(38 85% 50%);
+  --warning-foreground: hsl(0 0% 10%);
+  --info: hsl(210 55% 50%);
+  --info-foreground: hsl(0 0% 98%);
+  --chart-1: oklch(66% 0.17 38);
+  --chart-2: oklch(72% 0.09 115);
+  --chart-3: oklch(82% 0.12 88);
+  --chart-4: oklch(52% 0.15 35);
+  --chart-5: oklch(66% 0.05 65);
+  --sidebar: oklch(23% 0.028 55);
+  --sidebar-foreground: oklch(94% 0.025 85);
+  --sidebar-primary: var(--tomato);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: oklch(31% 0.04 70);
+  --sidebar-accent-foreground: oklch(94% 0.025 85);
+  --sidebar-border: oklch(33% 0.028 60);
+  --sidebar-ring: oklch(73% 0.15 42);
+  --primary-icon-bg: oklch(32% 0.06 38);
+  --primary-icon-fg: oklch(80% 0.11 45);
+  --header-logo: oklch(73% 0.15 42);
+  --primary-on-card: oklch(73% 0.15 42);
+  --primary-shadow: oklch(36% 0.13 35);
+
+  /* Butter becomes a deep toasted-butter surface; the active nav pill
+     inverts to butter-on-ink so it still reads as the brand accent. */
+  --header-bg: oklch(28% 0.045 85);
+  --header-bg-hover: oklch(33% 0.055 85);
+  --header-border: oklch(38% 0.05 85);
+  --nav-active-bg: var(--butter);
+  --nav-active-fg: var(--ink);
+  --eyebrow: oklch(78% 0.09 115);
+  --outline-strong: oklch(55% 0.04 70);
+  --pop-shadow: var(--tomato);
+  --tag: oklch(31% 0.035 75);
+  --tag-foreground: oklch(88% 0.05 85);
+
+  --tile-butter-bg: oklch(30% 0.055 88);
+  --tile-butter-fg: oklch(50% 0.09 88);
+  --tile-butter-dot: oklch(36% 0.065 88);
+  --tile-tomato-bg: oklch(29% 0.055 38);
+  --tile-tomato-fg: oklch(50% 0.12 38);
+  --tile-tomato-dot: oklch(35% 0.07 38);
+  --tile-olive-bg: oklch(29% 0.045 115);
+  --tile-olive-fg: oklch(50% 0.08 115);
+  --tile-olive-dot: oklch(35% 0.055 115);
 }
 
-/* Tailwind v4 @theme — semantic utilities from CSS vars (HSL) */
+/* Tailwind v4 @theme — semantic utilities from CSS vars */
 @theme inline {
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-primary-on-background: hsl(var(--primary-on-background));
-  --color-primary-icon-bg: hsl(var(--primary-icon-bg));
-  --color-primary-icon-fg: hsl(var(--primary-icon-fg));
-  --color-header-logo: hsl(var(--header-logo));
-  --color-primary-on-card: hsl(var(--primary-on-card));
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
-  --color-panel: hsl(var(--panel));
-  --color-panel-foreground: hsl(var(--panel-foreground));
-  --color-divider: hsl(var(--divider));
-  --color-success: hsl(var(--success));
-  --color-success-foreground: hsl(var(--success-foreground));
-  --color-warning: hsl(var(--warning));
-  --color-warning-foreground: hsl(var(--warning-foreground));
-  --color-info: hsl(var(--info));
-  --color-info-foreground: hsl(var(--info-foreground));
-  --color-chart-1: hsl(var(--chart-1));
-  --color-chart-2: hsl(var(--chart-2));
-  --color-chart-3: hsl(var(--chart-3));
-  --color-chart-4: hsl(var(--chart-4));
-  --color-chart-5: hsl(var(--chart-5));
-  --color-sidebar: hsl(var(--sidebar));
-  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
-  --color-sidebar-primary: hsl(var(--sidebar-primary));
-  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
-  --color-sidebar-accent: hsl(var(--sidebar-accent));
-  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
-  --color-sidebar-border: hsl(var(--sidebar-border));
-   --color-sidebar-ring: hsl(var(--sidebar-ring));
-   --font-sans: var(--font-body), system-ui, sans-serif;
-   --font-serif: var(--font-display), Georgia, serif;
-   --font-ui: var(--font-body), system-ui, sans-serif;
-   --font-editorial: var(--font-display), Georgia, serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-on-background: var(--primary-on-background);
+  --color-primary-icon-bg: var(--primary-icon-bg);
+  --color-primary-icon-fg: var(--primary-icon-fg);
+  --color-header-logo: var(--header-logo);
+  --color-primary-on-card: var(--primary-on-card);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-panel: var(--panel);
+  --color-panel-foreground: var(--panel-foreground);
+  --color-divider: var(--divider);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-header: var(--header-bg);
+  --color-header-hover: var(--header-bg-hover);
+  --color-header-border: var(--header-border);
+  --color-nav-active: var(--nav-active-bg);
+  --color-nav-active-foreground: var(--nav-active-fg);
+  --color-eyebrow: var(--eyebrow);
+  --color-outline-strong: var(--outline-strong);
+  --color-pop: var(--pop-shadow);
+  --color-tag: var(--tag);
+  --color-tag-foreground: var(--tag-foreground);
+  --font-sans: var(--font-body), system-ui, sans-serif;
+  --font-serif: var(--font-display), Georgia, serif;
+  --font-ui: var(--font-body), system-ui, sans-serif;
+  --font-editorial: var(--font-display), Georgia, serif;
   --radius-xs: 0.125rem;
-   --radius-sm: 0.25rem;
-   --radius-md: 0.375rem;
-   --radius-lg: 0.5rem;
-   --radius-xl: 0.75rem;
-   --radius-2xl: 1rem;
-   --radius-3xl: 1.25rem;
-   --radius-input: 6px;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.25rem;
+  --radius-input: 6px;
+  --radius-card: 1.1rem;
+  --shadow-pop: 6px 6px 0 var(--pop-shadow);
 }
 
 /* 10px radius for inputs and buttons (single source of truth) */
@@ -212,36 +280,36 @@
   background:
     radial-gradient(
       ellipse 60% 40% at 15% 10%,
-      hsl(22 100% 25% / 0.12),
+      color-mix(in oklch, var(--tomato) 12%, transparent),
       transparent 70%
     ),
     radial-gradient(
       ellipse 50% 40% at 90% 90%,
-      hsl(9 45% 48% / 0.1),
+      color-mix(in oklch, var(--butter) 30%, transparent),
       transparent 70%
     ),
     linear-gradient(
       180deg,
-      hsl(var(--background)) 0%,
-      hsl(var(--panel)) 100%
+      var(--background) 0%,
+      var(--panel) 100%
     );
 }
 .dark .bg-warm-wash {
   background:
     radial-gradient(
       ellipse 60% 40% at 15% 10%,
-      hsl(22 100% 35% / 0.18),
+      color-mix(in oklch, var(--tomato) 18%, transparent),
       transparent 70%
     ),
     radial-gradient(
       ellipse 50% 40% at 90% 90%,
-      hsl(9 45% 45% / 0.14),
+      color-mix(in oklch, var(--butter) 10%, transparent),
       transparent 70%
     ),
     linear-gradient(
       180deg,
-      hsl(var(--background)) 0%,
-      hsl(var(--panel)) 100%
+      var(--background) 0%,
+      var(--panel) 100%
     );
 }
 
@@ -298,67 +366,132 @@
    Button system — consistent shadow + press feedback
    ========================================================================== */
 
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  cursor: pointer;
-  padding: 0.5rem 1rem; /* py-2 px-4 */
-  font-size: 0.875rem;  /* text-sm  */
-  line-height: 1.25rem;
-  font-weight: 600;     /* font-semibold */
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  border-radius: var(--radius-input);
-  border: 1px solid hsl(var(--primary));
-  box-shadow: none;
-  transition:
-    transform 150ms ease-out,
-    box-shadow 150ms ease-out,
-    filter 150ms ease-out;
-}
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.btn-primary:hover {
-  background: hsl(var(--primary) / 0.9);
-}
-.btn-primary:active {
-  transform: translateY(0);
-}
-.btn-primary:focus-visible {
-  outline: 2px solid hsl(var(--ring));
-  outline-offset: 2px;
-}
-
+.btn-primary,
 .btn-secondary {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   cursor: pointer;
-  padding: 0.5rem 1rem; /* py-2 px-4 */
-  font-size: 0.875rem;  /* text-sm  */
+  min-height: 2.5rem;
+  padding: 0.5rem 1.15rem;
+  font-size: 0.875rem;
   line-height: 1.25rem;
-  font-weight: 600;     /* font-semibold */
-  background: hsl(var(--card));
-  color: hsl(var(--secondary-foreground));
-  border-radius: var(--radius-input);
-  border: 1px solid hsl(var(--border));
-  transition: background-color 150ms ease-out, border-color 150ms ease-out;
+  font-weight: 600;
+  border-radius: 999px;
+  transition:
+    transform 150ms var(--ease-brand),
+    box-shadow 150ms var(--ease-brand),
+    background-color 150ms ease-out;
 }
+.btn-primary:disabled,
 .btn-secondary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
-.btn-secondary:hover {
-  background: hsl(var(--accent));
-  border-color: hsl(var(--primary) / 0.35);
-}
-.btn-secondary:active {
-  transform: translateY(0);
-}
+.btn-primary:focus-visible,
 .btn-secondary:focus-visible {
-  outline: 2px solid hsl(var(--ring));
-  outline-offset: 2px;
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+/* Tomato pill sitting on a hard darker edge; pressing pushes it down. */
+.btn-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: 1.5px solid var(--primary);
+  box-shadow: 0 4px 0 var(--primary-shadow);
+}
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--primary-shadow);
+}
+.btn-primary:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 var(--primary-shadow);
+}
+
+/* Paper pill with an ink outline and the same press behaviour. */
+.btn-secondary {
+  background: var(--card);
+  color: var(--foreground);
+  border: 1.5px solid var(--outline-strong);
+  box-shadow: 0 3px 0 var(--outline-strong);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 var(--outline-strong);
+}
+.btn-secondary:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--outline-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary,
+  .btn-secondary {
+    transition: background-color 150ms ease-out;
+  }
+  .btn-primary:hover:not(:disabled),
+  .btn-primary:active:not(:disabled),
+  .btn-secondary:hover:not(:disabled),
+  .btn-secondary:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   Page band — butter header strip under the app header (PageHeader).
+   Bleeds to the viewport edges from inside <main> while keeping its content
+   aligned with the main column, and cancels main's top padding so it sits
+   flush under the app header. AppLayout clips horizontal overflow so the
+   100vw maths never adds a scrollbar.
+   ========================================================================== */
+
+.page-band {
+  position: relative;
+  background: var(--header-bg);
+  margin-inline: calc(50% - 50vw);
+  padding-inline: calc(50vw - 50%);
+  margin-top: -2rem;
+  padding-top: 2rem;
+  padding-bottom: 2.75rem;
+}
+@media (min-width: 40rem) {
+  .page-band {
+    margin-top: -2.5rem;
+    padding-top: 2.75rem;
+    padding-bottom: 3.5rem;
+  }
+}
+/* Zigzag "torn paper" edge into the page background. */
+.page-band::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.05rem;
+  height: 1.05rem;
+  background: linear-gradient(135deg, transparent 8px, var(--background) 0) 0 0 / 16px 16px repeat-x;
+  pointer-events: none;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--eyebrow);
+  font: 700 0.75rem/1 var(--font-ui);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.eyebrow::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: currentColor;
 }
 
 /* ==========================================================================
@@ -374,8 +507,8 @@
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
   font-weight: 600;
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
+  background: var(--primary);
+  color: var(--primary-foreground);
   border-radius: var(--radius-input);
   transition: top 150ms ease-out;
 }
@@ -385,7 +518,7 @@
 
 /* Focus ring for nav links (not covered by btn-primary/btn-secondary) */
 a:focus-visible {
-  outline: 2px solid hsl(var(--ring));
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -395,8 +528,8 @@ a:focus-visible {
    ========================================================================== */
 
 .stat-card {
-  background: hsl(var(--panel));
-  border: 1px solid hsl(var(--divider));
+  background: var(--panel);
+  border: 1px solid var(--divider);
   border-radius: var(--radius-lg);
   transition:
     transform 200ms ease-out,
@@ -405,16 +538,16 @@ a:focus-visible {
 }
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 30px -10px hsl(22 100% 15% / 0.2);
-  border-color: hsl(var(--ring) / 0.4);
+  box-shadow: 0 10px 30px -10px color-mix(in oklch, var(--ink) 20%, transparent);
+  border-color: color-mix(in oklch, var(--ring) 40%, transparent);
 }
 .dark .stat-card:hover {
-  box-shadow: 0 10px 30px -10px hsl(0 0% 0% / 0.5);
+  box-shadow: 0 10px 30px -10px oklch(0% 0 0 / 0.5);
 }
 
 body {
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
+  background: var(--background);
+  color: var(--foreground);
   font-family: var(--font-body), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

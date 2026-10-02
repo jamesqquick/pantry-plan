@@ -3,16 +3,16 @@ import { cva } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-input font-ui text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60",
+  "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-full font-ui text-sm font-semibold transition-[color,background-color,border-color,box-shadow,transform] duration-150 ease-(--ease-brand) motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60",
   {
     variants: {
       variant: {
-        primary: "border border-primary bg-primary text-primary-foreground hover:bg-primary/90",
-        secondary: "border border-border bg-card text-secondary-foreground hover:border-primary/35 hover:bg-accent",
-        outline: "border border-border bg-transparent text-foreground hover:bg-accent",
-        ghost: "border border-transparent bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
-        danger: "border border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        "ghost-danger": "border border-destructive/30 bg-transparent text-destructive hover:bg-destructive/10",
+        primary: "border-[1.5px] border-primary bg-primary text-primary-foreground shadow-[0_3px_0_var(--primary-shadow)] hover:-translate-y-px hover:shadow-[0_4px_0_var(--primary-shadow)] active:translate-y-[3px] active:shadow-none motion-reduce:transform-none",
+        secondary: "border-[1.5px] border-outline-strong bg-background text-foreground hover:bg-accent",
+        outline: "border-[1.5px] border-border bg-transparent text-foreground hover:border-outline-strong hover:bg-accent",
+        ghost: "border-[1.5px] border-transparent bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
+        danger: "border-[1.5px] border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        "ghost-danger": "border-[1.5px] border-destructive/30 bg-transparent text-destructive hover:bg-destructive/10",
       },
       size: {
         sm: "px-3 py-1.5 text-xs",

@@ -1,4 +1,5 @@
 ---
+import PageHeader from "@/components/ui/PageHeader.astro";
 import { env } from "cloudflare:workers";
 import { asc, eq } from "drizzle-orm";
 import AppLayout from "@/layouts/AppLayout.astro";
@@ -27,36 +28,37 @@ const imageUploadEnabled = await getBooleanFlag(
 
 <AppLayout title="New recipe — Quick Pantry">
   <div class="space-y-6">
-    <nav class="text-sm">
-      <a
-        href="/recipes"
-        class="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="h-3.5 w-3.5"
-          aria-hidden="true"
+    <PageHeader>
+      <nav slot="eyebrow" class="text-sm" aria-label="Breadcrumb">
+        <a
+          href="/recipes"
+          class="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
         >
-          <path d="m15 18-6-6 6-6"></path>
-        </svg>
-        All recipes
-      </a>
-    </nav>
-
-    <header class="space-y-1">
-      <h1 class="font-display text-4xl text-foreground">
-        New recipe
-      </h1>
-      <p class="text-sm text-muted-foreground">
-        Import from a URL, photo, or create from scratch.
-      </p>
-    </header>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="h-3.5 w-3.5"
+            aria-hidden="true"
+          >
+            <path d="m15 18-6-6 6-6"></path>
+          </svg>
+          All recipes
+        </a>
+      </nav>
+      <div slot="content" class="space-y-1">
+        <h1 class="font-display text-4xl leading-[0.95] tracking-[-0.03em] text-foreground sm:text-5xl">
+          New recipe
+        </h1>
+        <p class="text-sm text-muted-foreground">
+          Import from a URL, photo, or create from scratch.
+        </p>
+      </div>
+    </PageHeader>
 
     <ImportWizard client:only="react" allTags={allTags} imageUploadEnabled={imageUploadEnabled} />
   </div>

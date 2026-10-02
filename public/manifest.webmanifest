@@ -3,8 +3,8 @@
   "short_name": "Quick Pantry",
   "start_url": "/recipes",
   "display": "standalone",
-  "background_color": "#fffaf0",
-  "theme_color": "#a64b25",
+  "background_color": "#fff7ed",
+  "theme_color": "#ffe28d",
   "icons": [
     {
       "src": "/icons/icon-192.png?v=3",

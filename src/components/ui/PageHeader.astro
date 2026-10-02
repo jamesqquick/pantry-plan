@@ -4,13 +4,21 @@ interface Props {
 }
 
 const { class: className } = Astro.props;
+const hasEyebrow = Astro.slots.has("eyebrow");
 ---
 
-<header class:list={["flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between", className]}>
-  <div class="min-w-0 flex-1">
-    <slot name="content" />
-  </div>
-  <div class="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
-    <slot name="actions" />
+<header class:list={["page-band", className]}>
+  {hasEyebrow && (
+    <div class="mb-4">
+      <slot name="eyebrow" />
+    </div>
+  )}
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div class="min-w-0 flex-1">
+      <slot name="content" />
+    </div>
+    <div class="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+      <slot name="actions" />
+    </div>
   </div>
 </header>

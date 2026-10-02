@@ -51,6 +51,23 @@ export function applyTheme(): void {
   } else {
     root.classList.remove("dark");
   }
+  syncThemeColor(getStoredTheme() === "system" ? null : resolved);
+}
+
+/**
+ * Keep <meta name="theme-color"> in step with the header. The media-scoped
+ * pair handles "system"; an explicit choice overrides both so the browser
+ * chrome matches even when it disagrees with the OS.
+ */
+function syncThemeColor(explicit: ResolvedTheme | null): void {
+  const metas = document.querySelectorAll<HTMLMetaElement>(
+    'meta[name="theme-color"]:not([data-fixed])'
+  );
+  metas.forEach((meta) => {
+    const variant = explicit ?? (meta.media.includes("dark") ? "dark" : "light");
+    const color = meta.dataset[variant];
+    if (color) meta.content = color;
+  });
 }
 
 /**

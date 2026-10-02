@@ -66,7 +66,7 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
       }
       onClick={handleToggle}
       className={cn(
-        "relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-colors duration-200 ease-out hover:bg-secondary hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-[1.5px] border-outline-strong bg-background text-foreground transition-colors duration-200 ease-out hover:bg-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         className
       )}
     >

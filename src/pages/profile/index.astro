@@ -1,4 +1,5 @@
 ---
+import PageHeader from "@/components/ui/PageHeader.astro";
 import AppLayout from "@/layouts/AppLayout.astro";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { ChangePasswordForm } from "@/components/profile/ChangePasswordForm";
@@ -30,14 +31,15 @@ const serializedApiKeys = apiKeys.map((key) => ({
 ---
 
 <AppLayout title="Profile — Quick Pantry">
-  <div class="space-y-6 max-w-xl">
-    <header class="space-y-1">
-      <h1 class="text-3xl font-bold text-foreground">Profile</h1>
-      <p class="text-sm text-muted-foreground">
+  <PageHeader>
+    <div slot="content" class="space-y-3">
+      <h1 class="font-display text-5xl leading-[0.95] tracking-[-0.04em] text-foreground sm:text-6xl">Profile</h1>
+      <p class="text-base text-muted-foreground">
         Manage your account details, password, and integrations.
       </p>
-    </header>
-
+    </div>
+  </PageHeader>
+  <div class="mt-6 max-w-xl space-y-6">
     <ProfileForm
       client:load
       initialName={user.name}
