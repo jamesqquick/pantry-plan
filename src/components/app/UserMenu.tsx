@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { User } from "lucide-react";
 import { signOut } from "@/lib/auth-client";
 
 const HOVER_OPEN_DELAY_MS = 150;
@@ -87,16 +86,16 @@ export function UserMenu({ email }: UserMenuProps) {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex cursor-pointer items-center justify-center rounded-input p-1.5 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+        className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-[1.5px] border-eyebrow bg-eyebrow font-ui text-sm font-bold text-background transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         aria-expanded={open}
         aria-haspopup="true"
         aria-label="Account menu"
       >
-        <User className="size-6" aria-hidden="true" />
+        <span aria-hidden="true">{email.trim().charAt(0).toUpperCase() || "?"}</span>
       </button>
       {open && (
         <div
-          className="absolute right-0 top-full z-50 mt-1 min-w-48 rounded-input border border-border bg-popover py-1 shadow-lg text-popover-foreground"
+          className="absolute right-0 top-full z-50 mt-2 min-w-48 overflow-hidden rounded-2xl border-[1.5px] border-outline-strong bg-popover py-1 shadow-pop text-popover-foreground"
           role="menu"
         >
           <a

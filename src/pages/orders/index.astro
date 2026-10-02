@@ -37,9 +37,9 @@ function formatDate(d: Date): string {
 <AppLayout title="Orders — Quick Pantry">
   <div class="space-y-8">
     <PageHeader>
-      <div slot="content" class="space-y-1">
-        <h1 class="font-display text-4xl text-foreground">Orders</h1>
-        <p class="text-sm text-muted-foreground">
+      <div slot="content" class="space-y-3">
+        <h1 class="font-display text-5xl leading-[0.95] tracking-[-0.04em] text-foreground sm:text-6xl">Orders</h1>
+        <p class="text-base text-muted-foreground">
           {orders.length === 0
             ? "No orders yet — create one to build a grocery list."
             : `${orders.length} ${orders.length === 1 ? "order" : "orders"} in your kitchen.`}

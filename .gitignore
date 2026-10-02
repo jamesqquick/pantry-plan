@@ -41,7 +41,7 @@ package-lock.json
 .idea/
 
 # Local git worktree directories
-/worktrees/
+/.worktrees/
 
 # Cursor scratch plans
 /.cursor/plans/

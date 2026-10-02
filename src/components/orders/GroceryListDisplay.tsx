@@ -189,7 +189,7 @@ export function GroceryListDisplay({
           <span className="text-sm font-medium text-card-foreground">
             Estimated total
           </span>
-          <span className="min-w-0 text-right font-display text-lg font-bold tabular-nums text-primary-on-card [overflow-wrap:anywhere]">
+          <span className="min-w-0 text-right font-display text-lg tabular-nums text-primary-on-card [overflow-wrap:anywhere]">
             {formatDollars(grocery.totalEstimatedCostCents)}
           </span>
         </div>

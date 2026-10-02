@@ -1,4 +1,5 @@
 ---
+import PageHeader from "@/components/ui/PageHeader.astro";
 import { env } from "cloudflare:workers";
 import { asc, eq } from "drizzle-orm";
 import AppLayout from "@/layouts/AppLayout.astro";
@@ -19,37 +20,38 @@ const recipes = await db
 
 <AppLayout title="New order — Quick Pantry">
   <div class="space-y-6">
-    <nav class="text-sm">
-      <a
-        href="/orders"
-        class="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
-      >
-        {/* Lucide ChevronLeft */}
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="h-3.5 w-3.5"
-          aria-hidden="true"
+    <PageHeader>
+      <nav slot="eyebrow" class="text-sm" aria-label="Breadcrumb">
+        <a
+          href="/orders"
+          class="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
         >
-          <path d="m15 18-6-6 6-6"></path>
-        </svg>
-        All orders
-      </a>
-    </nav>
-
-    <header class="space-y-1">
-      <h1 class="font-display text-4xl text-foreground">
-        New order
-      </h1>
-      <p class="text-sm text-muted-foreground">
-        Select recipes, set batch sizes, and we'll build your grocery list with cost estimates.
-      </p>
-    </header>
+          {/* Lucide ChevronLeft */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="h-3.5 w-3.5"
+            aria-hidden="true"
+          >
+            <path d="m15 18-6-6 6-6"></path>
+          </svg>
+          All orders
+        </a>
+      </nav>
+      <div slot="content" class="space-y-1">
+        <h1 class="font-display text-4xl leading-[0.95] tracking-[-0.03em] text-foreground sm:text-5xl">
+          New order
+        </h1>
+        <p class="text-sm text-muted-foreground">
+          Select recipes, set batch sizes, and we'll build your grocery list with cost estimates.
+        </p>
+      </div>
+    </PageHeader>
 
     {recipes.length === 0 ? (
       <div class="rounded-lg border border-dashed border-border bg-card/50 p-8 text-center">

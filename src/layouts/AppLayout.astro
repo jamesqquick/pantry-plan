@@ -25,7 +25,7 @@ const pathname = Astro.url.pathname;
 ---
 
 <BaseLayout title={title} description={description}>
-  <div class="min-h-screen supports-[height:100dvh]:min-h-dvh bg-background pt-[env(safe-area-inset-top)]">
+  <div class="min-h-screen supports-[height:100dvh]:min-h-dvh overflow-x-clip bg-background pt-[env(safe-area-inset-top)]">
     <AppHeader
       client:load
       userEmail={user.email}

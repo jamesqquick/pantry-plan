@@ -6,7 +6,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { UserMenu } from "./UserMenu";
 
 const ICON_BUTTON_CLASS =
-  "inline-flex items-center justify-center rounded-input border border-border bg-background text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background";
+  "inline-flex items-center justify-center rounded-full border-[1.5px] border-outline-strong bg-background text-foreground transition-colors hover:bg-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-header";
 
 interface AppHeaderProps {
   userEmail: string;
@@ -68,11 +68,12 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
   }, [mounted, open]);
 
   return (
-    <header className="border-b border-border bg-background">
-      <div className="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center justify-between gap-2 px-5 py-3 sm:flex-nowrap sm:gap-0 sm:px-8 sm:py-5">
+    <header className="bg-header">
+      <div className="mx-auto max-w-6xl px-5 sm:px-8">
+      <div className="flex min-h-16 items-center justify-between gap-4 border-b border-header-border sm:min-h-20">
         <a
           href="/recipes"
-          className="font-display flex shrink-0 items-baseline gap-1 text-2xl sm:text-4xl"
+          className="font-display flex shrink-0 items-baseline gap-[0.25em] text-[1.5rem] leading-none tracking-[-0.04em] sm:text-[1.75rem]"
           aria-label="Quick Pantry home"
         >
           <span className="text-header-logo">Quick</span>
@@ -80,11 +81,11 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
         </a>
 
         <nav
-          className="hidden flex-wrap items-center gap-2 lg:flex lg:gap-4"
+          className="hidden items-center gap-1 lg:flex"
           aria-label="Main"
         >
           <AppNav pathname={pathname} />
-          <span className="shrink-0">
+          <span className="ml-2 shrink-0">
             <ThemeToggle />
           </span>
           <span className="shrink-0">
@@ -104,15 +105,16 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
           aria-haspopup="dialog"
           onClick={openMenu}
         >
-          <Menu size={24} aria-hidden="true" />
+          <Menu size={22} aria-hidden="true" />
         </button>
+      </div>
       </div>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 grid min-h-16 grid-cols-4 gap-1 border-t border-border bg-background/95 px-2 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] shadow-[0_-4px_16px_hsl(22_30%_20%_/_0.08)] backdrop-blur-md lg:hidden [&_a]:flex [&_a]:min-w-0 [&_a]:min-h-[3.25rem] [&_a]:items-center [&_a]:justify-center [&_a]:whitespace-normal [&_a]:px-1 [&_a]:py-1 [&_a]:text-center [&_a]:leading-tight [&_a]:[overflow-wrap:anywhere]"
+        className="fixed inset-x-0 bottom-0 z-40 grid min-h-16 grid-cols-4 gap-1 border-t border-header-border bg-header/95 px-2 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] shadow-[0_-4px_16px_color-mix(in_oklch,var(--ink)_8%,transparent)] backdrop-blur-md lg:hidden [&_a]:flex [&_a]:min-w-0 [&_a]:min-h-[3.25rem] [&_a]:items-center [&_a]:justify-center [&_a]:whitespace-normal [&_a]:px-1 [&_a]:py-1 [&_a]:text-center [&_a]:leading-tight [&_a]:[overflow-wrap:anywhere]"
         aria-label="Primary"
       >
-        <AppNav pathname={pathname} />
+        <AppNav pathname={pathname} variant="bar" />
       </nav>
 
       {mounted && (
@@ -120,7 +122,7 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
           role="dialog"
           aria-modal="true"
           aria-label="Main menu"
-          className="fixed inset-0 z-50 mobile-menu-slide-panel bg-background/95 pt-[env(safe-area-inset-top)] backdrop-blur-md supports-[backdrop-filter]:bg-background/80"
+          className="fixed inset-0 z-50 mobile-menu-slide-panel bg-header/95 pt-[env(safe-area-inset-top)] backdrop-blur-md supports-[backdrop-filter]:bg-header/85"
           data-state={
             phase === "open"
               ? "open"
@@ -138,15 +140,15 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
               aria-label="Close menu"
               onClick={closeMenu}
             >
-              <X size={24} aria-hidden="true" />
+              <X size={22} aria-hidden="true" />
             </button>
           </div>
           <nav
             className="flex flex-1 flex-col items-center justify-center gap-8 px-4 [&_a]:inline-flex [&_a]:min-h-12 [&_a]:items-center [&_a]:py-2 [&_a]:text-xl"
             aria-label="Main"
           >
-            <div className="flex flex-col items-center gap-6">
-              <AppNav pathname={pathname} onNavigate={closeMenu} />
+            <div className="flex flex-col items-center gap-4">
+              <AppNav pathname={pathname} variant="overlay" onNavigate={closeMenu} />
             </div>
             <div className="mt-4 flex items-center gap-4">
               <ThemeToggle />

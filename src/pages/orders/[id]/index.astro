@@ -159,30 +159,29 @@ function batchLabel(v: number): string {
 
 <AppLayout title={`${o.name || "Order"} — Quick Pantry`}>
   <article class="space-y-8">
-    <nav class="text-sm">
-      <a
-        href="/orders"
-        class="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
-      >
-        {/* Lucide ChevronLeft */}
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="h-3.5 w-3.5"
-          aria-hidden="true"
-        >
-          <path d="m15 18-6-6 6-6"></path>
-        </svg>
-        All orders
-      </a>
-    </nav>
-
     <PageHeader class="space-y-4">
+      <nav slot="eyebrow" class="text-sm" aria-label="Breadcrumb">
+        <a
+          href="/orders"
+          class="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+        >
+          {/* Lucide ChevronLeft */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="h-3.5 w-3.5"
+            aria-hidden="true"
+          >
+            <path d="m15 18-6-6 6-6"></path>
+          </svg>
+          All orders
+        </a>
+      </nav>
       <h1 slot="content" class="font-display text-3xl leading-tight text-foreground sm:text-4xl">
           {o.name || "Untitled order"}
       </h1>

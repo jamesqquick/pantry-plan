@@ -25,7 +25,7 @@ export default defineConfig({
   fonts: [
     {
       provider: fontProviders.google(),
-      name: "Inter",
+      name: "Figtree",
       cssVariable: "--font-body",
       weights: ["400", "500", "600", "700"],
       styles: ["normal"],
@@ -33,8 +33,9 @@ export default defineConfig({
     },
     {
       provider: fontProviders.google(),
-      name: "Newsreader",
+      name: "Young Serif",
       cssVariable: "--font-display",
+      fallbacks: ["Georgia", "serif"],
       weights: ["400"],
       styles: ["normal"],
       subsets: ["latin"],
