@@ -1,0 +1,19 @@
+src/components/recipes/IngredientMappingReview.test.tsx
+  s_d0b63a43696598::t_201b4798c64aa3 4-12,15,18-19,24,117,128-131,167,169-170,173,175-176,179-181,186-189,191-203,224-226,242-245,316,319,324-330,338,342,383,386,392-395,414-429,512,548,550-551,554,558,563,571-844,893-895
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "d24564e2f42af21fa08c53e9eb450f2eb35ceffe",
+  "prompts": {},
+  "sessions": {
+    "s_d0b63a43696598": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f06e4c68fffe3HP19DibL2t5Ss",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
