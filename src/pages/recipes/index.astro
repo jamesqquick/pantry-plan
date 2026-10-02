@@ -1,6 +1,6 @@
 ---
 import { env } from "cloudflare:workers";
-import { asc, count, desc, eq } from "drizzle-orm";
+import { asc, count, desc, eq, gt } from "drizzle-orm";
 import AppLayout from "@/layouts/AppLayout.astro";
 import PageHeader from "@/components/ui/PageHeader.astro";
 import RecipeList from "@/components/recipes/RecipeList";
@@ -67,18 +67,22 @@ const allTags = await db
   .leftJoin(recipeTag, eq(recipeTag.tagId, tag.id))
   .where(eq(tag.userId, user.id))
   .groupBy(tag.id, tag.name)
+  .having(gt(count(recipeTag.id), 0))
   .orderBy(asc(tag.name));
 ---
 
 <AppLayout title="Recipes — Quick Pantry">
   <div class="space-y-8">
     <PageHeader>
+      <p slot="eyebrow" class="eyebrow">
+        Your kitchen · {recipes.length} {recipes.length === 1 ? "recipe" : "recipes"}
+      </p>
       <div slot="content" class="space-y-3">
-        <h1 class="font-display text-5xl leading-[0.95] tracking-[-0.04em] text-foreground sm:text-6xl">Recipes</h1>
+        <h1 class="font-display text-5xl leading-[0.95] tracking-[-0.04em] text-foreground sm:text-6xl">
+          Your recipe <span class="inline-block origin-bottom-left -rotate-2 text-header-logo">box.</span>
+        </h1>
         <p class="text-base text-muted-foreground">
-          {recipes.length === 0
-            ? "No recipes yet — start by creating your first one."
-            : `${recipes.length} ${recipes.length === 1 ? "recipe" : "recipes"} in your kitchen.`}
+          Everything you've saved, ready to drop into this week's plan.
         </p>
       </div>
       <a slot="actions"
