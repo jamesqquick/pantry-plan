@@ -1,0 +1,97 @@
+.gitignore
+  s_b43a4a874999df::t_915cae151593e8 44
+public/manifest.webmanifest
+  s_b43a4a874999df::t_f07ea3dfed00a5 6-7
+public/offline.html
+  s_b43a4a874999df::t_9d124ea650d383 6,42,65
+src/components/app/AppHeader.tsx
+  s_0c11936ffa9a99::t_59c1a4c1b42473 9,71-73,76,84,88,108,111,114,117,125,143,150-151
+src/components/app/AppNav.tsx
+  s_0c11936ffa9a99::t_a05891810151d5 14-34,39,43-44,50-52,64,68,77
+src/components/app/ThemeToggle.tsx
+  s_0c11936ffa9a99::t_1c00b2bfcbc4e7 69
+src/components/app/UserMenu.tsx
+  s_b43a4a874999df::t_8056e8bc6391dc 89,94,98
+src/components/orders/GroceryListDisplay.tsx
+  s_b43a4a874999df::t_b1360c70a84856 192
+src/components/ui/Button.tsx
+  s_b43a4a874999df::t_a136f0d0762635 6,10-15
+src/components/ui/PageHeader.astro
+  s_b43a4a874999df::t_0f1302dcc43586 7,10-22
+src/components/ui/TagBadge.tsx
+  s_87de115f10b075::t_f724fffeeca45a 2,14-15,18,23,28
+src/layouts/AppLayout.astro
+  s_b43a4a874999df::t_f883f6945567d7 28
+src/layouts/BaseLayout.astro
+  s_b43a4a874999df::t_d507948370dce0 9-10,13-21,33-42,62-66
+src/lib/tags.test.ts
+  s_87de115f10b075::t_b623848470bb3c 1-21
+src/lib/tags.ts
+  s_87de115f10b075::t_28161bb022a2ec 1-11
+src/lib/theme.ts
+  s_b43a4a874999df::t_b3d8e0a747933c 54-70
+src/pages/ingredients/[id]/edit.astro
+  s_b43a4a874999df::t_d2f027a62137bd 2,81-85,87-97,99-132
+src/pages/ingredients/[id]/index.astro
+  s_b43a4a874999df::t_85f584b2a770bc 120-141
+src/pages/ingredients/index.astro
+  s_b43a4a874999df::t_0fd30400a914eb 77-79
+src/pages/ingredients/new.astro
+  s_b43a4a874999df::t_09e07ad3b07383 2,23-27,29-54
+src/pages/meal-plan/[weekStart].astro
+  s_b43a4a874999df::t_639b1e03fc13e7 2,216-219,223-248,250-267
+src/pages/orders/[id]/edit.astro
+  s_b43a4a874999df::t_556aca2d3c04bf 2,48-52,54-76
+src/pages/orders/[id]/index.astro
+  s_b43a4a874999df::t_af5df6db210fc2 163-184
+src/pages/orders/index.astro
+  s_b43a4a874999df::t_e256d21af1c44e 40-42
+src/pages/orders/new.astro
+  s_b43a4a874999df::t_27c879748fe58e 2,23-27,29-54
+src/pages/profile/index.astro
+  s_b43a4a874999df::t_f95b3a723a7151 2,34-37,40-42
+src/pages/recipes/[id]/edit.astro
+  s_b43a4a874999df::t_861d9e3c8d8206 2,102-106,108-128
+src/pages/recipes/[id]/index.astro
+  s_b43a4a874999df::t_4ab5b9e57f3973 116-136
+src/pages/recipes/[id]/map-ingredients.astro
+  s_b43a4a874999df::t_f2006d6ebd7f8b 2,33-37,39-63
+src/pages/recipes/index.astro
+  s_b43a4a874999df::t_0959d8deda6149 76-78
+src/pages/recipes/new.astro
+  s_b43a4a874999df::t_39aa02fc201886 2,31-35,37-61
+src/styles/globals.css
+  s_b43a4a874999df::t_929d6651e8b486 8-13,22-55,57-66,68-73,75-116,120-193,195-254,256-264,283,288,293-294,301,306,311-312,369-370,373-374,376-378,380-381,383-385,387-388,392-403,405-407,409-411,414,416-419,421-424,426-428,430-441,443-494,510-511,521,531-532,541-542,545,549-550
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "daa076d3003baf3c565f5f8918aa7274914e6385",
+  "prompts": {},
+  "sessions": {
+    "s_0c11936ffa9a99": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f02fea186ffeowBAbSATPPWAEn",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    },
+    "s_87de115f10b075": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f0297e912ffeUZ84EQ6OfE9IoA",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    },
+    "s_b43a4a874999df": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f02ca4d37ffeTafYIsFciVPoOH",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
