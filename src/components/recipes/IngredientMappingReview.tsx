@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { actions } from "astro:actions";
+import { ChevronDown, Plus, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -17,13 +18,6 @@ type PickerResult = {
 };
 
 type MappingKind = "existing" | "create" | "unmapped";
-type MatchType =
-  | "current"
-  | "exact"
-  | "alias"
-  | "fuzzy"
-  | "llm"
-  | "selected";
 
 type ReviewRow = {
   recipeIngredientId: string;
@@ -35,9 +29,7 @@ type ReviewRow = {
   mappingKind: MappingKind;
   ingredientId: string;
   ingredientName: string;
-  matchType: MatchType | null;
   createName: string;
-  createSuggested: boolean;
 };
 
 interface Props {
@@ -49,24 +41,19 @@ function initializeRow(item: RecipeIngredientMappingPreviewItem): ReviewRow {
   let mappingKind: MappingKind = "unmapped";
   let ingredientId = "";
   let ingredientName = "";
-  let matchType: MatchType | null = null;
-  let createName = item.suggestedCreateName ?? "";
-  let createSuggested = false;
+  let createName = "";
 
   if (item.currentIngredient) {
     mappingKind = "existing";
     ingredientId = item.currentIngredient.id;
     ingredientName = item.currentIngredient.name;
-    matchType = "current";
   } else if (item.suggestedIngredient) {
     mappingKind = "existing";
     ingredientId = item.suggestedIngredient.id;
     ingredientName = item.suggestedIngredient.name;
-    matchType = item.suggestedIngredient.matchType;
   } else if (item.suggestedCreateName) {
     mappingKind = "create";
     createName = item.suggestedCreateName;
-    createSuggested = true;
   }
 
   return {
@@ -79,29 +66,8 @@ function initializeRow(item: RecipeIngredientMappingPreviewItem): ReviewRow {
     mappingKind,
     ingredientId,
     ingredientName,
-    matchType,
     createName,
-    createSuggested,
   };
-}
-
-function matchLabel(matchType: MatchType | null): string | null {
-  switch (matchType) {
-    case "current":
-      return "Current mapping";
-    case "exact":
-      return "Exact suggestion";
-    case "alias":
-      return "Alias suggestion";
-    case "fuzzy":
-      return "Fuzzy suggestion";
-    case "llm":
-      return "AI suggestion";
-    case "selected":
-      return "Selected";
-    default:
-      return null;
-  }
 }
 
 function CatalogPicker({
@@ -112,6 +78,7 @@ function CatalogPicker({
   validationErrorId,
   disabled,
   onSelect,
+  onCreate,
 }: {
   rowId: string;
   selectedId: string;
@@ -120,10 +87,11 @@ function CatalogPicker({
   validationErrorId: string;
   disabled: boolean;
   onSelect: (ingredient: PickerResult) => void;
+  onCreate: (name: string) => void;
 }) {
   const listboxId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState<string | null>(null);
   const [results, setResults] = useState<PickerResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -131,7 +99,7 @@ function CatalogPicker({
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
   function closeSearch() {
-    setQuery("");
+    setQuery(null);
     setResults([]);
     setSearching(false);
     setSearchError(null);
@@ -145,12 +113,14 @@ function CatalogPicker({
     }
 
     document.addEventListener("mousedown", handleOutsidePointer);
-    return () => document.removeEventListener("mousedown", handleOutsidePointer);
+    return () =>
+      document.removeEventListener("mousedown", handleOutsidePointer);
   }, []);
 
   useEffect(() => {
-    const trimmed = query.trim();
-    if (trimmed.length < 2) {
+    const trimmed = query?.trim() ?? "";
+    if (disabled || query === null || trimmed.length < 2) {
+      if (disabled) setQuery(null);
       setResults([]);
       setSearching(false);
       setSearchError(null);
@@ -163,21 +133,21 @@ function CatalogPicker({
     setSearchError(null);
     setCompletedQuery(null);
     setHighlightedIndex(-1);
+    setSearching(true);
 
     let cancelled = false;
     const timer = window.setTimeout(async () => {
-      setSearching(true);
       try {
         const { data, error } = await actions.ingredients.searchForPicker({
           query: trimmed,
         });
         if (cancelled) return;
-        if (error) {
+        if (error || !data) {
           setResults([]);
-          setSearchError(error.message || "Ingredient search failed.");
+          setSearchError(error?.message || "Ingredient search failed.");
           return;
         }
-        setResults(data ?? []);
+        setResults(data);
         setCompletedQuery(trimmed);
         setHighlightedIndex(-1);
       } catch (cause) {
@@ -197,28 +167,42 @@ function CatalogPicker({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [query]);
+  }, [query, disabled]);
+
+  const trimmedQuery = query?.trim() ?? "";
+  const searchComplete =
+    !disabled && query !== null && completedQuery === trimmedQuery;
+  const visibleResults = searchComplete ? results : [];
+  const canCreate = searchComplete && results.length === 0;
+  const optionCount = visibleResults.length + (canCreate ? 1 : 0);
 
   function selectResult(result: PickerResult) {
     onSelect(result);
     closeSearch();
   }
 
+  function selectCreate() {
+    onCreate(trimmedQuery);
+    closeSearch();
+  }
+
   function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "ArrowDown" && results.length > 0) {
+    if (event.nativeEvent.isComposing) return;
+
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
-      setHighlightedIndex((current) =>
-        Math.min(current + 1, results.length - 1),
-      );
-    } else if (event.key === "ArrowUp" && results.length > 0) {
-      event.preventDefault();
-      setHighlightedIndex((current) => Math.max(current - 1, 0));
-    } else if (event.key === "Enter" && highlightedIndex >= 0) {
-      const result = results[highlightedIndex];
-      if (result) {
-        event.preventDefault();
-        selectResult(result);
+      if (query === null) setQuery(selectedName);
+      if (optionCount > 0) {
+        setHighlightedIndex((current) =>
+          event.key === "ArrowDown"
+            ? Math.min(current + 1, optionCount - 1)
+            : Math.max(current - 1, 0),
+        );
       }
+    } else if (event.key === "Enter" && optionCount > 0) {
+      event.preventDefault();
+      if (canCreate) selectCreate();
+      else selectResult(visibleResults[Math.max(highlightedIndex, 0)]);
     } else if (event.key === "Escape") {
       event.preventDefault();
       closeSearch();
@@ -226,16 +210,15 @@ function CatalogPicker({
   }
 
   const activeOption =
-    highlightedIndex >= 0
-      ? `${listboxId}-option-${results[highlightedIndex]?.id}`
+    highlightedIndex >= 0 && highlightedIndex < optionCount
+      ? `${listboxId}-option-${canCreate ? "create" : visibleResults[highlightedIndex].id}`
       : undefined;
-  const statusMessage = searching
-    ? "Searching..."
-    : searchError
-      ? searchError
-      : completedQuery === query.trim() && results.length === 0
-        ? "No ingredients found."
-        : null;
+  const statusMessage =
+    disabled || query === null || trimmedQuery.length < 2
+      ? null
+      : searching
+        ? "Searching..."
+        : searchError;
 
   useEffect(() => {
     if (!activeOption) return;
@@ -247,108 +230,138 @@ function CatalogPicker({
   return (
     <div
       ref={containerRef}
-      className="space-y-3"
+      className="relative"
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
           closeSearch();
         }
       }}
     >
-      <div>
-        <label
-          htmlFor={`${rowId}-selected-ingredient`}
-          className="mb-1 block text-xs font-medium text-muted-foreground"
-        >
-          Selected ingredient
-        </label>
-        <Input
-          id={`${rowId}-selected-ingredient`}
-          value={selectedName}
-          placeholder="No ingredient selected"
-          readOnly
-          disabled={disabled}
-        />
-      </div>
-      <div className="relative">
-        <label
-          htmlFor={`${rowId}-ingredient-search`}
-          className="mb-1 block text-xs font-medium text-muted-foreground"
-        >
-          Search ingredient catalog
-        </label>
-        <Input
-          id={`${rowId}-ingredient-search`}
-          type="search"
-          role="combobox"
-          aria-autocomplete="list"
-          aria-expanded={results.length > 0}
-          aria-controls={results.length > 0 ? listboxId : undefined}
-          aria-activedescendant={activeOption}
-          aria-invalid={invalid}
-          aria-describedby={
-            invalid
-              ? validationErrorId
-              : statusMessage
-                ? `${listboxId}-status`
-                : undefined
-          }
-          autoComplete="off"
-          value={query}
-          placeholder="Type at least 2 characters"
-          disabled={disabled}
-          onChange={(event) => setQuery(event.target.value)}
-          onKeyDown={handleKeyDown}
-        />
-        {results.length > 0 && (
-          <div
-            id={listboxId}
-            role="listbox"
-            aria-label="Ingredient search results"
-            className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-input border border-border bg-card p-1 shadow-lg"
-          >
-            {results.map((result, index) => (
-              <button
-                id={`${listboxId}-option-${result.id}`}
-                key={result.id}
-                type="button"
-                role="option"
-                tabIndex={-1}
-                aria-selected={result.id === selectedId}
-                className={`flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-input px-3 py-2 text-left text-sm ${
-                  index === highlightedIndex
-                    ? "bg-primary/10 text-foreground"
-                    : "hover:bg-accent"
-                }`}
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => selectResult(result)}
+      <Search
+        aria-hidden="true"
+        className="pointer-events-none absolute left-3 top-3 h-5 w-5 text-muted-foreground"
+      />
+      <Input
+        id={`${rowId}-ingredient-search`}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={optionCount > 0}
+        aria-controls={optionCount > 0 ? listboxId : undefined}
+        aria-activedescendant={activeOption}
+        aria-invalid={invalid}
+        aria-describedby={
+          invalid
+            ? validationErrorId
+            : statusMessage
+              ? `${listboxId}-status`
+              : undefined
+        }
+        autoComplete="off"
+        maxLength={500}
+        value={disabled ? selectedName : (query ?? selectedName)}
+        placeholder="Search or add an ingredient"
+        className="min-h-11 pl-10 pr-10 disabled:bg-muted"
+        disabled={disabled}
+        onFocus={(event) => event.currentTarget.select()}
+        onClick={() => {
+          if (query === null) setQuery(selectedName);
+        }}
+        onChange={(event) => setQuery(event.target.value)}
+        onKeyDown={handleKeyDown}
+      />
+      <ChevronDown
+        aria-hidden="true"
+        className="pointer-events-none absolute right-3 top-3 h-5 w-5 text-muted-foreground"
+      />
+      {(optionCount > 0 || statusMessage) && (
+        <div className="absolute z-20 mt-1 w-full rounded-input border border-border bg-card p-1 shadow-lg">
+          {statusMessage ? (
+            <p
+              id={`${listboxId}-status`}
+              role="status"
+              aria-live="polite"
+              className={`px-3 py-2 text-sm ${searchError ? "text-destructive" : "text-muted-foreground"}`}
+            >
+              {statusMessage}
+            </p>
+          ) : (
+            <>
+              <p className="px-3 py-2 text-xs text-muted-foreground">
+                {canCreate
+                  ? `No matches for "${trimmedQuery}"`
+                  : "Ingredient catalog"}
+              </p>
+              <div
+                id={listboxId}
+                role="listbox"
+                aria-label="Ingredient search results"
+                className="max-h-56 overflow-y-auto"
               >
-                <span>{result.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {result.source === "custom" ? "Yours" : "Global"}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-      {statusMessage && (
-        <p
-          id={`${listboxId}-status`}
-          role="status"
-          aria-live="polite"
-          className={`text-sm ${searchError ? "text-destructive" : "text-muted-foreground"}`}
-        >
-          {statusMessage}
-        </p>
+                {visibleResults.map((result, index) => (
+                  <button
+                    id={`${listboxId}-option-${result.id}`}
+                    key={result.id}
+                    type="button"
+                    role="option"
+                    tabIndex={-1}
+                    aria-selected={result.id === selectedId}
+                    className={`flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-input px-3 py-2 text-left text-sm ${
+                      index === highlightedIndex
+                        ? "bg-primary/10 text-foreground"
+                        : "hover:bg-accent"
+                    }`}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => selectResult(result)}
+                  >
+                    <span className="min-w-0 wrap-anywhere">{result.name}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {result.source === "custom" ? "Yours" : "Global"}
+                    </span>
+                  </button>
+                ))}
+                {canCreate && (
+                  <button
+                    id={`${listboxId}-option-create`}
+                    type="button"
+                    role="option"
+                    tabIndex={-1}
+                    aria-selected={false}
+                    className={`flex min-h-11 w-full cursor-pointer items-center gap-2 rounded-input px-3 py-2 text-left text-sm text-primary-on-card ${highlightedIndex === 0 ? "bg-primary/10" : "hover:bg-accent"}`}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={selectCreate}
+                  >
+                    <Plus aria-hidden="true" className="h-4 w-4 shrink-0" />
+                    <span className="min-w-0 wrap-anywhere">
+                      Add "{trimmedQuery}"
+                    </span>
+                  </button>
+                )}
+              </div>
+              {!canCreate && (
+                <p className="mt-1 border-t border-border px-3 py-2 text-xs text-muted-foreground">
+                  ↑ ↓ to browse · Enter to select · Esc to cancel
+                </p>
+              )}
+            </>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-function MappingBadge({ children }: { children: React.ReactNode }) {
+function MappingBadge({ kind }: { kind: MappingKind }) {
   return (
-    <span className="inline-flex rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary-on-card">
-      {children}
+    <span
+      className={`inline-flex shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
+        kind === "create"
+          ? "bg-success/10 text-success"
+          : kind === "unmapped"
+            ? "bg-muted text-muted-foreground"
+            : "bg-primary/10 text-primary-on-card"
+      }`}
+    >
+      {kind === "create" ? "New" : kind === "unmapped" ? "Unmapped" : "Mapped"}
     </span>
   );
 }
@@ -367,32 +380,29 @@ function ReviewRowCard({
   onChange: (patch: Partial<ReviewRow>) => void;
 }) {
   const headingId = `${row.recipeIngredientId}-heading`;
-  const label = matchLabel(row.matchType);
 
   return (
     <article
       aria-labelledby={headingId}
       className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-5"
     >
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Original line
           </p>
-          <h2 id={headingId} className="mt-1 break-words font-medium text-foreground">
+          <h2
+            id={headingId}
+            className="mt-1 break-words font-medium text-foreground"
+          >
             {row.rawText}
           </h2>
         </div>
-        {row.mappingKind === "existing" && label && (
-          <MappingBadge>{label}</MappingBadge>
-        )}
-        {row.mappingKind === "create" && row.createSuggested && (
-          <MappingBadge>Create suggestion</MappingBadge>
-        )}
+        <MappingBadge kind={row.mappingKind} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_8rem_9rem]">
-        <div>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-[minmax(0,1fr)_8rem_9rem]">
+        <div className="col-span-2 min-w-0 md:col-span-1">
           <label
             htmlFor={`${row.recipeIngredientId}-display-text`}
             className="mb-1 block text-sm font-medium"
@@ -401,6 +411,7 @@ function ReviewRowCard({
           </label>
           <Input
             id={`${row.recipeIngredientId}-display-text`}
+            className="min-h-11"
             value={row.displayText}
             aria-invalid={
               invalidFieldId === `${row.recipeIngredientId}-display-text`
@@ -423,6 +434,7 @@ function ReviewRowCard({
           </label>
           <Input
             id={`${row.recipeIngredientId}-quantity`}
+            className="min-h-11"
             type="text"
             inputMode="decimal"
             value={row.quantityText}
@@ -450,7 +462,7 @@ function ReviewRowCard({
             id={`${row.recipeIngredientId}-unit`}
             value={row.unit}
             disabled={disabled}
-            className="flex h-10 w-full rounded-input border border-input bg-card px-3 py-1.5 font-ui text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-h-11 w-full rounded-input border border-input bg-card px-3 py-1.5 font-ui text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
             onChange={(event) =>
               onChange({ unit: event.target.value as IngredientUnit | "" })
             }
@@ -465,95 +477,60 @@ function ReviewRowCard({
         </div>
       </div>
 
-      <fieldset className="space-y-3">
-        <legend className="text-sm font-semibold">Mapping</legend>
-        <div className="grid gap-2 sm:grid-cols-3">
-          {(
-            [
-              ["existing", "Existing catalog ingredient"],
-              ["create", "Create ingredient"],
-              ["unmapped", "Leave unmapped"],
-            ] as const
-          ).map(([kind, text]) => (
-            <label
-              key={kind}
-              className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-input border px-3 py-2 text-sm transition-colors ${
-                row.mappingKind === kind
-                  ? "border-primary bg-primary/10 text-foreground"
-                  : "border-border hover:bg-accent"
-              }`}
-            >
-              <input
-                type="radio"
-                name={`${row.recipeIngredientId}-mapping`}
-                value={kind}
-                checked={row.mappingKind === kind}
-                disabled={disabled}
-                onChange={() => onChange({ mappingKind: kind })}
-              />
-              {text}
-            </label>
-          ))}
-        </div>
-
-        {row.mappingKind === "existing" && (
-          <CatalogPicker
-            rowId={row.recipeIngredientId}
-            selectedId={row.ingredientId}
-            selectedName={row.ingredientName}
-            invalid={
-              invalidFieldId ===
-              `${row.recipeIngredientId}-ingredient-search`
-            }
-            validationErrorId={validationErrorId}
-            disabled={disabled}
-            onSelect={(ingredient) =>
-              onChange({
-                ingredientId: ingredient.id,
-                ingredientName: ingredient.name,
-                matchType: "selected",
-              })
-            }
-          />
-        )}
-
-        {row.mappingKind === "create" && (
-          <div>
-            <label
-              htmlFor={`${row.recipeIngredientId}-create-name`}
-              className="mb-1 block text-sm font-medium"
-            >
-              New ingredient name
-            </label>
-            <Input
-              id={`${row.recipeIngredientId}-create-name`}
-              value={row.createName}
-              aria-invalid={
-                invalidFieldId === `${row.recipeIngredientId}-create-name`
-              }
-              aria-describedby={
-                invalidFieldId === `${row.recipeIngredientId}-create-name`
-                  ? validationErrorId
-                  : undefined
-              }
+      <div className="border-t border-border pt-3 sm:pt-4">
+        <div className="mb-1 flex items-center justify-between gap-3">
+          <label
+            htmlFor={`${row.recipeIngredientId}-ingredient-search`}
+            className="text-sm font-medium"
+          >
+            Ingredient
+          </label>
+          <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-xs text-muted-foreground sm:min-h-8">
+            <input
+              type="checkbox"
+              checked={row.mappingKind === "unmapped"}
               disabled={disabled}
+              className="h-4 w-4 accent-primary"
               onChange={(event) =>
                 onChange({
-                  createName: event.target.value,
-                  createSuggested: false,
+                  mappingKind: event.target.checked
+                    ? "unmapped"
+                    : row.createName
+                      ? "create"
+                      : "existing",
                 })
               }
             />
-          </div>
-        )}
-
-        {row.mappingKind === "unmapped" && (
-          <p className="text-sm text-muted-foreground">
-            This line will keep its structured text but will not link to a
-            catalog ingredient.
-          </p>
-        )}
-      </fieldset>
+            Leave unmapped
+          </label>
+        </div>
+        <CatalogPicker
+          rowId={row.recipeIngredientId}
+          selectedId={row.ingredientId}
+          selectedName={row.ingredientName || row.createName}
+          invalid={
+            invalidFieldId === `${row.recipeIngredientId}-ingredient-search`
+          }
+          validationErrorId={validationErrorId}
+          disabled={disabled || row.mappingKind === "unmapped"}
+          onSelect={(ingredient) =>
+            onChange({
+              mappingKind: "existing",
+              ingredientId: ingredient.id,
+              ingredientName: ingredient.name,
+              createName: "",
+            })
+          }
+          onCreate={(name) =>
+            onChange({
+              mappingKind: "create",
+              ingredientId: "",
+              ingredientName: "",
+              createName: name,
+            })
+          }
+        />
+      </div>
     </article>
   );
 }
@@ -578,7 +555,8 @@ function buildApplyItems(rows: ReviewRow[]):
     }
 
     const quantityText = row.quantityText.trim();
-    const quantity = quantityText === "" ? null : parseQuantityText(quantityText);
+    const quantity =
+      quantityText === "" ? null : parseQuantityText(quantityText);
     if (quantityText !== "" && quantity === null) {
       return {
         items: null,
@@ -603,7 +581,7 @@ function buildApplyItems(rows: ReviewRow[]):
         return {
           items: null,
           error: `New ingredient name is required for "${row.rawText}".`,
-          invalidFieldId: `${row.recipeIngredientId}-create-name`,
+          invalidFieldId: `${row.recipeIngredientId}-ingredient-search`,
         };
       }
       mapping = { kind: "create", name };
@@ -655,7 +633,9 @@ export function IngredientMappingReview({ recipeId, recipeTitle }: Props) {
         });
         if (cancelled) return;
         if (error) {
-          setPreviewError(error.message || "Failed to load ingredient mappings.");
+          setPreviewError(
+            error.message || "Failed to load ingredient mappings.",
+          );
           return;
         }
         setAutomaticMappingWarning(data?.automaticMappingWarning ?? null);
@@ -679,12 +659,13 @@ export function IngredientMappingReview({ recipeId, recipeTitle }: Props) {
   function updateRow(recipeIngredientId: string, patch: Partial<ReviewRow>) {
     setActionError(null);
     setInvalidFieldId(null);
-    setRows((current) =>
-      current?.map((row) =>
-        row.recipeIngredientId === recipeIngredientId
-          ? { ...row, ...patch }
-          : row,
-      ) ?? null,
+    setRows(
+      (current) =>
+        current?.map((row) =>
+          row.recipeIngredientId === recipeIngredientId
+            ? { ...row, ...patch }
+            : row,
+        ) ?? null,
     );
   }
 
@@ -777,7 +758,10 @@ export function IngredientMappingReview({ recipeId, recipeTitle }: Props) {
   }
 
   return (
-    <section aria-label={`Ingredient mappings for ${recipeTitle}`} className="space-y-5">
+    <section
+      aria-label={`Ingredient mappings for ${recipeTitle}`}
+      className="space-y-5"
+    >
       {automaticMappingWarning && (
         <div
           role="status"

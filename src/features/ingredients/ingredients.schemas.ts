@@ -50,10 +50,10 @@ export const ingredientNameSchema = z.object({
   name: z.string().min(1, "Name is required").max(500),
 });
 
-/** For picker search: single query string, max 100 chars. */
+/** For picker search: allow the full ingredient name. */
 export const ingredientSearchQuerySchema = z
   .string()
-  .max(100)
+  .max(500)
   .transform((s) => s.trim());
 
 export type IngredientCreateInput = z.infer<typeof ingredientCreateSchema>;
