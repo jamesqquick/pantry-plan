@@ -2,7 +2,7 @@
  * Enhance actions: re-map ingredient lines for an existing recipe, or enrich
  * raw ingredient lines with structured suggestions (no DB mutation).
  *
- * LLM pass uses Workers AI (Gemma 4 26B).
+ * LLM pass uses Workers AI.
  */
 
 import { ActionError, defineAction } from "astro:actions";
@@ -22,22 +22,10 @@ import {
   parseIngredientLineStructured,
   getDisplayTextFromIngredientLine,
 } from "@/lib/ingredients/parse-ingredient-line-structured";
-import {
-  computeIngredientSuggestions,
-  type SuggestionItem,
-} from "@/lib/ingredients/compute-suggestions";
-import {
-  suggestMappingsWithLLM,
-  type UnmappedLine,
-  type CatalogEntry,
-} from "@/lib/ai/llm-ingredient-mapping";
+import type { SuggestionItem } from "@/lib/ingredients/compute-suggestions";
+import { suggestIngredientMappings } from "@/lib/ingredients/suggest-ingredient-mappings";
 import { autoConvert } from "@/lib/measurements/auto-convert";
-import { canUseWorkersAi } from "@/lib/entitlements";
 import { getDb, requireUser } from "./_shared";
-
-const FUZZY_THRESHOLD_LLM_CANDIDATES = 0.1;
-const MAX_LLM_CANDIDATES_PER_LINE = 20;
-const LLM_CATALOG_FALLBACK_SIZE = 500;
 
 export type EnhancedRecipeIngredientResult = {
   ingredientId: string | null;
@@ -75,63 +63,8 @@ async function runSuggestionPasses(
   lines: string[],
   userId: string,
 ): Promise<SuggestionItem[]> {
-  const suggestions = await computeIngredientSuggestions(db, lines, userId);
-
-  const ai = env.AI;
-  if (!canUseWorkersAi(ai)) return suggestions;
-
-  // Collect candidate IDs for LLM context
-  const candidateIds = new Set<string>();
-  for (const item of suggestions) {
-    if (item.suggestedIngredient || !item.normalizedKey.trim()) continue;
-    const topForLlm = (item.candidates ?? [])
-      .filter((c) => (c.score ?? 0) >= FUZZY_THRESHOLD_LLM_CANDIDATES)
-      .slice(0, MAX_LLM_CANDIDATES_PER_LINE);
-    for (const c of topForLlm) candidateIds.add(c.id);
-  }
-
-  const unmapped: UnmappedLine[] = suggestions
-    .map((s, i) => ({ originalIndex: i, text: s.originalLine }))
-    .filter(
-      (_, i) =>
-        !suggestions[i]!.suggestedIngredient &&
-        suggestions[i]!.normalizedKey.trim() !== "",
-    );
-  if (unmapped.length === 0) return suggestions;
-
-  // Build catalog for LLM
-  const catalog: CatalogEntry[] = await db
-    .select({
-      id: ingredient.id,
-      name: ingredient.name,
-      normalizedName: ingredient.normalizedName,
-    })
-    .from(ingredient)
-    .where(userScope(userId))
-    .limit(LLM_CATALOG_FALLBACK_SIZE);
-
-  const llmMap = await suggestMappingsWithLLM(ai, unmapped, catalog);
-
-  // Merge LLM suggestions
-  for (const [idx, suggestion] of llmMap) {
-    const item = suggestions[idx];
-    if (!item || item.suggestedIngredient) continue;
-    if ("ingredientId" in suggestion) {
-      const match = catalog.find((c) => c.id === suggestion.ingredientId);
-      if (match) {
-        item.suggestedIngredient = {
-          id: match.id,
-          name: match.name,
-          normalizedName: match.normalizedName,
-          matchType: "llm",
-        };
-      }
-    } else if ("createName" in suggestion) {
-      item.suggestedCreateName = suggestion.createName;
-    }
-  }
-
-  return suggestions;
+  const result = await suggestIngredientMappings(db, lines, userId, env.AI);
+  return result.suggestions;
 }
 
 export const enhance = {

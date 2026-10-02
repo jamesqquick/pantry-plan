@@ -1,6 +1,6 @@
 /**
  * Compute ingredient suggestions for raw lines using exact match, alias, and fuzzy
- * (LIKE + Jaccard). No LLM. Returns SuggestionItem[] with candidates and scores.
+ * Jaccard ranking. No LLM. Returns SuggestionItem[] with candidates and scores.
  *
  * Drizzle/D1 port of the Prisma version from lib/ingredients/compute-suggestions.ts.
  */
@@ -9,16 +9,94 @@ import { and, eq, inArray, like, or, isNull } from "drizzle-orm";
 import type { Db } from "@/db";
 import { ingredient, ingredientAlias } from "@/db/schema/ingredients";
 import type { IngredientUnit } from "@/db/schema/enums";
+import { chunkInValues } from "@/db/chunked-read";
 import { normalizeIngredientName } from "./normalize";
 import { parseIngredientLineForImport } from "./parse-line";
 import { stringSimilarity, tokenize } from "./similarity";
 
-/** Tokens to exclude from LIKE query (noise that never appears in ingredient normalizedName). */
 const SEARCH_NOISE_TOKENS = new Set(["or", "at", "and", "box"]);
-
 const FUZZY_THRESHOLD_BEST = 0.9;
 const FUZZY_THRESHOLD_CANDIDATES = 0.1;
 const FUZZY_CANDIDATE_TAKE = 100;
+const FUZZY_QUERY_RESULT_TAKE = 500;
+export const MAX_SUGGESTION_CANDIDATES = 5;
+export const FUZZY_SEARCH_TOKENS_PER_QUERY = 89;
+export const MAX_FUZZY_SEARCH_QUERIES = 10;
+export const MAX_FUZZY_SEARCH_TOKENS =
+  FUZZY_SEARCH_TOKENS_PER_QUERY * MAX_FUZZY_SEARCH_QUERIES;
+export const MAX_FUZZY_SEARCH_TOKEN_LENGTH = 48;
+
+type FuzzyCatalogEntry = {
+  id: string;
+  name: string;
+  normalizedName: string;
+  userId: string | null;
+};
+
+export function rankIngredientCatalogCandidates(
+  normalizedKey: string,
+  catalog: readonly FuzzyCatalogEntry[],
+  userId: string,
+): Array<FuzzyCatalogEntry & { score: number }> {
+  return catalog
+    .map((entry) => ({
+      ...entry,
+      score: stringSimilarity(normalizedKey, entry.normalizedName),
+    }))
+    .filter((entry) => entry.score >= FUZZY_THRESHOLD_CANDIDATES)
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        Number(b.userId === userId) - Number(a.userId === userId) ||
+        a.normalizedName.localeCompare(b.normalizedName) ||
+        a.id.localeCompare(b.id),
+    )
+    .slice(0, FUZZY_CANDIDATE_TAKE);
+}
+
+export function collectFuzzySearchTokens(
+  normalizedKeys: readonly string[],
+): string[] {
+  const tokensByKey = normalizedKeys.map((key) => {
+    const seen = new Set<string>();
+    return tokenize(key)
+      .filter(
+        (token) =>
+          token.length >= 2 &&
+          !/^\d+$/.test(token) &&
+          /^[\x00-\x7F]+$/.test(token) &&
+          !SEARCH_NOISE_TOKENS.has(token),
+      )
+      .map((token) => token.slice(0, MAX_FUZZY_SEARCH_TOKEN_LENGTH))
+      .filter((token) => {
+        if (seen.has(token)) return false;
+        seen.add(token);
+        return true;
+      });
+  });
+  const tokens: string[] = [];
+  const seen = new Set<string>();
+
+  for (
+    let tokenIndex = 0;
+    tokens.length < MAX_FUZZY_SEARCH_TOKENS;
+    tokenIndex++
+  ) {
+    let foundTokenAtIndex = false;
+    for (const keyTokens of tokensByKey) {
+      const token = keyTokens[tokenIndex];
+      if (!token) continue;
+      foundTokenAtIndex = true;
+      if (seen.has(token)) continue;
+      seen.add(token);
+      tokens.push(token);
+      if (tokens.length === MAX_FUZZY_SEARCH_TOKENS) break;
+    }
+    if (!foundTokenAtIndex) break;
+  }
+
+  return tokens;
+}
 
 export type SuggestionItem = {
   originalLine: string;
@@ -94,20 +172,32 @@ export async function computeIngredientSuggestions(
     { id: string; name: string; normalizedName: string; userId: string | null }
   > = {};
   if (allNormalizedKeys.size > 0) {
-    const exactRows = await db
-      .select({
-        id: ingredient.id,
-        name: ingredient.name,
-        normalizedName: ingredient.normalizedName,
-        userId: ingredient.userId,
-      })
-      .from(ingredient)
-      .where(
-        and(
-          inArray(ingredient.normalizedName, Array.from(allNormalizedKeys)),
-          userScope(userId),
-        ),
-      );
+    const exactRows: Array<{
+      id: string;
+      name: string;
+      normalizedName: string;
+      userId: string | null;
+    }> = [];
+    for (const normalizedNames of chunkInValues(
+      Array.from(allNormalizedKeys),
+      1,
+    )) {
+      const rows = await db
+        .select({
+          id: ingredient.id,
+          name: ingredient.name,
+          normalizedName: ingredient.normalizedName,
+          userId: ingredient.userId,
+        })
+        .from(ingredient)
+        .where(
+          and(
+            inArray(ingredient.normalizedName, normalizedNames),
+            userScope(userId),
+          ),
+        );
+      exactRows.push(...rows);
+    }
     for (const row of exactRows) {
       const existing = ingredientByNorm[row.normalizedName];
       // Prefer user-owned over global on collisions.
@@ -143,22 +233,32 @@ export async function computeIngredientSuggestions(
     }
   > = {};
   if (keysForAlias.size > 0) {
-    const aliasRows = await db
-      .select({
-        aliasNormalized: ingredientAlias.aliasNormalized,
-        ingredientId: ingredient.id,
-        ingredientName: ingredient.name,
-        ingredientNormalizedName: ingredient.normalizedName,
-        ingredientUserId: ingredient.userId,
-      })
-      .from(ingredientAlias)
-      .innerJoin(ingredient, eq(ingredientAlias.ingredientId, ingredient.id))
-      .where(
-        and(
-          inArray(ingredientAlias.aliasNormalized, Array.from(keysForAlias)),
-          userScope(userId),
-        ),
-      );
+    const aliasRows: Array<{
+      aliasNormalized: string;
+      ingredientId: string;
+      ingredientName: string;
+      ingredientNormalizedName: string;
+      ingredientUserId: string | null;
+    }> = [];
+    for (const aliasNames of chunkInValues(Array.from(keysForAlias), 1)) {
+      const rows = await db
+        .select({
+          aliasNormalized: ingredientAlias.aliasNormalized,
+          ingredientId: ingredient.id,
+          ingredientName: ingredient.name,
+          ingredientNormalizedName: ingredient.normalizedName,
+          ingredientUserId: ingredient.userId,
+        })
+        .from(ingredientAlias)
+        .innerJoin(ingredient, eq(ingredientAlias.ingredientId, ingredient.id))
+        .where(
+          and(
+            inArray(ingredientAlias.aliasNormalized, aliasNames),
+            userScope(userId),
+          ),
+        );
+      aliasRows.push(...rows);
+    }
     for (const a of aliasRows) {
       const existing = aliasByNorm[a.aliasNormalized];
       // Prefer user-owned over global on collisions.
@@ -187,40 +287,48 @@ export async function computeIngredientSuggestions(
         normalizedName: aliasByName.normalizedName,
         matchType: "alias",
       };
-      continue;
     }
+  }
 
-    // --- Fuzzy match (LIKE + Jaccard) ---
-    const rawTokens = tokenize(item.normalizedKey);
-    const tokens = rawTokens.filter(
-      (t) =>
-        t.length >= 2 && !/^\d+$/.test(t) && !SEARCH_NOISE_TOKENS.has(t),
+  const unresolved = suggestions.filter(
+    (item) => !item.suggestedIngredient && item.normalizedKey.trim() !== "",
+  );
+  const fuzzyCatalogById = new Map<string, FuzzyCatalogEntry>();
+  const fuzzySearchTokens = collectFuzzySearchTokens(
+    unresolved.map((item) => item.normalizedKey),
+  );
+  for (const searchTokens of chunkInValues(fuzzySearchTokens, 1)) {
+    const rows = await db
+      .select({
+        id: ingredient.id,
+        name: ingredient.name,
+        normalizedName: ingredient.normalizedName,
+        userId: ingredient.userId,
+      })
+      .from(ingredient)
+      .where(
+        and(
+          userScope(userId),
+          or(
+            ...searchTokens.map((token) =>
+              like(ingredient.normalizedName, `%${token}%`),
+            ),
+          ),
+        ),
+      )
+      .limit(FUZZY_QUERY_RESULT_TAKE);
+    for (const row of rows) {
+      if (!fuzzyCatalogById.has(row.id)) fuzzyCatalogById.set(row.id, row);
+    }
+  }
+  const fuzzyCatalog = [...fuzzyCatalogById.values()];
+
+  for (const item of unresolved) {
+    const withScores = rankIngredientCatalogCandidates(
+      item.normalizedKey,
+      fuzzyCatalog,
+      userId,
     );
-    let fuzzyCandidates: {
-      id: string;
-      name: string;
-      normalizedName: string;
-    }[] = [];
-    if (tokens.length > 0) {
-      const likeConditions = tokens.map((t) =>
-        like(ingredient.normalizedName, `%${t}%`),
-      );
-      fuzzyCandidates = await db
-        .select({
-          id: ingredient.id,
-          name: ingredient.name,
-          normalizedName: ingredient.normalizedName,
-        })
-        .from(ingredient)
-        .where(and(userScope(userId), or(...likeConditions)))
-        .limit(FUZZY_CANDIDATE_TAKE);
-    }
-
-    const withScores = fuzzyCandidates.map((ing) => ({
-      ...ing,
-      score: stringSimilarity(item.normalizedKey, ing.normalizedName),
-    }));
-    withScores.sort((a, b) => b.score - a.score);
 
     const best = withScores[0];
     if (best && best.score >= FUZZY_THRESHOLD_BEST) {
@@ -232,8 +340,7 @@ export async function computeIngredientSuggestions(
       };
     }
     const candidates = withScores
-      .filter((c) => c.score >= FUZZY_THRESHOLD_CANDIDATES)
-      .slice(0, 5)
+      .slice(0, MAX_SUGGESTION_CANDIDATES)
       .map((c) => ({
         id: c.id,
         name: c.name,

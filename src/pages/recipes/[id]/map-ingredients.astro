@@ -1,0 +1,69 @@
+---
+import { env } from "cloudflare:workers";
+import { and, eq } from "drizzle-orm";
+
+import { IngredientMappingReview } from "@/components/recipes/IngredientMappingReview";
+import { createDb, recipe } from "@/db";
+import AppLayout from "@/layouts/AppLayout.astro";
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+const { id } = Astro.params;
+if (!id) return Astro.redirect("/recipes");
+
+const db = createDb(env.DB);
+const [ownedRecipe] = await db
+  .select({ id: recipe.id, title: recipe.title })
+  .from(recipe)
+  .where(and(eq(recipe.id, id), eq(recipe.userId, user.id)))
+  .limit(1);
+
+if (!ownedRecipe) {
+  return new Response("Recipe not found", { status: 404 });
+}
+---
+
+<AppLayout
+  title={`Map ingredients for ${ownedRecipe.title} — Quick Pantry`}
+  containerClass="mx-auto max-w-4xl px-5 pt-8 sm:px-8 sm:pt-10"
+>
+  <div class="space-y-6 font-ui">
+    <nav class="text-sm" aria-label="Breadcrumb">
+      <a
+        href={`/recipes/${ownedRecipe.id}`}
+        class="inline-flex min-h-11 items-center gap-1 text-muted-foreground hover:text-foreground"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="h-3.5 w-3.5"
+          aria-hidden="true"
+        >
+          <path d="m15 18-6-6 6-6"></path>
+        </svg>
+        Back to {ownedRecipe.title}
+      </a>
+    </nav>
+
+    <header class="space-y-2">
+      <p class="text-sm font-medium text-primary-on-card">{ownedRecipe.title}</p>
+      <h1 class="font-display text-4xl text-foreground">Map ingredients</h1>
+      <p class="max-w-2xl text-sm leading-6 text-muted-foreground">
+        Search your catalog or add a new ingredient. Changes are saved when you
+        select Apply mappings.
+      </p>
+    </header>
+
+    <IngredientMappingReview
+      client:load
+      recipeId={ownedRecipe.id}
+      recipeTitle={ownedRecipe.title}
+    />
+  </div>
+</AppLayout>

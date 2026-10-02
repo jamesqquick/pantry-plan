@@ -7,7 +7,6 @@ import { mealPlan } from "./meal-plan";
 import { parse } from "./parse";
 import { recipeImport } from "./import";
 import { ingredientMapping } from "./ingredient-mapping";
-import { enhance } from "./enhance";
 import { profile } from "./profile";
 import { mcpKeys } from "./mcp-keys";
 
@@ -23,9 +22,10 @@ export const server = {
   orders,
   mealPlan,
   parse,
-  recipeImport,
+  recipeImport: {
+    saveTextOnly: recipeImport.saveTextOnly,
+  },
   ingredientMapping,
-  enhance,
   profile,
   mcpKeys,
 };
