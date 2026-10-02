@@ -7,215 +7,109 @@ export const prerender = false;
 if (Astro.locals.session) {
   return Astro.redirect("/recipes");
 }
-
-const pillars = [
-  {
-    title: "Import",
-    body: "Paste any recipe URL or snap a cookbook photo. We parse, structure, and store it.",
-    // Import / link icon
-    icon: `<path d="M12 17v-7"/><path d="m9 14 3 3 3-3"/><path d="M22 12A10 10 0 1 1 12 2a10 10 0 0 1 10 10Z"/>`,
-  },
-  {
-    title: "Plan",
-    body: "Drop recipes into a weekly calendar. Breakfast, lunch, dinner — it's your board.",
-    icon: `<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/>`,
-  },
-  {
-    title: "Shop",
-    body: "Aggregated grocery lists with smart unit conversions and cost estimates per batch.",
-    icon: `<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>`,
-  },
-];
 ---
 
 <BaseLayout title="Quick Pantry">
-  <main class="relative min-h-screen bg-warm-wash bg-grain overflow-hidden">
-    <!-- Decorative atmosphere blobs -->
-    <div
-      class="blob h-72 w-72 bg-primary"
-      style="top: 10%; left: -4rem;"
-      aria-hidden="true"
-    >
-    </div>
-    <div
-      class="blob h-64 w-64 bg-accent"
-      style="bottom: 5%; right: -3rem; animation-delay: -6s;"
-      aria-hidden="true"
-    >
-    </div>
-
-    <!-- Minimal top bar -->
-    <header class="relative z-10 mx-auto flex max-w-5xl items-center justify-between px-4 py-6 sm:py-8">
-      <a
-        href="/"
-        class="font-display flex items-baseline gap-1 text-2xl sm:text-3xl"
-        aria-label="Quick Pantry home"
-      >
-        <span class="text-header-logo">Quick</span>
-        <span class="text-header-logo">Pantry</span>
-      </a>
-      <nav class="flex items-center gap-2 sm:gap-3" aria-label="Account">
-        <a
-          href="/login"
-          class="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Sign in
-        </a>
-        <a
-          href="/register"
-          class="btn-primary"
-        >
-          Get started
-        </a>
+  <div class="landing-page">
+    <header class="site-header page-shell">
+      <a class="logo" href="/" aria-label="Quick Pantry home">Quick Pantry</a>
+      <nav aria-label="Account navigation">
+        <a class="nav-link" href="#how-it-works">How it works</a>
+        <a class="nav-link" href="/login">Sign in</a>
+        <a class="button button-small" href="/register">Get started</a>
       </nav>
     </header>
 
-    <!-- Hero -->
-    <section class="relative z-10 mx-auto max-w-5xl px-4 pt-8 pb-16 sm:pt-16 sm:pb-24">
-      <div class="grid gap-10 lg:grid-cols-2 lg:items-center">
-        <div class="space-y-6 text-center lg:text-left">
-          <span
-            class="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground"
-          >
-            <span class="h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true"></span>
-            Live on Cloudflare Workers
-          </span>
-          <h1
-            class="font-display text-5xl leading-[0.95] tracking-tight sm:text-6xl lg:text-7xl"
-          >
-            <span class="block text-foreground">Your kitchen,</span>
-            <span class="block text-foreground">organized.</span>
-          </h1>
-          <p class="mx-auto max-w-md text-lg text-muted-foreground lg:mx-0">
-            Import recipes from anywhere. Plan your week in a few clicks. Walk
-            into the grocery store with a single list.
-          </p>
-          <div class="flex flex-col items-center gap-3 sm:flex-row lg:items-start lg:justify-start">
-            <a
-              href="/register"
-              class="btn-primary w-full justify-center px-6 py-3 text-base sm:w-auto"
-            >
-              Create free account
-            </a>
-            <a
-              href="/login"
-              class="btn-secondary w-full justify-center px-6 py-3 text-base sm:w-auto"
-            >
-              I already have one
-            </a>
+    <main id="main-content">
+      <section class="hero page-shell">
+        <div class="hero-copy">
+          <div class="eyebrow"><span aria-hidden="true"></span>Meet your new kitchen habit</div>
+          <h1>Plan less.<span>Cook more.</span></h1>
+          <p>Quick Pantry turns recipes you love into a flexible week and one smart shopping list.</p>
+          <div class="hero-actions">
+            <a class="button" href="/register">Create a free account</a>
           </div>
         </div>
-
-        <!-- Illustrative "recipe card" mock — no real data, just visual interest -->
-        <div class="relative mx-auto w-full max-w-md lg:max-w-none">
-          <div
-            class="absolute -inset-4 rounded-3xl bg-primary/10 blur-2xl"
-            aria-hidden="true"
-          >
+        <div class="collage" aria-label="Quick Pantry preview">
+          <div class="photo photo-main">
+            <img src="https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=85" alt="A vibrant bowl of roasted vegetables and greens">
           </div>
-          <div
-            class="relative rounded-3xl border border-border bg-card p-6 shadow-xl"
-          >
-            <div class="flex items-center gap-3">
-              <div
-                class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-icon-bg text-primary-icon-fg"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="h-6 w-6"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"
-                  ></path>
-                  <path d="M6 17h12"></path>
-                </svg>
-              </div>
-              <div>
-                <div class="font-display text-lg text-card-foreground">
-                  Brown Butter Choc Chip
-                </div>
-                <div class="text-xs text-muted-foreground">24 servings · 45 min</div>
-              </div>
-            </div>
-            <ul class="mt-5 space-y-2 text-sm text-card-foreground">
-              <li class="flex items-center justify-between rounded-lg bg-panel px-3 py-2">
-                <span>All-purpose flour</span>
-                <span class="tabular-nums text-muted-foreground">2¼ cups</span>
-              </li>
-              <li class="flex items-center justify-between rounded-lg bg-panel px-3 py-2">
-                <span>Butter, browned</span>
-                <span class="tabular-nums text-muted-foreground">1 cup</span>
-              </li>
-              <li class="flex items-center justify-between rounded-lg bg-panel px-3 py-2">
-                <span>Dark brown sugar</span>
-                <span class="tabular-nums text-muted-foreground">¾ cup</span>
-              </li>
-              <li class="flex items-center justify-between rounded-lg bg-panel px-3 py-2">
-                <span>Eggs</span>
-                <span class="tabular-nums text-muted-foreground">2 large</span>
-              </li>
-            </ul>
-            <div class="mt-5 flex items-center justify-between text-xs">
-              <div class="flex gap-1.5">
-                <span
-                  class="inline-flex items-center rounded-full bg-primary-icon-bg px-2 py-0.5 text-primary-icon-fg font-semibold"
-                  >Dessert</span
-                >
-                <span
-                  class="inline-flex items-center rounded-full bg-primary-icon-bg px-2 py-0.5 text-primary-icon-fg font-semibold"
-                  >Favourite</span
-                >
-              </div>
-              <span class="text-muted-foreground">~ $3.40 / batch</span>
-            </div>
+          <div class="sticky-note"><small>Tuesday dinner</small>Lemony greens + crispy chickpeas</div>
+        </div>
+      </section>
+
+      <section class="how-it-works" id="how-it-works">
+        <div class="page-shell">
+          <div class="section-heading">
+            <h2>Your food in one place.</h2>
+            <p>Save the recipe when inspiration hits. Decide what to cook when you have a minute. Shop once with a list that has already done the math.</p>
+          </div>
+          <div class="steps">
+            <article class="step"><b>1</b><h3>Toss in a recipe</h3><p>Paste a link or snap a cookbook page. We pull out the useful details and keep them tidy.</p><span>URL · Photo · Manual</span></article>
+            <article class="step"><b>2</b><h3>Build your week</h3><p>Drag favorites into breakfast, lunch, and dinner. Change your mind whenever you want.</p></article>
+            <article class="step"><b>3</b><h3>Grab one list</h3><p>Duplicates combine, units convert, and costs add up before you reach the store.</p></article>
           </div>
         </div>
-      </div>
-    </section>
-
-    <!-- Three-pillar how it works -->
-    <section class="relative z-10 mx-auto max-w-5xl px-4 pb-24">
-      <div class="mb-10 text-center">
-        <h2 class="font-display text-3xl sm:text-4xl text-foreground">
-          Three steps, one clean kitchen
-        </h2>
-      </div>
-      <div class="grid gap-4 sm:grid-cols-3">
-        {
-          pillars.map((p, i) => (
-            <div class="relative rounded-2xl border border-border bg-card p-6">
-              <div class="absolute -top-3 left-6 rounded-full bg-primary px-2.5 py-0.5 text-xs font-bold text-primary-foreground">
-                {i + 1}
-              </div>
-              <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-icon-bg text-primary-icon-fg">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="h-5 w-5"
-                  aria-hidden="true"
-                  set:html={p.icon}
-                />
-              </div>
-              <h3 class="mt-4 font-display text-xl text-card-foreground">
-                {p.title}
-              </h3>
-              <p class="mt-1 text-sm text-muted-foreground">{p.body}</p>
-            </div>
-          ))
-        }
-      </div>
-    </section>
-  </main>
+      </section>
+    </main>
+  </div>
 </BaseLayout>
+
+<style>
+  @import url("https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Young+Serif&display=swap");
+
+  :global(:root) {
+    --landing-butter: oklch(92% 0.11 91);
+    --landing-paper: oklch(98% 0.016 78);
+    --landing-tomato: oklch(56% 0.19 35);
+    --landing-ink: oklch(24% 0.045 38);
+    --landing-olive: oklch(44% 0.08 115);
+    --landing-line: oklch(74% 0.07 82);
+  }
+
+  .landing-page { background: var(--landing-butter); color: var(--landing-ink); min-height: 100vh; }
+  .page-shell { margin-inline: auto; width: min(1200px, calc(100% - 2.75rem)); }
+  .site-header { align-items: center; border-bottom: 1px solid var(--landing-line); display: flex; height: 5.375rem; justify-content: space-between; }
+  .logo { color: var(--landing-tomato); flex-shrink: 0; font: 400 1.8rem/1 "Young Serif", Georgia, serif; letter-spacing: -0.04em; text-decoration: none; white-space: nowrap; }
+  .site-header nav { align-items: center; display: flex; flex-shrink: 0; gap: 0.75rem; }
+  .nav-link { color: var(--landing-ink); font: 600 0.875rem/1 "Figtree", sans-serif; padding: 0.75rem 0.9rem; text-decoration: none; white-space: nowrap; }
+  .button { align-items: center; background: var(--landing-tomato); border: 0; border-radius: 999px; box-shadow: 0 4px 0 oklch(40% 0.15 35); color: var(--landing-paper); display: inline-flex; font: 700 0.875rem/1 "Figtree", sans-serif; justify-content: center; min-height: 2.9rem; padding: 0 1.4rem; text-decoration: none; transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1); }
+  .button:hover { box-shadow: 0 7px 0 oklch(40% 0.15 35); transform: translateY(-3px); }
+  .button:active { box-shadow: 0 1px 0 oklch(40% 0.15 35); transform: translateY(3px); }
+  .button-small { min-height: 2.9rem; }
+  .hero { align-items: center; display: grid; gap: 3.125rem; grid-template-columns: 1.05fr 0.95fr; min-height: 43.1rem; padding-block: 3.875rem 4.7rem; position: relative; }
+  .hero-copy { position: relative; z-index: 2; }
+  .eyebrow { align-items: center; animation: pop-in 650ms both; color: var(--landing-olive); display: inline-flex; font: 700 0.75rem/1 "Figtree", sans-serif; gap: 0.5rem; letter-spacing: 0.1em; text-transform: uppercase; }
+  .eyebrow span { background: var(--landing-olive); border-radius: 999px; height: 0.55rem; width: 0.55rem; }
+  .hero h1 { animation: pop-in 750ms 60ms both; color: var(--landing-ink); font: 400 clamp(3.75rem, 7.6vw, 6.75rem)/0.88 "Young Serif", Georgia, serif; letter-spacing: -0.055em; margin: 1.5rem 0; }
+  .hero h1 span { color: var(--landing-tomato); display: block; transform: rotate(-2deg); transform-origin: left; }
+  .hero-copy > p { animation: pop-in 750ms 140ms both; color: oklch(40% 0.05 52); font: 400 clamp(1.05rem, 1.5vw, 1.2rem)/1.6 "Figtree", sans-serif; max-width: 34rem; }
+  .hero-actions { align-items: center; animation: pop-in 750ms 220ms both; display: flex; gap: 1.25rem; margin-top: 1.9rem; }
+  .collage { animation: pop-in 900ms 120ms both; height: 35rem; position: relative; }
+  .photo { border: 7px solid var(--landing-paper); box-shadow: 0 15px 35px oklch(30% 0.08 60 / 0.18); overflow: hidden; position: absolute; transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1); }
+  .photo:hover { transform: rotate(0deg) scale(1.025); z-index: 2; }
+  .photo img { display: block; height: 100%; object-fit: cover; transition: transform 800ms cubic-bezier(0.22, 1, 0.36, 1); width: 100%; }
+  .photo:hover img { transform: scale(1.05); }
+  .photo-main { height: 88%; right: 4%; top: 0.625rem; transform: rotate(2deg); width: 88%; }
+  .sticky-note { background: var(--landing-paper); bottom: 0.5rem; box-shadow: 5px 7px 0 var(--landing-tomato); color: var(--landing-ink); font: 400 1rem/1.35 "Young Serif", Georgia, serif; padding: 1.1rem; position: absolute; right: -1rem; transform: rotate(4deg); width: 11rem; z-index: 2; }
+  .sticky-note small { color: var(--landing-tomato); display: block; font: 700 0.625rem/1 "Figtree", sans-serif; letter-spacing: 0.08em; margin-bottom: 0.55rem; text-transform: uppercase; }
+  .how-it-works { background: var(--landing-paper); padding: 4.7rem 0 5.4rem; position: relative; }
+  .how-it-works::before { background: linear-gradient(135deg, transparent 8px, var(--landing-paper) 0) 0 0 / 16px 16px repeat-x; content: ""; height: 1.05rem; left: 0; position: absolute; right: 0; top: -1rem; }
+  .section-heading { align-items: end; display: grid; gap: 4.4rem; grid-template-columns: 1fr 1fr; margin-bottom: 3rem; }
+  .section-heading h2 { color: var(--landing-ink); font: 400 clamp(2.5rem, 5vw, 4.2rem)/0.95 "Young Serif", Georgia, serif; letter-spacing: -0.04em; margin: 0; }
+  .section-heading p { color: oklch(44% 0.04 52); font: 400 1.05rem/1.6 "Figtree", sans-serif; margin: 0; }
+  .steps { display: grid; gap: 1.4rem; grid-template-columns: repeat(3, 1fr); }
+  .step { background: var(--landing-paper); border: 1.5px solid var(--landing-ink); border-radius: 1.1rem; min-height: 15rem; padding: 1.75rem 1.6rem 1.55rem; position: relative; transition: box-shadow 350ms cubic-bezier(0.22, 1, 0.36, 1), transform 350ms cubic-bezier(0.22, 1, 0.36, 1); }
+  .step:nth-child(2) { transform: rotate(-1deg); }
+  .step:nth-child(3) { transform: rotate(1deg); }
+  .step:hover { box-shadow: 8px 8px 0 var(--landing-butter); transform: translateY(-7px) rotate(0); }
+  .step b { align-items: center; background: var(--landing-tomato); border-radius: 999px; color: var(--landing-paper); display: grid; font: 700 0.8rem/1 "Figtree", sans-serif; height: 2.15rem; left: 1.4rem; place-items: center; position: absolute; top: -1.05rem; width: 2.15rem; }
+  .step h3 { color: var(--landing-ink); font: 400 1.7rem/1 "Young Serif", Georgia, serif; margin: 1.25rem 0 0.6rem; }
+  .step p { color: oklch(45% 0.04 52); font: 400 0.875rem/1.5 "Figtree", sans-serif; margin: 0; }
+  .step span { color: var(--landing-olive); display: block; font: 700 0.7rem/1 "Figtree", sans-serif; letter-spacing: 0.08em; margin-top: 1.5rem; text-transform: uppercase; }
+  @keyframes pop-in { from { opacity: 0; transform: translateY(1.1rem) rotate(-1deg); } to { opacity: 1; transform: none; } }
+  @media (max-width: 56.25rem) { .hero { grid-template-columns: 1fr; } .hero-copy { text-align: center; } .hero-copy > p { margin-inline: auto; } .hero-actions { justify-content: center; } .collage { margin-inline: auto; max-width: 42.5rem; width: 100%; } .section-heading { gap: 1.1rem; grid-template-columns: 1fr; } }
+  @media (max-width: 38.75rem) { .page-shell { width: calc(100% - 1.75rem); } .site-header { height: 4.6rem; } .logo { font-size: 1.45rem; } .nav-link:first-child { display: none; } .nav-link { padding-inline: 0.45rem; } .button-small { min-height: 2.6rem; padding-inline: 1rem; } .hero { min-height: 0; padding-block: 2.6rem 4.2rem; } .hero h1 { font-size: 3.65rem; } .hero-copy > p { font-size: 1.05rem; } .hero-actions { align-items: stretch; flex-direction: column; } .collage { height: 27rem; } .photo-main { height: 86%; right: 3%; width: 94%; } .sticky-note { bottom: 0.75rem; right: 0; width: 9.1rem; } .how-it-works { padding-block: 3.7rem 4.5rem; } .steps { gap: 2.1rem; grid-template-columns: 1fr; } .step:nth-child(n) { transform: none; } }
+  @media (max-width: 21rem) { .nav-link { display: none; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; transition: none !important; } }
+</style>
