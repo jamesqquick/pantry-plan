@@ -1,19 +1,27 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import { ingredientSearchQuerySchema } from "@/features/ingredients/ingredients.schemas";
 import { IngredientMappingReview } from "./IngredientMappingReview";
 
-const { applyRecipe, previewRecipe, searchForPicker, softNavigate } = vi.hoisted(
-  () => ({
+const { applyRecipe, previewRecipe, searchForPicker, softNavigate } =
+  vi.hoisted(() => ({
     applyRecipe: vi.fn(),
     previewRecipe: vi.fn(),
     searchForPicker: vi.fn(),
     softNavigate: vi.fn(),
-  }),
-);
+  }));
 
 vi.mock("astro:actions", () => ({
   actions: {
@@ -106,7 +114,7 @@ beforeEach(() => {
     data: { recipeId: "recipe-123", mappedCount: 3, totalCount: 4 },
     error: undefined,
   });
-  searchForPicker.mockResolvedValue({ data: [], error: undefined });
+  searchForPicker.mockReset().mockResolvedValue({ data: [], error: undefined });
 });
 
 afterEach(() => {
@@ -117,7 +125,10 @@ afterEach(() => {
 describe("IngredientMappingReview", () => {
   it("shows loading and then a preview error", async () => {
     let resolvePreview:
-      | ((result: { data?: typeof preview; error?: { message: string } }) => void)
+      | ((result: {
+          data?: typeof preview;
+          error?: { message: string };
+        }) => void)
       | undefined;
     previewRecipe.mockReturnValueOnce(
       new Promise((resolve) => {
@@ -153,39 +164,43 @@ describe("IngredientMappingReview", () => {
 
     await screen.findByRole("heading", { name: "2 cups flour" });
     const current = getRow("2 cups flour");
+    expect(current.getByText("Mapped")).toBeTruthy();
     expect(
-      (current.getByRole("radio", { name: "Existing catalog ingredient" }) as HTMLInputElement)
-        .checked,
-    ).toBe(true);
-    expect(current.getByText("Current mapping")).toBeTruthy();
-    expect((current.getByLabelText("Selected ingredient") as HTMLInputElement).value).toBe(
-      "Flour",
-    );
+      current.getByRole("combobox", { name: "Ingredient" }),
+    ).toHaveProperty("value", "Flour");
 
     const existing = getRow("3 tomatoes");
+    expect(existing.getByText("Mapped")).toBeTruthy();
     expect(
-      (existing.getByRole("radio", { name: "Existing catalog ingredient" }) as HTMLInputElement)
-        .checked,
-    ).toBe(true);
-    expect(existing.getByText("AI suggestion")).toBeTruthy();
-    expect((existing.getByLabelText("Selected ingredient") as HTMLInputElement).value).toBe(
-      "Tomato",
-    );
+      existing.getByRole("combobox", { name: "Ingredient" }),
+    ).toHaveProperty("value", "Tomato");
 
     const create = getRow("1 bunch scallions");
-    expect(
-      (create.getByRole("radio", { name: "Create ingredient" }) as HTMLInputElement).checked,
-    ).toBe(true);
-    expect(create.getByText("Create suggestion")).toBeTruthy();
-    expect((create.getByLabelText("New ingredient name") as HTMLInputElement).value).toBe(
+    expect(create.getByText("New")).toBeTruthy();
+    expect(create.getByRole("combobox", { name: "Ingredient" })).toHaveProperty(
+      "value",
       "Scallion",
     );
 
     const unmapped = getRow("salt to taste");
+    expect(unmapped.getByText("Unmapped")).toBeTruthy();
     expect(
-      (unmapped.getByRole("radio", { name: "Leave unmapped" }) as HTMLInputElement)
-        .checked,
-    ).toBe(true);
+      unmapped.getByRole("checkbox", { name: "Leave unmapped" }),
+    ).toHaveProperty("checked", true);
+    expect(
+      unmapped.getByRole("combobox", { name: "Ingredient" }),
+    ).toHaveProperty("disabled", true);
+    expect(
+      screen.getAllByRole("combobox", { name: "Ingredient" }),
+    ).toHaveLength(4);
+    expect(screen.queryByRole("radio")).toBeNull();
+    expect(screen.queryByLabelText("Selected ingredient")).toBeNull();
+    expect(screen.queryByLabelText("Search ingredient catalog")).toBeNull();
+    expect(screen.queryByLabelText("New ingredient name")).toBeNull();
+    expect(
+      screen.queryByText(/This line will keep its structured text/),
+    ).toBeNull();
+    expect(searchForPicker).not.toHaveBeenCalled();
   });
 
   it("shows a warning when automatic AI suggestions are unavailable", async () => {
@@ -206,7 +221,9 @@ describe("IngredientMappingReview", () => {
     );
 
     expect(
-      await screen.findByText(/Automatic AI suggestions are temporarily unavailable/),
+      await screen.findByText(
+        /Automatic AI suggestions are temporarily unavailable/,
+      ),
     ).toBeTruthy();
   });
 
@@ -222,7 +239,10 @@ describe("IngredientMappingReview", () => {
     const current = getRow("2 cups flour");
 
     await user.clear(current.getByLabelText("Display text"));
-    await user.type(current.getByLabelText("Display text"), "all-purpose flour");
+    await user.type(
+      current.getByLabelText("Display text"),
+      "all-purpose flour",
+    );
     await user.clear(current.getByLabelText("Quantity"));
     await user.type(current.getByLabelText("Quantity"), "2 1/2");
     await user.selectOptions(current.getByLabelText("Unit"), "KG");
@@ -293,16 +313,21 @@ describe("IngredientMappingReview", () => {
     await screen.findByRole("heading", { name: "2 cups flour" });
     const current = getRow("2 cups flour");
     const search = current.getByRole("combobox", {
-      name: "Search ingredient catalog",
+      name: "Ingredient",
     });
 
+    await user.clear(search);
     await user.type(search, "zz");
     await waitFor(() =>
       expect(searchForPicker).toHaveBeenCalledWith({ query: "zz" }),
     );
-    expect(await current.findByText("No ingredients found.")).toBeTruthy();
-    expect(current.queryByRole("listbox")).toBeNull();
-    expect(search.getAttribute("aria-expanded")).toBe("false");
+    expect(
+      await current.findByRole("option", { name: 'Add "zz"' }),
+    ).toBeTruthy();
+    expect(current.getByRole("listbox")).toBeTruthy();
+    expect(search.getAttribute("aria-expanded")).toBe("true");
+    expect(current.getByText("Mapped")).toBeTruthy();
+    expect(current.queryByText(/Added to your catalog/)).toBeNull();
 
     await user.clear(search);
     await user.type(search, "oat");
@@ -310,13 +335,11 @@ describe("IngredientMappingReview", () => {
     expect(option.tabIndex).toBe(-1);
     expect(current.getByRole("listbox")).toBeTruthy();
     expect(search.getAttribute("aria-expanded")).toBe("true");
+    expect(current.queryByRole("option", { name: /^Add / })).toBeNull();
 
     await user.keyboard("{ArrowDown}{Enter}");
 
-    expect(
-      (current.getByLabelText("Selected ingredient") as HTMLInputElement)
-        .value,
-    ).toBe("Oats");
+    expect(search).toHaveProperty("value", "Oats");
     expect(current.queryByRole("listbox")).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Apply mappings" }));
@@ -357,19 +380,20 @@ describe("IngredientMappingReview", () => {
     await screen.findByRole("heading", { name: "2 cups flour" });
     const current = getRow("2 cups flour");
     const search = current.getByRole("combobox", {
-      name: "Search ingredient catalog",
+      name: "Ingredient",
     });
 
+    await user.clear(search);
     await user.type(search, "ri");
     await waitFor(() => expect(searchForPicker).toHaveBeenCalledTimes(1));
     await user.type(search, "ce");
     expect(await current.findByRole("option", { name: /Rice/ })).toBeTruthy();
 
-    resolveFirstSearch?.({
-      data: [{ id: "ingredient-ricotta", name: "Ricotta", source: "global" }],
+    await act(async () => {
+      resolveFirstSearch?.({
+        data: [{ id: "ingredient-ricotta", name: "Ricotta", source: "global" }],
+      });
     });
-    await Promise.resolve();
-    await Promise.resolve();
 
     expect(current.queryByRole("option", { name: /Ricotta/ })).toBeNull();
     expect(current.getByRole("option", { name: /Rice/ })).toBeTruthy();
@@ -387,10 +411,22 @@ describe("IngredientMappingReview", () => {
     const current = getRow("2 cups flour");
     const create = getRow("1 bunch scallions");
 
-    await user.click(current.getByRole("radio", { name: "Create ingredient" }));
-    await user.clear(current.getByLabelText("New ingredient name"));
-    await user.type(current.getByLabelText("New ingredient name"), "Cake flour");
-    await user.click(create.getByRole("radio", { name: "Leave unmapped" }));
+    const search = current.getByRole("combobox", { name: "Ingredient" });
+    await user.clear(search);
+    await user.type(search, "  Cake flour  ");
+    await user.click(
+      await current.findByRole("option", { name: 'Add "Cake flour"' }),
+    );
+    expect(search).toHaveProperty("value", "Cake flour");
+    expect(current.getByText("New")).toBeTruthy();
+    expect(current.queryByRole("listbox")).toBeNull();
+    expect(applyRecipe).not.toHaveBeenCalled();
+    await user.click(create.getByRole("checkbox", { name: "Leave unmapped" }));
+    expect(create.getByText("Unmapped")).toBeTruthy();
+    expect(create.getByRole("combobox", { name: "Ingredient" })).toHaveProperty(
+      "disabled",
+      true,
+    );
     await user.click(screen.getByRole("button", { name: "Apply mappings" }));
 
     await waitFor(() => {
@@ -473,7 +509,7 @@ describe("IngredientMappingReview", () => {
     expect(applyRecipe).not.toHaveBeenCalled();
   });
 
-  it("validates display text, quantity, and create names before applying", async () => {
+  it("validates display text, quantity, and required selections before applying", async () => {
     const user = userEvent.setup();
     render(
       <IngredientMappingReview
@@ -509,36 +545,302 @@ describe("IngredientMappingReview", () => {
 
     await user.clear(quantity);
     const create = getRow("1 bunch scallions");
-    const createName = create.getByLabelText("New ingredient name");
+    const createName = create.getByRole("combobox", { name: "Ingredient" });
     await user.clear(createName);
-    await user.click(screen.getByRole("button", { name: "Apply mappings" }));
-    expect(screen.getByRole("alert").textContent).toContain(
-      'New ingredient name is required for "1 bunch scallions"',
-    );
-    await waitFor(() => expect(document.activeElement).toBe(createName));
-    expect(createName.getAttribute("aria-invalid")).toBe("true");
-
-    await user.type(createName, "Scallion");
+    await user.tab();
+    expect(createName).toHaveProperty("value", "Scallion");
     const unmapped = getRow("salt to taste");
     await user.click(
-      unmapped.getByRole("radio", { name: "Existing catalog ingredient" }),
+      unmapped.getByRole("checkbox", { name: "Leave unmapped" }),
     );
     await user.click(screen.getByRole("button", { name: "Apply mappings" }));
     const ingredientSearch = unmapped.getByRole("combobox", {
-      name: "Search ingredient catalog",
+      name: "Ingredient",
     });
     expect(screen.getByRole("alert").textContent).toContain(
       'Choose an existing ingredient for "salt to taste"',
     );
-    await waitFor(() =>
-      expect(document.activeElement).toBe(ingredientSearch),
-    );
+    await waitFor(() => expect(document.activeElement).toBe(ingredientSearch));
     expect(ingredientSearch.getAttribute("aria-invalid")).toBe("true");
     expect(ingredientSearch.getAttribute("aria-describedby")).toBe(
       screen.getByRole("alert").id,
     );
     expect(applyRecipe).not.toHaveBeenCalled();
   });
+
+  it("adds an unmatched ingredient with the keyboard, then can replace it with a catalog selection", async () => {
+    const user = userEvent.setup();
+    render(
+      <IngredientMappingReview
+        recipeId="recipe-123"
+        recipeTitle="Weeknight pasta"
+      />,
+    );
+    await screen.findByRole("heading", { name: "2 cups flour" });
+    const current = getRow("2 cups flour");
+    const search = current.getByRole("combobox", { name: "Ingredient" });
+
+    await user.clear(search);
+    await user.type(search, "Black garlic");
+    const add = await current.findByRole("option", {
+      name: 'Add "Black garlic"',
+    });
+    await user.keyboard("{ArrowDown}");
+    expect(search.getAttribute("aria-activedescendant")).toBe(add.id);
+    await user.keyboard("{Enter}");
+    expect(search).toHaveProperty("value", "Black garlic");
+    expect(current.getByText("New")).toBeTruthy();
+    expect(applyRecipe).not.toHaveBeenCalled();
+
+    searchForPicker.mockResolvedValue({
+      data: [{ id: "ingredient-oats", name: "Oats", source: "custom" }],
+      error: undefined,
+    });
+    await user.clear(search);
+    await user.type(search, "oat");
+    await user.click(await current.findByRole("option", { name: /Oats/ }));
+    expect(search).toHaveProperty("value", "Oats");
+    expect(current.getByText("Mapped")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Apply mappings" }));
+    expect(applyRecipe.mock.calls[0]?.[0].items[0].mapping).toEqual({
+      kind: "existing",
+      ingredientId: "ingredient-oats",
+    });
+  });
+
+  it.each([
+    ["2 cups flour", "Flour", "Mapped"],
+    ["1 bunch scallions", "Scallion", "New"],
+  ])(
+    "restores the confirmed selection in %s when unmapped is unchecked",
+    async (rawText, name, badge) => {
+      const user = userEvent.setup();
+      render(
+        <IngredientMappingReview
+          recipeId="recipe-123"
+          recipeTitle="Weeknight pasta"
+        />,
+      );
+      await screen.findByRole("heading", { name: "2 cups flour" });
+      const row = getRow(rawText);
+      const checkbox = row.getByRole("checkbox", { name: "Leave unmapped" });
+      const search = row.getByRole("combobox", { name: "Ingredient" });
+
+      await user.clear(search);
+      await user.type(search, "unconfirmed query");
+      await user.click(checkbox);
+      expect(search).toHaveProperty("disabled", true);
+      expect(search).toHaveProperty("value", name);
+      expect(row.getByText("Unmapped")).toBeTruthy();
+      await user.click(checkbox);
+      expect(search).toHaveProperty("disabled", false);
+      expect(search).toHaveProperty("value", name);
+      expect(row.getByText(badge)).toBeTruthy();
+      await user.click(screen.getByRole("button", { name: "Apply mappings" }));
+      const mapping = applyRecipe.mock.calls[0]?.[0].items.find(
+        (item: { displayText: string }) =>
+          item.displayText ===
+          (rawText === "2 cups flour" ? "flour" : "scallions"),
+      ).mapping;
+      expect(mapping).toEqual(
+        badge === "Mapped"
+          ? { kind: "existing", ingredientId: "ingredient-flour" }
+          : { kind: "create", name: "Scallion" },
+      );
+    },
+  );
+
+  it.each(["Escape", "Tab", "outside click"])(
+    "dismisses a pending search with %s and ignores its late response",
+    async (dismissal) => {
+      const user = userEvent.setup();
+      let resolveSearch:
+        ((result: { data: []; error?: undefined }) => void) | undefined;
+      searchForPicker.mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveSearch = resolve;
+        }),
+      );
+      render(
+        <IngredientMappingReview
+          recipeId="recipe-123"
+          recipeTitle="Weeknight pasta"
+        />,
+      );
+      await screen.findByRole("heading", { name: "2 cups flour" });
+      const current = getRow("2 cups flour");
+      const search = current.getByRole("combobox", { name: "Ingredient" });
+      await user.clear(search);
+      await user.type(search, "black garlic");
+      await waitFor(() =>
+        expect(searchForPicker).toHaveBeenCalledWith({ query: "black garlic" }),
+      );
+      expect(current.queryByRole("option", { name: /^Add / })).toBeNull();
+      if (dismissal === "outside click") {
+        await user.click(current.getByLabelText("Display text"));
+      } else {
+        await user.keyboard(`{${dismissal}}`);
+      }
+      expect(search).toHaveProperty("value", "Flour");
+      await act(async () => {
+        resolveSearch?.({ data: [] });
+      });
+      expect(current.queryByRole("listbox")).toBeNull();
+      expect(search.getAttribute("aria-expanded")).toBe("false");
+      await user.click(screen.getByRole("button", { name: "Apply mappings" }));
+      expect(applyRecipe.mock.calls[0]?.[0].items[0].mapping).toEqual({
+        kind: "existing",
+        ingredientId: "ingredient-flour",
+      });
+    },
+  );
+
+  it.each(["action error", "exception"])(
+    "does not offer creation after a search %s",
+    async (failure) => {
+      const user = userEvent.setup();
+      if (failure === "action error") {
+        searchForPicker.mockResolvedValueOnce({
+          error: { message: "Catalog unavailable" },
+        });
+      } else {
+        searchForPicker.mockRejectedValueOnce(new Error("Catalog unavailable"));
+      }
+      render(
+        <IngredientMappingReview
+          recipeId="recipe-123"
+          recipeTitle="Weeknight pasta"
+        />,
+      );
+      await screen.findByRole("heading", { name: "2 cups flour" });
+      const current = getRow("2 cups flour");
+      const search = current.getByRole("combobox", { name: "Ingredient" });
+      await user.clear(search);
+      await user.type(search, "black garlic");
+      expect(await current.findByText(/Catalog unavailable/)).toBeTruthy();
+      expect(current.queryByRole("option", { name: /^Add / })).toBeNull();
+      await user.keyboard("{ArrowDown}{Enter}");
+      expect(current.getByText("Mapped")).toBeTruthy();
+      expect(applyRecipe).not.toHaveBeenCalled();
+      await user.keyboard("{Escape}");
+      expect(search).toHaveProperty("value", "Flour");
+    },
+  );
+
+  it("does not select an outdated Add option while the next query is pending", async () => {
+    const user = userEvent.setup();
+    searchForPicker
+      .mockResolvedValueOnce({ data: [], error: undefined })
+      .mockReturnValueOnce(new Promise(() => {}));
+    render(
+      <IngredientMappingReview
+        recipeId="recipe-123"
+        recipeTitle="Weeknight pasta"
+      />,
+    );
+    await screen.findByRole("heading", { name: "2 cups flour" });
+    const current = getRow("2 cups flour");
+    const search = current.getByRole("combobox", { name: "Ingredient" });
+    await user.clear(search);
+    await user.type(search, "black garlic");
+    await current.findByRole("option", { name: 'Add "black garlic"' });
+    await user.keyboard("{ArrowDown}");
+    await user.type(search, " oil");
+    await user.keyboard("{Enter}");
+    expect(current.queryByRole("option", { name: /^Add / })).toBeNull();
+    expect(search.getAttribute("aria-activedescendant")).toBeNull();
+    expect(current.getByText("Mapped")).toBeTruthy();
+    await user.keyboard("{Escape}");
+    expect(search).toHaveProperty("value", "Flour");
+  });
+
+  it.each(["existing", "create"])(
+    "ignores composing keystrokes before confirming an %s selection",
+    async (kind) => {
+      const user = userEvent.setup();
+      searchForPicker.mockResolvedValue({
+        data:
+          kind === "existing"
+            ? [{ id: "ingredient-oats", name: "Oats", source: "custom" }]
+            : [],
+        error: undefined,
+      });
+      render(
+        <IngredientMappingReview
+          recipeId="recipe-123"
+          recipeTitle="Weeknight pasta"
+        />,
+      );
+      await screen.findByRole("heading", { name: "2 cups flour" });
+      const current = getRow("2 cups flour");
+      const search = current.getByRole("combobox", { name: "Ingredient" });
+      await user.clear(search);
+      await user.type(search, "oat");
+      await current.findByRole("option", {
+        name: kind === "existing" ? /Oats/ : 'Add "oat"',
+      });
+
+      for (const key of ["ArrowDown", "ArrowUp", "Enter", "Escape"]) {
+        expect(fireEvent.keyDown(search, { key, isComposing: true })).toBe(
+          true,
+        );
+        expect(search).toHaveProperty("value", "oat");
+        expect(search.getAttribute("aria-activedescendant")).toBeNull();
+        expect(current.getByRole("listbox")).toBeTruthy();
+        expect(current.getByText("Mapped")).toBeTruthy();
+      }
+
+      await user.keyboard("{Enter}");
+      expect(search).toHaveProperty(
+        "value",
+        kind === "existing" ? "Oats" : "oat",
+      );
+      await user.click(screen.getByRole("button", { name: "Apply mappings" }));
+      expect(applyRecipe.mock.calls[0]?.[0].items[0].mapping).toEqual(
+        kind === "existing"
+          ? { kind: "existing", ingredientId: "ingredient-oats" }
+          : { kind: "create", name: "oat" },
+      );
+    },
+  );
+
+  it.each([101, 500])(
+    "can search and add a %i-character ingredient name",
+    async (length) => {
+      const user = userEvent.setup();
+      searchForPicker.mockImplementation(
+        async ({ query }: { query: string }) => {
+          const result = ingredientSearchQuerySchema.safeParse(query);
+          return result.success
+            ? { data: [], error: undefined }
+            : { error: { message: "Invalid search query" } };
+        },
+      );
+      render(
+        <IngredientMappingReview
+          recipeId="recipe-123"
+          recipeTitle="Weeknight pasta"
+        />,
+      );
+      await screen.findByRole("heading", { name: "2 cups flour" });
+      const current = getRow("2 cups flour");
+      const search = current.getByRole("combobox", { name: "Ingredient" });
+      const name = "a".repeat(length);
+      await user.click(search);
+      await user.paste(name);
+      await current.findByRole("option", { name: `Add "${name}"` });
+      await user.keyboard("{Enter}");
+      expect(current.getByText("New")).toBeTruthy();
+      expect(
+        ingredientSearchQuerySchema.safeParse("a".repeat(501)).success,
+      ).toBe(false);
+      await user.click(screen.getByRole("button", { name: "Apply mappings" }));
+      expect(applyRecipe.mock.calls[0]?.[0].items[0].mapping).toEqual({
+        kind: "create",
+        name,
+      });
+    },
+  );
 
   it("clears stale rows and validation state when the recipe changes", async () => {
     const user = userEvent.setup();
@@ -588,7 +890,9 @@ describe("IngredientMappingReview", () => {
     expect(screen.queryByRole("alert")).toBeNull();
 
     resolveSecondPreview?.({ data: secondPreview });
-    expect(await screen.findByRole("heading", { name: "1 lemon" })).toBeTruthy();
+    expect(
+      await screen.findByRole("heading", { name: "1 lemon" }),
+    ).toBeTruthy();
     expect(previewRecipe).toHaveBeenLastCalledWith({ recipeId: "recipe-456" });
   });
 });
