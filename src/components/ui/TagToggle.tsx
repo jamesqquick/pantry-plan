@@ -47,14 +47,17 @@ export function TagToggle({
     >
       {children}
       {count != null && (
-        <small
-          className={cn(
-            "text-[0.75rem] font-semibold tabular-nums",
-            selected ? "text-background/75" : "text-muted-foreground",
-          )}
-        >
-          {count}
-        </small>
+        <>
+          {" "}
+          <small
+            className={cn(
+              "text-[0.75rem] font-semibold tabular-nums",
+              selected ? "text-background/75" : "text-muted-foreground",
+            )}
+          >
+            {count}
+          </small>
+        </>
       )}
     </button>
   );
