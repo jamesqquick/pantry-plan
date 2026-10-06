@@ -75,6 +75,13 @@ export const importRecipeFromUrlToolSchema = z.object({
 export const searchRecipesToolSchema = z.object({
   query: z.string().trim().min(1).max(200),
   limit: z.number().int().min(1).max(25).default(10),
+  tag: z
+    .string()
+    .trim()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe("Only return recipes with this tag name."),
 });
 
 const plannedMealToolSchema = z.object({

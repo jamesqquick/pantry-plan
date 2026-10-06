@@ -24,7 +24,10 @@
 
   "vars": {
     // Public-ish config (not secrets). AUTH_URL must match the deployed origin.
-    "AUTH_URL": "https://quickpantry.app"
+    "AUTH_URL": "https://quickpantry.app",
+    // Production AI Search instance for recipe search. Local dev overrides
+    // this in .dev.vars because the AI_SEARCH binding is always remote.
+    "AI_SEARCH_INSTANCE": "quickpantry-recipes"
   },
   "send_email": [
     {
@@ -36,6 +39,15 @@
   "ai": {
     "binding": "AI"
   },
+  "ai_search_namespaces": [
+    {
+      // Recipe search index. The instance is chosen by AI_SEARCH_INSTANCE so
+      // local dev can target quickpantry-recipes-dev without a wrangler env.
+      "binding": "AI_SEARCH",
+      "namespace": "default",
+      "remote": true
+    }
+  ],
   "d1_databases": [
     {
       "binding": "DB",

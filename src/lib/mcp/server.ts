@@ -1,6 +1,7 @@
 import { createMcpHandler } from "agents/mcp/server";
 import { McpServer } from "@modelcontextprotocol/server";
-import type { Db } from "@/db";
+import { eq } from "drizzle-orm";
+import { user, type Db } from "@/db";
 import { saveImportedRecipeTextOnlySchema } from "@/features/import/import.schemas";
 import {
   createRecipeToolSchema,
@@ -18,7 +19,13 @@ import { searchRecipes } from "./search-recipes";
 import { createMcpRecipe } from "./create-recipe";
 import { editMcpRecipe } from "./edit-recipe";
 import { getMcpRecipe } from "./get-recipe";
-import { RecipeNotFoundError } from "./recipe-errors";
+import { RecipeNotFoundError, TagNotFoundError } from "./recipe-errors";
+import { getBooleanFlag } from "@/lib/feature-flags";
+import {
+  getRecipeSearchInstance,
+  queueRecipeIndexSync,
+  type WaitUntil,
+} from "@/lib/search/recipe-index";
 import {
   createWeeklyMealPlan,
   WeeklyMealPlanValidationError,
@@ -61,6 +68,31 @@ function recipeDetailsResult(
   };
 }
 
+export const RECIPE_AI_SEARCH_FLAG = "recipe-ai-search";
+
+/** MCP keys only carry a user id, so load the email for email-targeted flag rules. */
+export async function isRecipeAiSearchEnabled(
+  db: Db,
+  flags: Flagship | undefined,
+  userId: string,
+): Promise<boolean> {
+  const [account] = await db
+    .select({ email: user.email })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1);
+  return getBooleanFlag(flags, RECIPE_AI_SEARCH_FLAG, false, {
+    userId,
+    email: account?.email,
+  });
+}
+
+/** Bindings for search indexing; absent in tests that only inspect schemas. */
+export type McpSearchContext = {
+  env: Pick<Env, "AI_SEARCH" | "AI_SEARCH_INSTANCE" | "FLAGS">;
+  waitUntil?: WaitUntil;
+};
+
 async function isRateLimited(
   binding: RateLimit | undefined,
   key: string,
@@ -76,8 +108,14 @@ export function createServer(
   origin: string,
   keyId: string,
   rateLimit: RateLimit | undefined,
+  search?: McpSearchContext,
 ) {
   const server = new McpServer({ name: "quick-pantry", version: "1.0.0" });
+
+  const queueIndexSync = (recipeIds: string[]) =>
+    search
+      ? queueRecipeIndexSync(db, search.env, search.waitUntil, recipeIds)
+      : Promise.resolve();
 
   server.registerTool(
     "create_recipe",
@@ -92,6 +130,7 @@ export function createServer(
       }
       try {
         const result = await createMcpRecipe(db, userId, input);
+        await queueIndexSync([result.recipeId]);
         return createRecipeResult(origin, result.recipeId, input.title);
       } catch (error) {
         console.error(
@@ -148,6 +187,7 @@ export function createServer(
       }
       try {
         await editMcpRecipe(db, userId, input);
+        await queueIndexSync([input.recipeId]);
         const result = await getMcpRecipe(db, userId, input.recipeId);
         return recipeDetailsResult(origin, result, "Updated recipe");
       } catch (error) {
@@ -206,6 +246,7 @@ export function createServer(
         }
 
         const result = await createTextOnlyRecipe(db, userId, input.data);
+        await queueIndexSync([result.recipeId]);
         return createRecipeResult(
           origin,
           result.recipeId,
@@ -227,15 +268,27 @@ export function createServer(
     "search_recipes",
     {
       description:
-        "Search the authenticated user's Quick Pantry recipes by title.",
+        "Search the authenticated user's Quick Pantry recipes by title, ingredients, instructions, and notes. Accepts natural-language queries such as \"something with leftover chicken\". Optionally filter by tag name.",
       inputSchema: searchRecipesToolSchema,
     },
-    async ({ query, limit }) => {
+    async ({ query, limit, tag }) => {
       if (await isRateLimited(rateLimit, keyId)) {
         return toolError("Too many requests. Please try again later.");
       }
       try {
-        const results = await searchRecipes(db, userId, query, limit);
+        const semanticEnabled = search
+          ? await isRecipeAiSearchEnabled(db, search.env.FLAGS, userId).catch(() => false)
+          : false;
+        const { recipes: results, mode } = await searchRecipes(
+          {
+            db,
+            instance: search ? getRecipeSearchInstance(search.env) : null,
+            semanticEnabled,
+            waitUntil: search?.waitUntil,
+          },
+          userId,
+          { query, limit, tag },
+        );
         const recipes = results.map((result) => ({
           ...result,
           recipeUrl: new URL(`/recipes/${result.id}`, origin).toString(),
@@ -250,7 +303,7 @@ export function createServer(
                   : `Found ${recipes.length} recipe${recipes.length === 1 ? "" : "s"} matching "${query}".\n${recipes.map((recipe) => `- ${recipe.title}: ${recipe.recipeUrl}`).join("\n")}`,
             },
           ],
-          structuredContent: { query, count: recipes.length, recipes },
+          structuredContent: { query, tag: tag ?? null, mode, count: recipes.length, recipes },
         };
       } catch (error) {
         console.error(
@@ -259,7 +312,11 @@ export function createServer(
             error: error instanceof Error ? error.message : String(error),
           }),
         );
-        return toolError("Could not search recipes.");
+        return toolError(
+          error instanceof TagNotFoundError
+            ? error.message
+            : "Could not search recipes.",
+        );
       }
     },
   );
@@ -328,7 +385,11 @@ export async function handleMcpRequest(
 
   const origin = new URL(request.url).origin;
   const handler = createMcpHandler(
-    () => createServer(db, auth.userId, origin, auth.id, env.AI_RATE_LIMIT),
+    () =>
+      createServer(db, auth.userId, origin, auth.id, env.AI_RATE_LIMIT, {
+        env,
+        waitUntil: ctx.waitUntil.bind(ctx),
+      }),
     {
       route: "/mcp",
       authContext: { props: { userId: auth.userId, keyId: auth.id } },
