@@ -6,6 +6,8 @@ CREATE TABLE `RecipeSearchIndex` (
 	`status` text DEFAULT 'pending' NOT NULL,
 	`attempts` integer DEFAULT 0 NOT NULL,
 	`lastError` text,
+	`version` integer DEFAULT 0 NOT NULL,
+	`nextAttemptAt` integer,
 	`indexedAt` integer,
 	`updatedAt` integer DEFAULT (unixepoch() * 1000) NOT NULL
 );

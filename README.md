@@ -167,9 +167,12 @@ against D1 before it is returned.
   refuses to use the production instance.
 - **Indexing:** recipe writes mark rows in the `RecipeSearchIndex` table and
   upload changes in the background. A content hash skips unchanged recipes.
-  Failed or missed uploads are retried on the user's next search. Indexing
-  runs whether or not the flag below is on.
+  Missed uploads are picked up on the user's next search. Failed uploads retry
+  after a backoff (1, 4, 16, then 64 minutes, up to 5 attempts); editing the
+  recipe or an admin reindex retries right away. Indexing runs whether or not
+  the flag below is on.
 - **Flag:** the Flagship flag `recipe-ai-search` turns on AI Search queries.
+  MCP evaluates it with the key owner's `email` and `userId`.
   When it is off, or AI Search fails, search falls back to D1 title matching.
 - **Backfill:** admins can call the `searchIndex.reindex` action, with
   `restart: true` first, repeating until `remaining` is `0`.

@@ -27,6 +27,12 @@ import {
 export const PRODUCTION_SEARCH_INSTANCE = "quickpantry-recipes";
 export const MAX_SYNC_ATTEMPTS = 5;
 export const DEFAULT_SYNC_BATCH_SIZE = 20;
+/** First retry waits 1 minute, then 4, 16, and 64 minutes. */
+export const RETRY_BASE_DELAY_MS = 60_000;
+
+export function retryDelayMs(attempts: number): number {
+  return RETRY_BASE_DELAY_MS * 4 ** Math.max(attempts - 1, 0);
+}
 /** D1 caps bound parameters per statement at 100. */
 const ID_CHUNK_SIZE = 90;
 
@@ -101,14 +107,16 @@ export async function markRecipesDirty(
   const unique = [...new Set(recipeIds)];
   for (const ids of chunk(unique)) {
     await db.run(sql`
-      INSERT INTO ${recipeSearchIndex} (recipeId, userId, status, attempts)
-      SELECT ${recipe.id}, ${recipe.userId}, 'pending', 0
+      INSERT INTO ${recipeSearchIndex} (recipeId, userId, status, attempts, version)
+      SELECT ${recipe.id}, ${recipe.userId}, 'pending', 0, 1
       FROM ${recipe}
       WHERE ${inArray(recipe.id, ids)}
       ON CONFLICT (recipeId) DO UPDATE SET
         status = 'pending',
         attempts = 0,
         lastError = NULL,
+        nextAttemptAt = NULL,
+        version = version + 1,
         updatedAt = ${Date.now()}
     `);
   }
@@ -198,15 +206,50 @@ export async function loadRecipeDocumentInputs(
   return inputs;
 }
 
-async function upsertIndexRow(
+/**
+ * Write sync results only if the row was not marked dirty again since the sync
+ * read it. Returns false when a newer edit won.
+ */
+async function writeIfCurrent(
   db: Db,
-  values: typeof recipeSearchIndex.$inferInsert,
-): Promise<void> {
+  expectedVersion: number,
+  values: Omit<typeof recipeSearchIndex.$inferInsert, "version">,
+): Promise<boolean> {
   const { recipeId: _recipeId, ...update } = values;
-  await db
+  const written = await db
     .insert(recipeSearchIndex)
-    .values(values)
-    .onConflictDoUpdate({ target: recipeSearchIndex.recipeId, set: update });
+    .values({ ...values, version: expectedVersion })
+    .onConflictDoUpdate({
+      target: recipeSearchIndex.recipeId,
+      set: update,
+      setWhere: eq(recipeSearchIndex.version, expectedVersion),
+    })
+    .returning({ recipeId: recipeSearchIndex.recipeId });
+  return written.length > 0;
+}
+
+/**
+ * A newer edit landed while an older upload was in flight, and AI Search may
+ * now hold either version. Clear the hash so the next sync re-uploads the
+ * current recipe, and bump the version so any other in-flight sync for this
+ * recipe also backs off instead of marking it indexed.
+ */
+async function invalidateAfterRace(
+  db: Db,
+  recipeId: string,
+  uploadedItemId: string,
+): Promise<void> {
+  await db
+    .update(recipeSearchIndex)
+    .set({
+      status: "pending",
+      contentHash: null,
+      attempts: 0,
+      nextAttemptAt: null,
+      itemId: sql`coalesce(${recipeSearchIndex.itemId}, ${uploadedItemId})`,
+      version: sql`${recipeSearchIndex.version} + 1`,
+    })
+    .where(eq(recipeSearchIndex.recipeId, recipeId));
 }
 
 async function deleteRemoteItem(
@@ -248,6 +291,7 @@ export async function syncRecipes(
   for (const recipeId of unique) {
     const row = rows.get(recipeId);
     const input = documents.get(recipeId);
+    const expectedVersion = row?.version ?? 0;
 
     if (!input) {
       if (!row) continue;
@@ -259,12 +303,14 @@ export async function syncRecipes(
         summary.deleted++;
       } catch (error) {
         summary.failed++;
+        const attempts = row.attempts + 1;
         await db
           .update(recipeSearchIndex)
           .set({
             status: "failed",
-            attempts: row.attempts + 1,
+            attempts,
             lastError: errorMessage(error),
+            nextAttemptAt: new Date(Date.now() + retryDelayMs(attempts)),
           })
           .where(eq(recipeSearchIndex.recipeId, recipeId));
       }
@@ -277,8 +323,13 @@ export async function syncRecipes(
       if (row.status !== "indexed") {
         await db
           .update(recipeSearchIndex)
-          .set({ status: "indexed", attempts: 0, lastError: null })
-          .where(eq(recipeSearchIndex.recipeId, recipeId));
+          .set({ status: "indexed", attempts: 0, lastError: null, nextAttemptAt: null })
+          .where(
+            and(
+              eq(recipeSearchIndex.recipeId, recipeId),
+              eq(recipeSearchIndex.version, expectedVersion),
+            ),
+          );
       }
       summary.unchanged++;
       continue;
@@ -288,7 +339,7 @@ export async function syncRecipes(
       const item = await instance.items.upload(document.key, document.content, {
         metadata: document.metadata,
       });
-      await upsertIndexRow(db, {
+      const recorded = await writeIfCurrent(db, expectedVersion, {
         recipeId,
         userId: input.userId,
         itemId: item.id,
@@ -296,20 +347,25 @@ export async function syncRecipes(
         status: "indexed",
         attempts: 0,
         lastError: null,
+        nextAttemptAt: null,
         indexedAt: new Date(),
       });
+      if (!recorded) await invalidateAfterRace(db, recipeId, item.id);
       summary.uploaded++;
     } catch (error) {
       summary.failed++;
-      await upsertIndexRow(db, {
+      const attempts = (row?.attempts ?? 0) + 1;
+      // If a newer edit re-marked the row, it is already pending; leave it.
+      await writeIfCurrent(db, expectedVersion, {
         recipeId,
         userId: input.userId,
         // Keep the last accepted item/hash: that is still what AI Search holds.
         itemId: row?.itemId ?? null,
         contentHash: row?.contentHash ?? null,
         status: "failed",
-        attempts: (row?.attempts ?? 0) + 1,
+        attempts,
         lastError: errorMessage(error),
+        nextAttemptAt: new Date(Date.now() + retryDelayMs(attempts)),
       });
     }
   }
@@ -317,11 +373,15 @@ export async function syncRecipes(
   return summary;
 }
 
-/** Recipe ids for a user that are missing, pending, retryable, or tombstoned. */
+/**
+ * Recipe ids for a user that are missing, pending, tombstoned, or failed and
+ * due for a retry. Failed rows wait out their backoff first.
+ */
 export async function findRecipesNeedingSync(
   db: Db,
   userId: string,
   limit = DEFAULT_SYNC_BATCH_SIZE,
+  now = Date.now(),
 ): Promise<string[]> {
   const rows = await db.all<{ id: string }>(sql`
     SELECT r.id AS id FROM ${recipe} r
@@ -330,7 +390,11 @@ export async function findRecipesNeedingSync(
       AND (
         i.recipeId IS NULL
         OR i.status = 'pending'
-        OR (i.status = 'failed' AND i.attempts < ${MAX_SYNC_ATTEMPTS})
+        OR (
+          i.status = 'failed'
+          AND i.attempts < ${MAX_SYNC_ATTEMPTS}
+          AND (i.nextAttemptAt IS NULL OR i.nextAttemptAt <= ${now})
+        )
       )
     UNION
     SELECT i.recipeId AS id FROM ${recipeSearchIndex} i
@@ -338,6 +402,7 @@ export async function findRecipesNeedingSync(
     WHERE i.userId = ${userId}
       AND r.id IS NULL
       AND i.attempts < ${MAX_SYNC_ATTEMPTS}
+      AND (i.nextAttemptAt IS NULL OR i.nextAttemptAt <= ${now})
     LIMIT ${limit}
   `);
   return rows.map((row) => row.id);
@@ -365,18 +430,21 @@ export async function reindexAll(
   const { db } = deps;
   const now = Date.now();
   await db.run(sql`
-    INSERT INTO ${recipeSearchIndex} (recipeId, userId, status, attempts)
-    SELECT ${recipe.id}, ${recipe.userId}, 'pending', 0 FROM ${recipe}
+    INSERT INTO ${recipeSearchIndex} (recipeId, userId, status, attempts, version)
+    SELECT ${recipe.id}, ${recipe.userId}, 'pending', 0, 1 FROM ${recipe}
     -- SQLite needs a WHERE before ON CONFLICT to parse INSERT ... SELECT.
     WHERE true
     ON CONFLICT (recipeId) DO UPDATE SET
-      status = 'pending', attempts = 0, lastError = NULL,
-      contentHash = NULL, updatedAt = ${now}
+      status = 'pending', attempts = 0, lastError = NULL, nextAttemptAt = NULL,
+      contentHash = NULL, version = version + 1, updatedAt = ${now}
   `);
   return syncNextBatch(deps, batchSize);
 }
 
-/** Admin: process the next batch of pending rows across all users. */
+/**
+ * Admin: process the next batch of pending or failed rows across all users.
+ * Ignores retry backoff so an admin can force retries immediately.
+ */
 export async function syncNextBatch(
   deps: RecipeIndexDeps,
   batchSize = DEFAULT_SYNC_BATCH_SIZE,

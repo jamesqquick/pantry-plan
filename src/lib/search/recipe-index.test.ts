@@ -22,6 +22,9 @@ import {
   recipeIdsUsingIngredient,
   recipeIdsWithTag,
   reindexAll,
+  retryDelayMs,
+  RETRY_BASE_DELAY_MS,
+  syncNextBatch,
   syncPendingForUser,
   syncRecipes,
   type RecipeSearchInstance,
@@ -106,6 +109,8 @@ describe("markRecipesDirty", () => {
       status: "failed",
       attempts: 3,
       lastError: "boom",
+      version: 4,
+      nextAttemptAt: new Date(Date.now() + 60_000),
     });
 
     await markRecipesDirty(db, ["r1"]);
@@ -116,6 +121,102 @@ describe("markRecipesDirty", () => {
       status: "pending",
       attempts: 0,
       lastError: null,
+      version: 5,
+      nextAttemptAt: null,
+    });
+  });
+});
+
+describe("retry backoff", () => {
+  it("grows the delay by 4x per attempt", () => {
+    expect([1, 2, 3, 4].map(retryDelayMs)).toEqual([
+      RETRY_BASE_DELAY_MS,
+      RETRY_BASE_DELAY_MS * 4,
+      RETRY_BASE_DELAY_MS * 16,
+      RETRY_BASE_DELAY_MS * 64,
+    ]);
+  });
+
+  it("waits out the backoff before a search retries a failed upload", async () => {
+    await seedRecipe(db, "u1", "r1", "Soup");
+    fake.upload.mockRejectedValueOnce(new Error("service unavailable"));
+    const before = Date.now();
+
+    await syncRecipes({ db, instance: fake.instance }, ["r1"]);
+
+    const row = await indexRow(db, "r1");
+    expect(row).toMatchObject({ status: "failed", attempts: 1 });
+    const retryAt = row!.nextAttemptAt!.getTime();
+    expect(retryAt).toBeGreaterThanOrEqual(before + RETRY_BASE_DELAY_MS);
+    expect(await findRecipesNeedingSync(db, "u1")).toEqual([]);
+    expect(await findRecipesNeedingSync(db, "u1", 20, retryAt)).toEqual(["r1"]);
+  });
+
+  it("lets the admin batch retry immediately", async () => {
+    await seedRecipe(db, "u1", "r1", "Soup");
+    fake.upload.mockRejectedValueOnce(new Error("service unavailable"));
+    await syncRecipes({ db, instance: fake.instance }, ["r1"]);
+
+    const result = await syncNextBatch({ db, instance: fake.instance });
+
+    expect(result).toMatchObject({ uploaded: 1, remaining: 0 });
+    expect(await indexRow(db, "r1")).toMatchObject({ status: "indexed", nextAttemptAt: null });
+  });
+});
+
+describe("out-of-order syncs", () => {
+  it("does not mark stale content indexed when the recipe changed mid-upload", async () => {
+    await seedRecipe(db, "u1", "r1", "Soup");
+    await markRecipesDirty(db, ["r1"]);
+    fake.upload.mockImplementationOnce(async (key) => {
+      // A newer edit lands while this (older) upload is in flight.
+      await db.update(recipe).set({ title: "Better Soup" }).where(eq(recipe.id, "r1"));
+      await markRecipesDirty(db, ["r1"]);
+      return { id: "item-1", key, status: "queued" } as AiSearchItemInfo;
+    });
+
+    await syncRecipes({ db, instance: fake.instance }, ["r1"]);
+
+    expect(await indexRow(db, "r1")).toMatchObject({
+      status: "pending",
+      contentHash: null,
+      itemId: "item-1",
+    });
+
+    await syncRecipes({ db, instance: fake.instance }, ["r1"]);
+
+    expect((await indexRow(db, "r1"))?.status).toBe("indexed");
+    expect(fake.items.get("users/u1/recipes/r1.md")?.content).toContain("# Better Soup");
+  });
+
+  it("leaves a re-marked row pending when the older upload fails", async () => {
+    await seedRecipe(db, "u1", "r1", "Soup");
+    await markRecipesDirty(db, ["r1"]);
+    fake.upload.mockImplementationOnce(async () => {
+      await markRecipesDirty(db, ["r1"]);
+      throw new Error("service unavailable");
+    });
+
+    await syncRecipes({ db, instance: fake.instance }, ["r1"]);
+
+    expect(await indexRow(db, "r1")).toMatchObject({
+      status: "pending",
+      attempts: 0,
+      nextAttemptAt: null,
+    });
+  });
+
+  it("lets concurrent syncs of unchanged content both succeed", async () => {
+    await seedRecipe(db, "u1", "r1", "Soup");
+
+    await Promise.all([
+      syncRecipes({ db, instance: fake.instance }, ["r1"]),
+      syncRecipes({ db, instance: fake.instance }, ["r1"]),
+    ]);
+
+    expect(await indexRow(db, "r1")).toMatchObject({
+      status: "indexed",
+      contentHash: expect.stringMatching(/^[0-9a-f]{64}$/),
     });
   });
 });

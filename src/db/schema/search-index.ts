@@ -17,6 +17,10 @@ export type RecipeSearchIndexStatus =
  * AI Search `itemId`, so the sync loop can delete the remote item and then
  * drop the row. `indexed` means AI Search accepted the upload; the remote
  * index catches up asynchronously.
+ *
+ * `version` increments whenever the recipe is marked dirty, so a slow sync
+ * cannot overwrite the state written for a newer edit. `nextAttemptAt` backs
+ * off retries after failures.
  */
 export const recipeSearchIndex = sqliteTable(
   "RecipeSearchIndex",
@@ -31,6 +35,8 @@ export const recipeSearchIndex = sqliteTable(
       .default("pending"),
     attempts: integer("attempts").notNull().default(0),
     lastError: text("lastError"),
+    version: integer("version").notNull().default(0),
+    nextAttemptAt: integer("nextAttemptAt", { mode: "timestamp_ms" }),
     indexedAt: integer("indexedAt", { mode: "timestamp_ms" }),
     updatedAt: updatedAt(),
   },
