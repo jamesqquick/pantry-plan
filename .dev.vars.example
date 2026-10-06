@@ -13,3 +13,7 @@ AUTH_URL="http://localhost:4321"
 # Google OAuth credentials from Google Cloud Console.
 GOOGLE_CLIENT_ID=""
 GOOGLE_CLIENT_SECRET=""
+
+# AI Search instance used by recipe search. The ai_search binding is always
+# remote, so local dev must point at the dev instance, never production.
+AI_SEARCH_INSTANCE="quickpantry-recipes-dev"

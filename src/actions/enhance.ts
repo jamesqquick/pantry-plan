@@ -25,7 +25,7 @@ import {
 import type { SuggestionItem } from "@/lib/ingredients/compute-suggestions";
 import { suggestIngredientMappings } from "@/lib/ingredients/suggest-ingredient-mappings";
 import { autoConvert } from "@/lib/measurements/auto-convert";
-import { getDb, requireUser } from "./_shared";
+import { getDb, queueSearchSync, requireUser } from "./_shared";
 
 export type EnhancedRecipeIngredientResult = {
   ingredientId: string | null;
@@ -259,6 +259,7 @@ export const enhance = {
         });
       }
 
+      await queueSearchSync(ctx, db, [recipeRow.id]);
       return { items: returnItems };
     },
   }),

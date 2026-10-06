@@ -7,7 +7,8 @@ import {
   tagSearchQuerySchema,
 } from "@/features/tags/tags.schemas";
 import { tag } from "@/db";
-import { getDb, requireUser } from "./_shared";
+import { getDb, queueSearchSync, requireUser } from "./_shared";
+import { recipeIdsWithTag } from "@/lib/search/recipe-index";
 
 const PICKER_SEARCH_TAKE = 10;
 
@@ -77,7 +78,10 @@ export const tags = {
         });
       }
 
+      // Collect before the delete cascades away the RecipeTag rows.
+      const affectedRecipeIds = await recipeIdsWithTag(db, input.id);
       await db.delete(tag).where(eq(tag.id, input.id));
+      await queueSearchSync(ctx, db, affectedRecipeIds);
       return { id: input.id };
     },
   }),

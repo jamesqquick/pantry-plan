@@ -16,7 +16,7 @@ import {
   tag,
 } from "@/db";
 import { chunkRows } from "@/db/chunked-insert";
-import { getDb, requireUser } from "./_shared";
+import { getDb, queueSearchSync, requireUser } from "./_shared";
 
 /**
  * Recipes submit complex nested data (ingredients + instructions + tags).
@@ -126,6 +126,7 @@ export const recipes = {
         await db.insert(recipeTag).values(chunk);
       }
 
+      await queueSearchSync(ctx, db, [recipeId]);
       return { id: recipeId };
     },
   }),
@@ -218,6 +219,7 @@ export const recipes = {
         }
       }
 
+      await queueSearchSync(ctx, db, [input.id]);
       return { id: input.id };
     },
   }),
@@ -245,6 +247,7 @@ export const recipes = {
       }
 
       await db.delete(recipe).where(eq(recipe.id, input.id));
+      await queueSearchSync(ctx, db, [input.id]);
       return { id: input.id };
     },
   }),
@@ -343,6 +346,7 @@ export const recipes = {
         }
       }
 
+      await queueSearchSync(ctx, db, [copy.id]);
       return { id: copy.id };
     },
   }),

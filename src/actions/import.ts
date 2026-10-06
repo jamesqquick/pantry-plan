@@ -27,7 +27,7 @@ import {
   parseIngredientLineStructured,
   getDisplayTextFromIngredientLine,
 } from "@/lib/ingredients/parse-ingredient-line-structured";
-import { getDb, requireUser } from "./_shared";
+import { getDb, queueSearchSync, requireUser } from "./_shared";
 import {
   createTextOnlyRecipe,
   filterOwnedTagIds,
@@ -281,6 +281,7 @@ export const recipeImport = {
           ],
         );
       }
+      await queueSearchSync(ctx, db, [recipeId]);
 
       // 9. Upsert aliases (best-effort; not tied to recipe atomicity)
       const aliasEntries = parsedLines
@@ -342,8 +343,11 @@ export const recipeImport = {
     input: saveImportedRecipeTextOnlySchema,
     handler: async (input, ctx) => {
       const user = requireUser(ctx);
+      const db = getDb();
       try {
-        return await createTextOnlyRecipe(getDb(), user.id, input);
+        const result = await createTextOnlyRecipe(db, user.id, input);
+        await queueSearchSync(ctx, db, [result.recipeId]);
+        return result;
       } catch (error) {
         if (!(error instanceof RecipeCreationError)) throw error;
         throw new ActionError({

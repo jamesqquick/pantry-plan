@@ -90,7 +90,9 @@ The current MCP tools are:
 - `create_recipe` creates a recipe in your account. Ingredients use structured
   objects with `quantity`, `unit`, `displayText`, and optional `rawText` fields.
 - `import_recipe_from_url` fetches and saves a recipe from a URL.
-- `search_recipes` searches your recipes by title.
+- `search_recipes` searches your recipes. Pass an optional `tag` name to only
+  search recipes with that tag. Natural-language search across ingredients,
+  instructions, and notes is rolling out gradually; otherwise it matches titles.
 - `get_recipe` returns the complete recipe for a recipe ID, including ordered
   instructions and structured ingredients.
 - `edit_recipe` partially edits a recipe by ID. Omitted fields remain unchanged,
@@ -149,3 +151,27 @@ For Google sign-in locally, configure `GOOGLE_CLIENT_ID` and
 Production email uses the `EMAIL` Cloudflare Email Sending binding and the
 onboarded `quickpantry.app` domain. Local development keeps using the remote
 Email Sending binding from `wrangler.jsonc`.
+
+### Recipe search (Cloudflare AI Search)
+
+MCP `search_recipes` uses a Cloudflare AI Search instance for hybrid semantic
+and keyword search. Each recipe is uploaded as a Markdown document keyed
+`users/{userId}/recipes/{recipeId}.md`, with `user_id` and `recipe_id`
+metadata. Every query filters on `user_id`, and every result is re-checked
+against D1 before it is returned.
+
+- **Binding:** `AI_SEARCH` is an AI Search namespace binding. It always talks
+  to the real service, even in local dev. `AI_SEARCH_INSTANCE` selects the
+  instance: `quickpantry-recipes` in production. Set
+  `AI_SEARCH_INSTANCE=quickpantry-recipes-dev` in `.dev.vars`; local dev
+  refuses to use the production instance.
+- **Indexing:** recipe writes mark rows in the `RecipeSearchIndex` table and
+  upload changes in the background. A content hash skips unchanged recipes.
+  Failed or missed uploads are retried on the user's next search. Indexing
+  runs whether or not the flag below is on.
+- **Flag:** the Flagship flag `recipe-ai-search` turns on AI Search queries.
+  When it is off, or AI Search fails, search falls back to D1 title matching.
+- **Backfill:** admins can call the `searchIndex.reindex` action, with
+  `restart: true` first, repeating until `remaining` is `0`.
+- **Cache:** keep the instance cache disabled. Requests also disable it, since
+  a shared semantic cache could return another user's results.

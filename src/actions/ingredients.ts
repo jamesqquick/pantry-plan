@@ -17,7 +17,8 @@ import {
   type CostBasisUnit,
   type IngredientUnit,
 } from "@/db";
-import { getDb, requireUser, requireAdmin } from "./_shared";
+import { getDb, queueSearchSync, requireUser, requireAdmin } from "./_shared";
+import { recipeIdsUsingIngredient } from "@/lib/search/recipe-index";
 
 export type PickerIngredient = {
   id: string;
@@ -219,6 +220,11 @@ export const ingredients = {
           preferredDisplayUnit: input.preferredDisplayUnit,
         })
         .where(eq(ingredient.id, input.id));
+
+      // Ingredient names appear in recipe search documents.
+      if (existing.name !== input.name.trim()) {
+        await queueSearchSync(ctx, db, await recipeIdsUsingIngredient(db, input.id));
+      }
 
       return { id: input.id };
     },

@@ -2,7 +2,7 @@ import { ActionError, defineAction } from "astro:actions";
 import { and, eq } from "drizzle-orm";
 import { setRecipeIngredientsSchema } from "@/features/recipes/recipe-ingredients.schemas";
 import { recipe, recipeIngredient } from "@/db";
-import { getDb, requireUser } from "./_shared";
+import { getDb, queueSearchSync, requireUser } from "./_shared";
 
 export const recipeIngredients = {
   /**
@@ -52,6 +52,7 @@ export const recipeIngredients = {
         );
       }
 
+      await queueSearchSync(ctx, db, [input.recipeId]);
       return { recipeId: input.recipeId };
     },
   }),

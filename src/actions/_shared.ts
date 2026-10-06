@@ -8,6 +8,7 @@
 import { env } from "cloudflare:workers";
 import { ActionError, type ActionAPIContext } from "astro:actions";
 import { createDb, type Db } from "@/db";
+import { queueRecipeIndexSync } from "@/lib/search/recipe-index";
 import type { User } from "better-auth";
 
 /** Base User shape plus our custom `role` field set via Better Auth additionalFields. */
@@ -60,4 +61,17 @@ export function throwDuplicate(message: string): never {
 /** Shared error for ownership / not-found. Same shape so UI code can branch. */
 export function throwNotFound(message = "Not found."): never {
   throw new ActionError({ code: "NOT_FOUND", message });
+}
+
+/**
+ * Queue an AI Search re-index for recipes whose searchable content changed.
+ * Await it after the write succeeds; it never throws.
+ */
+export function queueSearchSync(
+  ctx: ActionAPIContext,
+  db: Db,
+  recipeIds: readonly string[],
+): Promise<void> {
+  const cf = ctx.locals.cfContext;
+  return queueRecipeIndexSync(db, env, cf?.waitUntil.bind(cf), recipeIds);
 }

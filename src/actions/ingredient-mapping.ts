@@ -26,7 +26,7 @@ import {
 } from "@/lib/ingredients/recipe-mapping";
 import { suggestIngredientMappings } from "@/lib/ingredients/suggest-ingredient-mappings";
 import { enforceRateLimit } from "@/lib/rate-limit";
-import { getDb, requireUser } from "./_shared";
+import { getDb, queueSearchSync, requireUser } from "./_shared";
 
 type PreviewIngredient = {
   id: string;
@@ -639,6 +639,7 @@ export const ingredientMapping = {
         throw error;
       }
 
+      await queueSearchSync(ctx, db, [ownedRecipe.id]);
       return {
         recipeId: ownedRecipe.id,
         mappedCount,
