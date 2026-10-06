@@ -1,6 +1,7 @@
 import { createMcpHandler } from "agents/mcp/server";
 import { McpServer } from "@modelcontextprotocol/server";
-import type { Db } from "@/db";
+import { eq } from "drizzle-orm";
+import { user, type Db } from "@/db";
 import { saveImportedRecipeTextOnlySchema } from "@/features/import/import.schemas";
 import {
   createRecipeToolSchema,
@@ -68,6 +69,23 @@ function recipeDetailsResult(
 }
 
 export const RECIPE_AI_SEARCH_FLAG = "recipe-ai-search";
+
+/** MCP keys only carry a user id, so load the email for email-targeted flag rules. */
+export async function isRecipeAiSearchEnabled(
+  db: Db,
+  flags: Flagship | undefined,
+  userId: string,
+): Promise<boolean> {
+  const [account] = await db
+    .select({ email: user.email })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1);
+  return getBooleanFlag(flags, RECIPE_AI_SEARCH_FLAG, false, {
+    userId,
+    email: account?.email,
+  });
+}
 
 /** Bindings for search indexing; absent in tests that only inspect schemas. */
 export type McpSearchContext = {
@@ -259,9 +277,7 @@ export function createServer(
       }
       try {
         const semanticEnabled = search
-          ? await getBooleanFlag(search.env.FLAGS, RECIPE_AI_SEARCH_FLAG, false, {
-              userId,
-            }).catch(() => false)
+          ? await isRecipeAiSearchEnabled(db, search.env.FLAGS, userId).catch(() => false)
           : false;
         const { recipes: results, mode } = await searchRecipes(
           {
