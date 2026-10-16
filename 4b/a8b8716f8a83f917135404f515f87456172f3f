@@ -1,0 +1,19 @@
+src/middleware.ts
+  s_d56a3a5052a7b2::t_1136d4800777bc 46-48
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "4ba8b8716f8a83f917135404f515f87456172f3f",
+  "prompts": {},
+  "sessions": {
+    "s_d56a3a5052a7b2": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_edf15cde9ffeQ0utlvpOOLXYZQ",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
