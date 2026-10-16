@@ -1,0 +1,85 @@
+package.json
+  s_c574de310f456d::t_659e3341691627 26,40
+pnpm-lock.yaml
+  s_c574de310f456d::t_fa53b9db7f102b 17-19,60-61,446-447,450,460-461,463,470-471,473,480-481,483,486-487,489,496-497,499-508,518-519,521,523,531-532,2770-2771,2789,3492-3494,5308,5311,5315,5320,5322,5327,5329,5334-5339,5341,5344,5346,5348-5352,5354,5356,5359,5361,5363,5373,7172,7174-7180,7182,7187,7203,7855-7856
+src/actions/chatgpt.ts
+  s_6821d8cb9d6735::t_e2f829e728be88 1-24
+src/actions/index.ts
+  s_6821d8cb9d6735::t_f4edb24f3ed750 13,34
+src/components/auth/GoogleSignInButton.tsx
+  s_6821d8cb9d6735::t_b904f22bdb9f4b 8,11,16,26-28
+src/components/auth/LoginForm.tsx
+  s_6821d8cb9d6735::t_e8f19dc6192bda 8,13,16,35,37,52-62,128,132
+src/components/auth/OAuthConsent.tsx
+  s_6821d8cb9d6735::t_812fe6b5d0e0ce 1-45
+src/components/auth/RegisterForm.tsx
+  s_6821d8cb9d6735::t_40d69217e0577f 6,8,21,23,37-47,119,123
+src/components/profile/ChatgptConnection.tsx
+  s_6821d8cb9d6735::t_324ebeaf0e300c 1-79
+src/db/migrations/0004_giant_eddie_brock.sql
+  s_c574de310f456d::t_c7977baa33720e 1-145
+src/db/migrations/0005_oauth_connection.sql
+  s_c574de310f456d::t_f05dcb55d9ea42 1-5
+src/db/migrations/meta/0004_snapshot.json
+  s_c574de310f456d::t_ece6dda26757f1 1-2780
+src/db/migrations/meta/0005_snapshot.json
+  s_c574de310f456d::t_24dd67b8f62a71 1-2818
+src/db/migrations/meta/_journal.json
+  s_c574de310f456d::t_92d2d3f4fd4822 32-45
+src/lib/mcp/api-keys.test.ts
+  s_28411eab78bf74::t_ec844e291b1bec 21,24
+src/lib/mcp/api-keys.ts
+  s_ccea9bc02ce134::t_a9fc4c514f331e 50
+src/lib/oauth-query.ts
+  s_6821d8cb9d6735::t_1e359ca8c5a372 1-12
+src/pages/.well-known/[...path].ts
+  s_ccea9bc02ce134::t_ba2103f9904aa0 1-36
+src/pages/login.astro
+  s_6821d8cb9d6735::t_66392d99539918 4-6,11-16,20-25
+src/pages/oauth/consent.astro
+  s_6821d8cb9d6735::t_746e7d807aa3d0 1-32
+src/pages/profile/index.astro
+  s_6821d8cb9d6735::t_bd4bc5b8a3a450 8,11,14-15,29-33,67-68
+src/pages/register.astro
+  s_6821d8cb9d6735::t_45ee0cbbb1da53 4-6,9-14,18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "eb6528827c340e007d5df256f0b4c1e58e7631d4",
+  "prompts": {},
+  "sessions": {
+    "s_28411eab78bf74": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_eca7b7d17ffelqU20sqapWhnom",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    },
+    "s_6821d8cb9d6735": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ebebca355ffeKbPClqI1rQoJeM",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    },
+    "s_c574de310f456d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ede049f1fffeoX1DPJr7yzYg1n",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    },
+    "s_ccea9bc02ce134": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ee3a44b48ffetbzZ1c4Sk2F8vE",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
