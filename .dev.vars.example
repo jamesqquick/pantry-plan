@@ -17,3 +17,9 @@ GOOGLE_CLIENT_SECRET=""
 # AI Search instance used by recipe search. The ai_search binding is always
 # remote, so local dev must point at the dev instance, never production.
 AI_SEARCH_INSTANCE="quickpantry-recipes-dev"
+
+# Separate ingredient index for retrieval + Clef mapping. This binding is also
+# remote. Configure/backfill the dev instance before enabling the fallback.
+# An explicit Flagship ingredient-clef-mapping value overrides this fallback.
+INGREDIENT_AI_SEARCH_INSTANCE="quickpantry-ingredients-dev"
+INGREDIENT_CLEF_MAPPING_ENABLED="false"

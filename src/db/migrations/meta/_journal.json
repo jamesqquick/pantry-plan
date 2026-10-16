@@ -29,6 +29,13 @@
       "when": 1791313707647,
       "tag": "0003_recipe_search_index",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1791565243662,
+      "tag": "0004_ingredient_search_index",
+      "breakpoints": true
     }
   ]
 }

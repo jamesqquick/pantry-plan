@@ -27,7 +27,10 @@
     "AUTH_URL": "https://quickpantry.app",
     // Production AI Search instance for recipe search. Local dev overrides
     // this in .dev.vars because the AI_SEARCH binding is always remote.
-    "AI_SEARCH_INSTANCE": "quickpantry-recipes"
+    "AI_SEARCH_INSTANCE": "quickpantry-recipes",
+    // Ingredient matching stays unconfigured until an operator selects its instance.
+    "INGREDIENT_AI_SEARCH_INSTANCE": "",
+    "INGREDIENT_CLEF_MAPPING_ENABLED": "false"
   },
   "send_email": [
     {
@@ -41,8 +44,8 @@
   },
   "ai_search_namespaces": [
     {
-      // Recipe search index. The instance is chosen by AI_SEARCH_INSTANCE so
-      // local dev can target quickpantry-recipes-dev without a wrangler env.
+      // Recipe and ingredient indexes share this namespace, not their documents.
+      // AI_SEARCH_INSTANCE and INGREDIENT_AI_SEARCH_INSTANCE select each instance.
       "binding": "AI_SEARCH",
       "namespace": "default",
       "remote": true
@@ -76,6 +79,14 @@
       "namespace_id": "1002",
       "simple": {
         "limit": 5,
+        "period": 60
+      }
+    },
+    {
+      "name": "INGREDIENT_SEARCH_RATE_LIMIT",
+      "namespace_id": "1003",
+      "simple": {
+        "limit": 100,
         "period": 60
       }
     }

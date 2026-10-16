@@ -10,6 +10,7 @@ import {
   ingredientMappingApplySchema,
   ingredientMappingPreviewSchema,
 } from "@/features/recipes/ingredient-mapping.schemas";
+import { MAX_LINES_PER_RECIPE } from "@/features/import/import.schemas";
 import { getDisplayTextFromIngredientLine } from "@/lib/ingredients/parse-ingredient-line-structured";
 import { normalizeIngredientName } from "@/lib/ingredients/normalize";
 import { autoConvert } from "@/lib/measurements/auto-convert";
@@ -24,9 +25,7 @@ import {
   type RecipeIngredientMappingUpdateRow,
   validateRecipeMappingItemSet,
 } from "@/lib/ingredients/recipe-mapping";
-import { suggestIngredientMappings } from "@/lib/ingredients/suggest-ingredient-mappings";
-import { enforceRateLimit } from "@/lib/rate-limit";
-import { getDb, queueSearchSync, requireUser } from "./_shared";
+import { getDb, queueIngredientSync, queueSearchSync, requireUser, suggestIngredientMappingsForUser } from "./_shared";
 
 type PreviewIngredient = {
   id: string;
@@ -35,7 +34,7 @@ type PreviewIngredient = {
 
 type PreviewSuggestedIngredient = PreviewIngredient & {
   normalizedName: string;
-  matchType: "current" | "exact" | "alias" | "fuzzy" | "llm";
+  matchType: "current" | "exact" | "alias" | "fuzzy" | "llm" | "clef";
 };
 
 type VersionedRecipeIngredientMappingUpdate =
@@ -58,7 +57,7 @@ export type RecipeIngredientMappingPreviewItem = {
   candidates: Array<{
     id: string;
     name: string;
-    matchType: "exact" | "alias" | "fuzzy";
+    matchType: "exact" | "alias" | "fuzzy" | "semantic";
     score?: number;
   }>;
 };
@@ -228,7 +227,12 @@ export const ingredientMapping = {
           ),
         )
         .where(eq(recipeIngredient.recipeId, ownedRecipe.id))
-        .orderBy(recipeIngredient.sortOrder);
+        .orderBy(recipeIngredient.sortOrder)
+        .limit(MAX_LINES_PER_RECIPE + 1);
+
+      if (rows.length > MAX_LINES_PER_RECIPE) {
+        throw new ActionError({ code: "BAD_REQUEST", message: `Ingredient mapping supports at most ${MAX_LINES_PER_RECIPE} lines.` });
+      }
 
       const previewRows = rows.map((row) => ({
         row,
@@ -254,16 +258,11 @@ export const ingredientMapping = {
       const suggestionResult =
         unresolvedRows.length === 0
           ? { suggestions: [], aiStatus: "not-needed" as const }
-          : await suggestIngredientMappings(
+          : await suggestIngredientMappingsForUser(
+              ctx,
               db,
               unresolvedRows.map(({ line }) => line),
-              user.id,
-              env.AI,
-              () =>
-                enforceRateLimit(
-                  env.AI_RATE_LIMIT,
-                  `ai:ingredient-mapping:${user.id}`,
-                ),
+              user,
             );
       const unresolvedSuggestions = suggestionResult.suggestions;
       const suggestionByRowIndex = new Map(
@@ -639,6 +638,7 @@ export const ingredientMapping = {
         throw error;
       }
 
+      await queueIngredientSync(ctx, db, newIngredients.map(({ id }) => id));
       await queueSearchSync(ctx, db, [ownedRecipe.id]);
       return {
         recipeId: ownedRecipe.id,

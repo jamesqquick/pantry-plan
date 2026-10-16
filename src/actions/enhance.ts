@@ -5,9 +5,8 @@
  * LLM pass uses Workers AI.
  */
 
-import { ActionError, defineAction } from "astro:actions";
+import { ActionError, defineAction, type ActionAPIContext } from "astro:actions";
 import { and, eq, isNull, or } from "drizzle-orm";
-import { env } from "cloudflare:workers";
 import { recipeIdOnlySchema } from "@/features/recipes/recipe-ingredients.schemas";
 import { suggestMappingsSchema } from "@/features/import/import.schemas";
 import {
@@ -23,9 +22,8 @@ import {
   getDisplayTextFromIngredientLine,
 } from "@/lib/ingredients/parse-ingredient-line-structured";
 import type { SuggestionItem } from "@/lib/ingredients/compute-suggestions";
-import { suggestIngredientMappings } from "@/lib/ingredients/suggest-ingredient-mappings";
 import { autoConvert } from "@/lib/measurements/auto-convert";
-import { getDb, queueSearchSync, requireUser } from "./_shared";
+import { getDb, queueIngredientSync, queueSearchSync, requireUser, suggestIngredientMappingsForUser, type AuthenticatedUser } from "./_shared";
 
 export type EnhancedRecipeIngredientResult = {
   ingredientId: string | null;
@@ -46,7 +44,7 @@ export type EnhancedIngredientLineItem = {
   ingredientName: string;
   createName: string;
   sortOrder: number;
-  matchType?: "exact" | "alias" | "fuzzy" | "llm";
+  matchType?: "exact" | "alias" | "fuzzy" | "llm" | "clef";
 };
 
 /** Drizzle WHERE: global OR user-owned ingredients. */
@@ -59,11 +57,12 @@ function userScope(userId: string) {
  * Shared by both enhance actions.
  */
 async function runSuggestionPasses(
+  ctx: ActionAPIContext,
   db: ReturnType<typeof getDb>,
   lines: string[],
-  userId: string,
+  user: AuthenticatedUser,
 ): Promise<SuggestionItem[]> {
-  const result = await suggestIngredientMappings(db, lines, userId, env.AI);
+  const result = await suggestIngredientMappingsForUser(ctx, db, lines, user);
   return result.suggestions;
 }
 
@@ -114,7 +113,7 @@ export const enhance = {
         });
       }
 
-      const suggestions = await runSuggestionPasses(db, lines, user.id);
+      const suggestions = await runSuggestionPasses(ctx, db, lines, user);
 
       // Delete old ingredient rows
       await db
@@ -123,6 +122,7 @@ export const enhance = {
 
       // Insert enhanced rows
       const returnItems: EnhancedRecipeIngredientResult[] = [];
+      const changedIngredientIds = new Set<string>();
 
       for (let i = 0; i < lines.length; i++) {
         const rawLine = lines[i]!;
@@ -174,6 +174,7 @@ export const enhance = {
               })
               .returning({ id: ingredient.id });
             ingredientId = created!.id;
+            changedIngredientIds.add(ingredientId);
           }
 
           // Upsert alias
@@ -183,11 +184,12 @@ export const enhance = {
           ).trim();
           if (aliasNorm) {
             const [existingAlias] = await db
-              .select({ id: ingredientAlias.id })
+              .select({ id: ingredientAlias.id, ingredientId: ingredientAlias.ingredientId })
               .from(ingredientAlias)
               .where(eq(ingredientAlias.aliasNormalized, aliasNorm))
               .limit(1);
             if (existingAlias) {
+              changedIngredientIds.add(existingAlias.ingredientId);
               await db
                 .update(ingredientAlias)
                 .set({ ingredientId })
@@ -198,6 +200,7 @@ export const enhance = {
                 aliasNormalized: aliasNorm,
               });
             }
+            changedIngredientIds.add(ingredientId);
           }
         }
 
@@ -259,6 +262,7 @@ export const enhance = {
         });
       }
 
+      await queueIngredientSync(ctx, db, [...changedIngredientIds]);
       await queueSearchSync(ctx, db, [recipeRow.id]);
       return { items: returnItems };
     },
@@ -286,7 +290,7 @@ export const enhance = {
         });
       }
 
-      const suggestions = await runSuggestionPasses(db, lines, user.id);
+      const suggestions = await runSuggestionPasses(ctx, db, lines, user);
 
       const items: EnhancedIngredientLineItem[] = [];
       for (let i = 0; i < lines.length; i++) {
@@ -309,7 +313,7 @@ export const enhance = {
         let ingredientId = "";
         let ingredientName = "";
         let createName = "";
-        let matchType: "exact" | "alias" | "fuzzy" | "llm" | undefined;
+        let matchType: "exact" | "alias" | "fuzzy" | "llm" | "clef" | undefined;
 
         if (suggestion.suggestedIngredient) {
           ingredientId = suggestion.suggestedIngredient.id;

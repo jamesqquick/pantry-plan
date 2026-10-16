@@ -17,7 +17,7 @@ import {
   type CostBasisUnit,
   type IngredientUnit,
 } from "@/db";
-import { getDb, queueSearchSync, requireUser, requireAdmin } from "./_shared";
+import { getDb, queueIngredientSync, queueSearchSync, requireUser, requireAdmin } from "./_shared";
 import { recipeIdsUsingIngredient } from "@/lib/search/recipe-index";
 
 export type PickerIngredient = {
@@ -139,6 +139,7 @@ export const ingredients = {
           message: "Failed to create ingredient",
         });
       }
+      await queueIngredientSync(ctx, db, [row.id]);
       return { id: row.id };
     },
   }),
@@ -221,6 +222,7 @@ export const ingredients = {
         })
         .where(eq(ingredient.id, input.id));
 
+      await queueIngredientSync(ctx, db, [input.id]);
       // Ingredient names appear in recipe search documents.
       if (existing.name !== input.name.trim()) {
         await queueSearchSync(ctx, db, await recipeIdsUsingIngredient(db, input.id));
@@ -276,6 +278,7 @@ export const ingredients = {
       }
 
       await db.delete(ingredient).where(eq(ingredient.id, input.id));
+      await queueIngredientSync(ctx, db, [input.id]);
       return { id: input.id };
     },
   }),
@@ -322,6 +325,7 @@ export const ingredients = {
           message: "Failed to upsert ingredient",
         });
       }
+      await queueIngredientSync(ctx, db, [row.id]);
       return row;
     },
   }),
