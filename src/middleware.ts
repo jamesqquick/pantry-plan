@@ -43,6 +43,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return new Response(`Cross-site ${context.request.method} form submissions are forbidden`, { status: 403 });
   }
 
+  // Prerendering has no browser session and must not initialize the OAuth database.
+  if (context.isPrerendered) return next();
+
   const { pathname } = context.url;
   // MCP and OAuth discovery authenticate independently of browser sessions.
   if (pathname === "/mcp" || pathname.startsWith("/.well-known/")) return next();
