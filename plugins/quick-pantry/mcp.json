@@ -1,0 +1,27 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "quick-pantry": {
+      "type": "streamable-http",
+      "url": "https://quickpantry.app/mcp",
+      "extensions": {
+        "com.openai": {
+          "auth": {
+            "type": "oauth",
+            "client": {
+              "mode": "provided",
+              "clientId": "quick-pantry-chatgpt",
+              "tokenEndpointAuthMethod": "none"
+            },
+            "baseScopes": [
+              "recipes:read",
+              "recipes:write",
+              "meal-plans:write",
+              "offline_access"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

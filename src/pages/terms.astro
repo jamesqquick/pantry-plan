@@ -1,0 +1,58 @@
+---
+import InfoLayout from "@/layouts/InfoLayout.astro";
+
+export const prerender = true;
+---
+
+<InfoLayout
+  heading="Terms of use"
+  description="Terms for using Quick Pantry to manage recipes, meals, and grocery lists."
+>
+  <p>
+    Quick Pantry, maintained by James Quick, helps you manage recipes, plan
+    meals, and build grocery lists. These terms apply when you use the service
+    or connect an AI client to it.
+  </p>
+
+  <section aria-labelledby="account-use">
+    <h2 id="account-use">Your account and connections</h2>
+    <p>
+      Use an account you control and keep your sign-in details and MCP keys
+      private. Authorize an AI client only if you want it to access your account
+      through the permissions you approve. Review requested changes carefully;
+      replacing a weekly meal plan replaces that whole week's entries.
+    </p>
+  </section>
+
+  <section aria-labelledby="your-content">
+    <h2 id="your-content">Recipes and imported content</h2>
+    <p>
+      You are responsible for the content you save or import and for having
+      permission to use it. Review imported or AI-generated recipes before
+      cooking, including ingredient amounts, instructions, and any allergy or
+      dietary requirements. Grocery costs are estimates.
+    </p>
+  </section>
+
+  <section aria-labelledby="acceptable-use">
+    <h2 id="acceptable-use">Acceptable use</h2>
+    <p>
+      Do not access another person's account or private data, bypass access
+      controls or rate limits, or disrupt the service. Use integrations only
+      with an account you are authorized to connect.
+    </p>
+  </section>
+
+  <section aria-labelledby="availability">
+    <h2 id="availability">Availability and questions</h2>
+    <p>
+      Live recipes, meal plans, orders, and edits require a network connection.
+      Imports and search can fail or be unavailable, and photo import may not
+      be enabled for every account.
+    </p>
+    <p>
+      See <a href="/privacy">Privacy</a> for data handling or
+      <a href="/support">Support</a> for questions and problems.
+    </p>
+  </section>
+</InfoLayout>

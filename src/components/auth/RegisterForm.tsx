@@ -3,8 +3,9 @@ import { signUp } from "@/lib/auth-client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { getOAuthRedirect } from "@/lib/oauth-query";
 
-export function RegisterForm() {
+export function RegisterForm({ oauthQuery }: { oauthQuery?: string }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,8 +18,9 @@ export function RegisterForm() {
     setPending(true);
 
     let err: { message?: string } | null = null;
+    let data: unknown;
     try {
-      ({ error: err } = await signUp.email({ name, email, password }));
+      ({ error: err, data } = await signUp.email({ name, email, password }));
     } catch {
       setError("Unable to reach the sign-up service. Please try again.");
       setPending(false);
@@ -32,7 +34,17 @@ export function RegisterForm() {
     }
 
     // autoSignIn is on, so the cookie is already set. Full nav reloads middleware.
-    window.location.href = "/recipes";
+    if (oauthQuery) {
+      const redirect = getOAuthRedirect(data);
+      if (!redirect) {
+        setError("Account created, but the connection could not continue. Restart the connection from ChatGPT.");
+        setPending(false);
+        return;
+      }
+      window.location.href = redirect;
+    } else {
+      window.location.href = "/recipes";
+    }
   };
 
   return (
@@ -104,11 +116,11 @@ export function RegisterForm() {
         <div className="grow border-t border-border" />
       </div>
 
-      <GoogleSignInButton label="Sign up with Google" />
+      <GoogleSignInButton label="Sign up with Google" oauthQuery={oauthQuery} />
 
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{" "}
-        <a href="/login" className="font-medium text-primary-on-card hover:underline">
+        <a href={oauthQuery ? `/login?${oauthQuery}` : "/login"} className="font-medium text-primary-on-card hover:underline">
           Sign in
         </a>
       </p>

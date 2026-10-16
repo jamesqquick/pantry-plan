@@ -33,7 +33,6 @@ describe("MCP tool registration", () => {
       undefined as never,
       "user-1",
       "https://quickpantry.test",
-      "key-1",
       undefined,
     );
     const schema = server.toolInputSchemaJson("edit_recipe");

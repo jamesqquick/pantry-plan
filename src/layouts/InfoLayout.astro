@@ -1,0 +1,114 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+
+interface Props {
+  heading: string;
+  description: string;
+}
+
+const { heading, description } = Astro.props;
+const pathname = Astro.url.pathname.replace(/\/$/, "");
+const informationLinks = [
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
+  { href: "/support", label: "Support" },
+];
+---
+
+<BaseLayout title={`${heading} | Quick Pantry`} description={description}>
+  <div class="flex min-h-screen supports-[height:100dvh]:min-h-dvh flex-col">
+    <header class="border-b border-header-border bg-header pt-[env(safe-area-inset-top)]">
+      <div class="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-4 px-5 py-5 sm:px-8">
+        <a
+          href="/"
+          class="inline-flex min-h-11 items-center gap-3 font-display text-2xl tracking-tight text-header-logo"
+          aria-label="Quick Pantry home"
+        >
+          <img src="/favicon.svg" width="32" height="32" alt="" />
+          <span>Quick Pantry</span>
+        </a>
+        <a href="/login" class="btn-secondary min-h-11">Sign in</a>
+      </div>
+    </header>
+
+    <main
+      id="main-content"
+      tabindex="-1"
+      class="mx-auto w-full max-w-3xl flex-1 px-5 py-10 sm:px-8 sm:py-14"
+    >
+      <h1 class="font-display text-3xl leading-tight sm:text-4xl">{heading}</h1>
+      <div class="info-content mt-8 space-y-8 text-base leading-7">
+        <slot />
+      </div>
+    </main>
+
+    <footer class="border-t border-border bg-panel pb-[env(safe-area-inset-bottom)]">
+      <div class="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 py-5 sm:px-8">
+        <p class="text-sm text-muted-foreground">Quick Pantry by James Quick</p>
+        <nav aria-label="Information">
+          <ul class="flex flex-wrap gap-x-5">
+            {
+              informationLinks.map(({ href, label }) => (
+                <li>
+                  <a
+                    href={href}
+                    aria-current={pathname === href ? "page" : undefined}
+                    class:list={[
+                      "inline-flex min-h-11 items-center text-sm underline decoration-1 underline-offset-4",
+                      pathname === href ? "font-semibold text-foreground" : "text-primary-on-background",
+                    ]}
+                  >
+                    {label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
+      </div>
+    </footer>
+  </div>
+</BaseLayout>
+
+<style>
+  .info-content {
+    max-width: 70ch;
+    overflow-wrap: anywhere;
+  }
+
+  .info-content :global(h2) {
+    margin-bottom: 0.75rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  .info-content :global(p + p),
+  .info-content :global(ul),
+  .info-content :global(ol) {
+    margin-top: 1rem;
+  }
+
+  .info-content :global(ul),
+  .info-content :global(ol) {
+    padding-left: 1.5rem;
+  }
+
+  .info-content :global(ul) {
+    list-style: disc;
+  }
+
+  .info-content :global(ol) {
+    list-style: decimal;
+  }
+
+  .info-content :global(li + li) {
+    margin-top: 0.5rem;
+  }
+
+  .info-content :global(a) {
+    color: var(--primary-on-background);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+</style>

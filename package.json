@@ -23,6 +23,7 @@
   "dependencies": {
     "@astrojs/cloudflare": "^14.3.3",
     "@astrojs/react": "^7.0.0",
+    "@better-auth/oauth-provider": "1.7.7",
     "@modelcontextprotocol/server": "^2.0.0",
     "@noble/hashes": "^2.2.0",
     "@paralleldrive/cuid2": "^3.3.0",
@@ -36,7 +37,7 @@
     "@types/react-dom": "^19.2.3",
     "agents": "^0.21.0",
     "astro": "^7.3.5",
-    "better-auth": "1.7.1",
+    "better-auth": "1.7.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",

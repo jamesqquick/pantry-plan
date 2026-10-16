@@ -5,11 +5,14 @@ import { ProfileForm } from "@/components/profile/ProfileForm";
 import { ChangePasswordForm } from "@/components/profile/ChangePasswordForm";
 import { ConnectedAccounts } from "@/components/profile/ConnectedAccounts";
 import { McpApiKeys } from "@/components/profile/McpApiKeys";
+import { ChatgptConnection, ChatgptSetup } from "@/components/profile/ChatgptConnection";
 import { env } from "cloudflare:workers";
 import { createDb } from "@/db";
-import { account } from "@/db/schema";
+import { account, oauthClient } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { listMcpApiKeys } from "@/lib/mcp/api-keys";
+import { getChatgptConnection } from "@/lib/oauth-connections";
+import { CHATGPT_CLIENT_ID } from "@/lib/oauth-config";
 
 export const prerender = false;
 
@@ -23,6 +26,11 @@ const hasPassword = accounts.some((item) => item.providerId === "credential");
 const hasGoogle = accounts.some((item) => item.providerId === "google");
 const authError = Astro.url.searchParams.get("auth_error") ?? Astro.url.searchParams.get("error");
 const apiKeys = await listMcpApiKeys(db, user.id);
+const chatgptConnection = await getChatgptConnection(db, user.id);
+const chatgptClient = user.role === "ADMIN" ? await db.query.oauthClient.findFirst({ where: eq(oauthClient.clientId, CHATGPT_CLIENT_ID) }) : null;
+const chatgptRedirectUris: unknown = chatgptClient ? JSON.parse(chatgptClient.redirectUris) : [];
+const chatgptRedirectUri = Array.isArray(chatgptRedirectUris) && typeof chatgptRedirectUris[0] === "string" ? chatgptRedirectUris[0] : "";
+Astro.response.headers.set("Cache-Control", "no-store");
 const serializedApiKeys = apiKeys.map((key) => ({
   ...key,
   createdAt: key.createdAt.toISOString(),
@@ -56,6 +64,8 @@ const serializedApiKeys = apiKeys.map((key) => ({
     )}
 
     {hasPassword && <ChangePasswordForm client:load />}
+    <ChatgptConnection client:load initialConnection={chatgptConnection} />
+    {user.role === "ADMIN" && <ChatgptSetup client:load initialRedirectUri={chatgptRedirectUri} />}
 
     <McpApiKeys
       client:load

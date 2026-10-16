@@ -5,13 +5,15 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { getGoogleAuthErrorMessage } from "@/lib/auth-errors";
+import { getOAuthRedirect } from "@/lib/oauth-query";
 
 interface Props {
   /** Optional post-login redirect target. */
   next?: string;
+  oauthQuery?: string;
 }
 
-export function LoginForm({ next }: Props) {
+export function LoginForm({ next, oauthQuery }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -30,8 +32,9 @@ export function LoginForm({ next }: Props) {
     setPending(true);
 
     let err: { message?: string } | null = null;
+    let data: unknown;
     try {
-      ({ error: err } = await signIn.email({ email, password }));
+      ({ error: err, data } = await signIn.email({ email, password }));
     } catch {
       setError("Unable to reach the sign-in service. Please try again.");
       setPending(false);
@@ -46,7 +49,17 @@ export function LoginForm({ next }: Props) {
 
     // Full navigation so middleware re-runs against the new cookie.
     // Validate `next` against open-redirect tricks (e.g. //evil.com).
-    window.location.href = safeRelativePath(next, "/recipes");
+    if (oauthQuery) {
+      const redirect = getOAuthRedirect(data);
+      if (!redirect) {
+        setError("Sign-in succeeded, but the connection could not continue. Restart the connection from ChatGPT.");
+        setPending(false);
+        return;
+      }
+      window.location.href = redirect;
+    } else {
+      window.location.href = safeRelativePath(next, "/recipes");
+    }
   };
 
   return (
@@ -112,11 +125,11 @@ export function LoginForm({ next }: Props) {
         <div className="grow border-t border-border" />
       </div>
 
-      <GoogleSignInButton next={next} />
+      <GoogleSignInButton next={next} oauthQuery={oauthQuery} />
 
       <p className="text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{" "}
-        <a href="/register" className="font-medium text-primary-on-card hover:underline">
+        <a href={oauthQuery ? `/register?${oauthQuery}` : "/register"} className="font-medium text-primary-on-card hover:underline">
           Create one
         </a>
       </p>

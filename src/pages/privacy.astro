@@ -1,0 +1,74 @@
+---
+import InfoLayout from "@/layouts/InfoLayout.astro";
+
+export const prerender = true;
+---
+
+<InfoLayout
+  heading="Privacy"
+  description="How Quick Pantry handles account information, recipes, imports, and AI client connections."
+>
+  <p>
+    Quick Pantry is maintained by James Quick and hosted on Cloudflare. Your
+    recipes, ingredients, orders, and meal plans are private to your account.
+  </p>
+
+  <section aria-labelledby="account-data">
+    <h2 id="account-data">Account and browser sessions</h2>
+    <p>
+      Better Auth manages email/password and Google sign-in. Account information
+      includes your name, email address, and sign-in records. Passwords used for
+      email/password sign-in are stored as hashes.
+    </p>
+    <p>
+      Browser cookies and session records support sign-in and app use. Browser
+      storage also remembers your theme preference. Account records and app data
+      are stored using Cloudflare services.
+    </p>
+  </section>
+
+  <section aria-labelledby="recipe-processing">
+    <h2 id="recipe-processing">Recipe imports and search</h2>
+    <p>
+      When you import a recipe URL, Quick Pantry fetches content from that recipe
+      site. When photo import is available, the photo you provide is sent to
+      Cloudflare Workers AI to extract recipe information.
+    </p>
+    <p>
+      Saved recipes are uploaded to Cloudflare AI Search for semantic indexing.
+      Search filters results to your account. Semantic search availability can
+      vary; title matching is the fallback.
+    </p>
+  </section>
+
+  <section aria-labelledby="ai-connections">
+    <h2 id="ai-connections">Connections to AI clients</h2>
+    <p>
+      An MCP connection lets your chosen AI client request data and actions for
+      your account. With your OAuth grant, supported tools can search and read
+      recipes, create or edit recipes, import a recipe URL, and replace a weekly
+      meal plan. Tool results pass to the connected AI client, whose own privacy
+      terms apply to the data it receives.
+    </p>
+    <p>
+      You can revoke OAuth connections and MCP keys from <a href="/profile">Profile</a>.
+    </p>
+  </section>
+
+  <section aria-labelledby="diagnostics">
+    <h2 id="diagnostics">Diagnostic information</h2>
+    <p>
+      The application records diagnostic logs for errors and AI requests. These
+      can include error details, request outcomes, duration, and token usage.
+    </p>
+  </section>
+
+  <section aria-labelledby="privacy-requests">
+    <h2 id="privacy-requests">Privacy and data requests</h2>
+    <p>
+      Use <a href="/support">Support</a> for questions about your data or this
+      policy. Keep passwords, tokens, and private account content out of public
+      issue reports.
+    </p>
+  </section>
+</InfoLayout>

@@ -70,7 +70,7 @@ export type EditRecipeToolInput = z.infer<typeof editRecipeToolSchema>;
 
 export const importRecipeFromUrlToolSchema = z.object({
   url: z.string().max(2_048),
-});
+}).strict();
 
 export const searchRecipesToolSchema = z.object({
   query: z.string().trim().min(1).max(200),
@@ -82,7 +82,7 @@ export const searchRecipesToolSchema = z.object({
     .max(100)
     .optional()
     .describe("Only return recipes with this tag name."),
-});
+}).strict();
 
 const plannedMealToolSchema = z.object({
   date: validDateStringSchema,
@@ -94,7 +94,51 @@ const plannedMealToolSchema = z.object({
 export const createWeeklyMealPlanToolSchema = z.object({
   weekStart: validDateStringSchema,
   meals: z.array(plannedMealToolSchema).max(100),
-});
+}).strict();
+
+export const createdRecipeOutputSchema = z.object({
+  recipeId: z.string(),
+  title: z.string(),
+  recipeUrl: z.url(),
+}).strict();
+
+const recipeSummaryFields = {
+  id: z.string(),
+  title: z.string(),
+  sourceUrl: z.string().nullable(),
+  imageUrl: z.string().nullable(),
+  servings: z.number().nullable(),
+  prepTimeMinutes: z.number().nullable(),
+  cookTimeMinutes: z.number().nullable(),
+  totalTimeMinutes: z.number().nullable(),
+  recipeUrl: z.url(),
+};
+
+export const recipeDetailsOutputSchema = z.object({
+  ...recipeSummaryFields,
+  notes: z.string().nullable(),
+  ingredients: z.array(z.object({
+    quantity: z.number().nullable().optional(),
+    unit: z.enum(INGREDIENT_UNITS).nullable().optional(),
+    displayText: z.string(),
+    rawText: z.string().nullable().optional(),
+  }).strict()),
+  instructions: z.array(z.string()),
+}).strict();
+
+export const searchRecipesOutputSchema = z.object({
+  query: z.string(),
+  tag: z.string().nullable(),
+  mode: z.enum(["semantic", "title", "degraded"]),
+  count: z.number().int().nonnegative(),
+  recipes: z.array(z.object(recipeSummaryFields).strict()),
+}).strict();
+
+export const weeklyMealPlanOutputSchema = z.object({
+  weekStart: validDateStringSchema,
+  mealCount: z.number().int().nonnegative(),
+  mealPlanUrl: z.url(),
+}).strict();
 
 export type CreateWeeklyMealPlanToolInput = z.infer<
   typeof createWeeklyMealPlanToolSchema

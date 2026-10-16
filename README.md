@@ -69,7 +69,23 @@ appear for every account.
 ## MCP Integration
 
 Quick Pantry can connect to AI clients that support the Model Context Protocol
-(MCP). To configure access:
+(MCP).
+
+### ChatGPT
+
+The [Quick Pantry plugin package](plugins/quick-pantry/README.md) connects ChatGPT
+to your account with OAuth. Start the connection in ChatGPT, sign in to Quick
+Pantry, review the requested permissions, and choose **Allow connection**. Tool
+results appear in normal ChatGPT responses.
+
+Open **Profile → ChatGPT connection** to disconnect. Disconnecting rejects new
+tool requests and token refreshes; it does not remove information ChatGPT already
+received. Publisher setup and public-directory submission instructions are in the
+package README.
+
+### MCP keys
+
+For clients that accept a fixed bearer token:
 
 1. Sign in and open **Profile**.
 2. Create a named MCP key for the client you want to connect.
@@ -85,7 +101,9 @@ https://quickpantry.app/mcp
 Each key authenticates access to your own Quick Pantry account. You can revoke
 keys from Profile at any time. Treat MCP keys like passwords.
 
-The current MCP tools are:
+### Tools
+
+OAuth and MCP keys use the same six tools:
 
 - `create_recipe` creates a recipe in your account. Ingredients use structured
   objects with `quantity`, `unit`, `displayText`, and optional `rawText` fields.
@@ -151,6 +169,44 @@ For Google sign-in locally, configure `GOOGLE_CLIENT_ID` and
 Production email uses the `EMAIL` Cloudflare Email Sending binding and the
 onboarded `quickpantry.app` domain. Local development keeps using the remote
 Email Sending binding from `wrangler.jsonc`.
+
+### ChatGPT OAuth
+
+Use the existing `AUTH_SECRET` and set `AUTH_URL` to the application's origin,
+such as `http://localhost:4321` locally or `https://quickpantry.app` in production.
+OAuth discovery derives the issuer and MCP resource from `AUTH_URL`.
+
+Apply the committed D1 migrations before running the OAuth handlers. Migrations
+`0004` and `0005` add the provider tables and per-user revocation versions:
+
+```bash
+pnpm db:migrate:local
+pnpm test
+pnpm exec astro check
+pnpm build
+```
+
+At release time, confirm the production target in `wrangler.jsonc`, apply its
+migrations with `pnpm db:migrate:remote`, then deploy through `pnpm deploy`.
+After deployment:
+
+1. Sign in as an administrator and open **Profile → ChatGPT publisher setup**.
+2. Save the exact redirect URI shown in ChatGPT's MCP server settings. The
+   pre-registered public client is `quick-pantry-chatgpt`; it uses PKCE `S256`
+   and no client secret.
+3. Configure `OPENAI_APPS_CHALLENGE` on the Worker with the portal's exact domain
+   challenge text when preparing a public submission. The challenge endpoint
+   returns `404` until you set this value.
+4. Verify discovery, account linking, tool calls, refresh, and Profile disconnect
+   against the deployed endpoint before submitting the plugin.
+
+The token endpoint accepts server-to-server form POSTs. Application middleware
+retains Astro's form-origin protection for other routes. Keep
+`src/lib/request-origin.ts`, its tests, and the `security.checkOrigin` setting
+together when upgrading Astro.
+
+See the [plugin maintainer guide](plugins/quick-pantry/README.md) for scopes,
+discovery URLs, release packaging, reviewer fixtures, and publication steps.
 
 ### Recipe search (Cloudflare AI Search)
 

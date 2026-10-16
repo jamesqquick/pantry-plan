@@ -12,6 +12,7 @@ declare namespace Cloudflare {
     GOOGLE_CLIENT_ID: string;
     GOOGLE_CLIENT_SECRET: string;
     AI: Ai;
+    OPENAI_APPS_CHALLENGE?: string;
 
   }
 }

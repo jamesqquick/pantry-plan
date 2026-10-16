@@ -9,6 +9,7 @@ import {
 import { createDb, type Db } from "@/db";
 import * as schema from "@/db/schema";
 import { sendPasswordResetEmail } from "@/lib/email";
+import { createOAuthPlugins } from "@/lib/oauth";
 
 const PASSWORD_RESET_TOKEN_TTL = 60 * 60;
 
@@ -76,8 +77,9 @@ export async function verifyPassword({
  * every factory invocation; only the database binding changes per-request.
  */
 type WaitUntil = (promise: Promise<unknown>) => void;
+type AuthEnv = Pick<Cloudflare.Env, "DB" | "AUTH_URL" | "AUTH_SECRET" | "EMAIL" | "GOOGLE_CLIENT_ID" | "GOOGLE_CLIENT_SECRET">;
 
-function buildOptions(db: Db, env: Env, waitUntil?: WaitUntil): BetterAuthOptions {
+function buildOptions(db: Db, env: AuthEnv, waitUntil?: WaitUntil) {
   // Trust the configured base URL plus the local dev port.
   // Production must set AUTH_URL to the deployed origin
   // (e.g. https://quickpantry.app).
@@ -93,13 +95,11 @@ function buildOptions(db: Db, env: Env, waitUntil?: WaitUntil): BetterAuthOption
     trustedOrigins,
     database: drizzleAdapter(db, {
       provider: "sqlite",
-      schema: {
-        user: schema.user,
-        session: schema.session,
-        account: schema.account,
-        verification: schema.verification,
-      },
+      schema,
     }),
+    plugins: [...createOAuthPlugins(env.AUTH_URL, db)],
+    // The provider's raw consent deletion does not revoke issued tokens. Profile uses an atomic disconnect instead.
+    disabledPaths: ["/oauth2/delete-consent", "/oauth2/update-consent"],
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 8,
@@ -149,10 +149,10 @@ function buildOptions(db: Db, env: Env, waitUntil?: WaitUntil): BetterAuthOption
       expiresIn: 60 * 60 * 24 * 30, // 30 days (seconds)
       updateAge: 60 * 60 * 24, // refresh session rolling window after 1 day
     },
-  };
+  } satisfies BetterAuthOptions;
 }
 
-export function createAuth(env: Env, waitUntil?: WaitUntil) {
+export function createAuth(env: AuthEnv, waitUntil?: WaitUntil) {
   const db = createDb(env.DB);
   return betterAuth(buildOptions(db, env, waitUntil));
 }

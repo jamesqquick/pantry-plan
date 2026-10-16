@@ -1,6 +1,7 @@
 import { defineMiddleware } from "astro:middleware";
 import { env } from "cloudflare:workers";
 import { createAuth } from "@/lib/auth";
+import { isForbiddenCrossOriginRequest } from "@/lib/request-origin";
 
 /**
  * Public routes — anything else requires auth.
@@ -27,6 +28,9 @@ const ALWAYS_PUBLIC_PATHS = new Set<string>([
   "/forgot-password",
   "/reset-password",
   "/404",
+  "/privacy",
+  "/terms",
+  "/support",
 ]);
 
 function isPublicPath(pathname: string): boolean {
@@ -35,10 +39,13 @@ function isPublicPath(pathname: string): boolean {
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  if (isForbiddenCrossOriginRequest(context.request, context.url, context.isPrerendered)) {
+    return new Response(`Cross-site ${context.request.method} form submissions are forbidden`, { status: 403 });
+  }
+
   const { pathname } = context.url;
-  // MCP requests authenticate with a profile-generated bearer key in the
-  // endpoint itself, not with a browser session.
-  if (pathname === "/mcp") return next();
+  // MCP and OAuth discovery authenticate independently of browser sessions.
+  if (pathname === "/mcp" || pathname.startsWith("/.well-known/")) return next();
 
   const waitUntil = context.locals.cfContext?.waitUntil.bind(context.locals.cfContext);
   const auth = createAuth(env, waitUntil);
@@ -54,7 +61,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const isAuthed = !!context.locals.session;
 
   // Already signed in? Don't show login/register — bounce to recipes.
-  if (isAuthed && AUTH_ONLY_PATHS.has(pathname)) {
+  if (isAuthed && AUTH_ONLY_PATHS.has(pathname) && !context.url.searchParams.has("sig")) {
     return context.redirect("/recipes");
   }
 
