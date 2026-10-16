@@ -121,7 +121,7 @@ function buildLlmResponseJsonSchema(lineCount: number, catalogCount: number) {
   } as const;
 }
 
-const MAX_LINES_PER_REQUEST = 40;
+export const MAX_LINES_PER_REQUEST = 40;
 
 class LlmMappingResponseError extends Error {
   constructor(message: string) {
@@ -224,7 +224,7 @@ function parseAndValidate(
  * @param catalog - Known ingredients to match against
  */
 export async function suggestMappingsWithLLM(
-  ai: Ai,
+  ai: Pick<Ai, "run">,
   unmappedLines: UnmappedLine[],
   catalog: CatalogEntry[],
   beforeRequest?: () => Promise<void>,

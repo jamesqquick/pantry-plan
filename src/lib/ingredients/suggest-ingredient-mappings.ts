@@ -13,6 +13,8 @@ import {
   computeIngredientSuggestions,
   type SuggestionItem,
 } from "./compute-suggestions";
+import { suggestSemanticIngredientMappings, type SemanticIngredientMappingOptions } from "./semantic-ingredient-mappings";
+import { MAX_LINES_PER_RECIPE } from "@/features/import/import.schemas";
 
 const MAX_LLM_CATALOG_SIZE = 500;
 
@@ -26,6 +28,13 @@ export type IngredientMappingSuggestionResult = {
   suggestions: SuggestionItem[];
   aiStatus: IngredientMappingAiStatus;
 };
+
+export class IngredientMappingInputError extends Error {
+  constructor(public readonly lineCount: number) {
+    super(`Ingredient mapping supports at most ${MAX_LINES_PER_RECIPE} lines.`);
+    this.name = "IngredientMappingInputError";
+  }
+}
 
 export function collectRoundRobinCandidateIds(
   candidateLists: readonly (readonly { id: string }[])[],
@@ -82,9 +91,11 @@ export async function suggestIngredientMappings(
   db: Db,
   lines: string[],
   userId: string,
-  ai: Ai | undefined,
+  ai: Pick<Ai, "run"> | undefined,
   beforeLlm?: () => Promise<void>,
+  semantic?: SemanticIngredientMappingOptions,
 ): Promise<IngredientMappingSuggestionResult> {
+  if (lines.length > MAX_LINES_PER_RECIPE) throw new IngredientMappingInputError(lines.length);
   const suggestions = await computeIngredientSuggestions(db, lines, userId);
 
   const unmappedLines: UnmappedLine[] = suggestions
@@ -100,8 +111,14 @@ export async function suggestIngredientMappings(
   if (unmappedLines.length === 0) {
     return { suggestions, aiStatus: "not-needed" };
   }
-  if (!canUseWorkersAi(ai)) {
+  if (!ai || !canUseWorkersAi(ai)) {
     return { suggestions, aiStatus: "unavailable" };
+  }
+
+  if (semantic?.enabled) {
+    return suggestSemanticIngredientMappings(db, suggestions, userId, ai, {
+      ...semantic, beforeRequest: semantic.beforeRequest ?? beforeLlm,
+    });
   }
 
   const candidateIds = collectRoundRobinCandidateIds(
@@ -144,17 +161,13 @@ export async function suggestIngredientMappings(
   let llmSuggestions: Map<number, LlmSuggestion>;
   try {
     llmSuggestions = await suggestMappingsWithLLM(
-      ai as Ai,
+      ai,
       unmappedLines,
       catalog,
       beforeLlm,
     );
-  } catch (err) {
-    console.warn(
-      `[AI] Workers AI ingredient mapping failed: ${
-        err instanceof Error ? err.message : "Unknown error"
-      }`,
-    );
+  } catch {
+    console.warn("[AI] Workers AI ingredient mapping failed");
     return { suggestions, aiStatus: "failed" };
   }
   const catalogById = new Map(catalog.map((entry) => [entry.id, entry]));

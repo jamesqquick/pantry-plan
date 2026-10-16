@@ -227,6 +227,49 @@ describe("IngredientMappingReview", () => {
     ).toBeTruthy();
   });
 
+  it("keeps Clef matches editable and writes only after Apply", async () => {
+    const user = userEvent.setup();
+    previewRecipe.mockResolvedValueOnce({
+      data: {
+        ...preview,
+        items: preview.items.map((item) => item.recipeIngredientId === "row-existing"
+          ? { ...item, suggestedIngredient: { ...item.suggestedIngredient, matchType: "clef" } }
+          : item),
+      },
+      error: undefined,
+    });
+    render(<IngredientMappingReview recipeId="recipe-123" recipeTitle="Weeknight pasta" />);
+    await screen.findByRole("heading", { name: "3 tomatoes" });
+    const row = getRow("3 tomatoes");
+    expect(row.getByRole("combobox", { name: "Ingredient" })).toHaveProperty("value", "Tomato");
+    expect(row.getByLabelText("Quantity")).toHaveProperty("value", "3");
+    expect(row.getByLabelText("Unit")).toHaveProperty("value", "COUNT");
+    expect(applyRecipe).not.toHaveBeenCalled();
+    await user.click(row.getByRole("checkbox", { name: "Leave unmapped" }));
+    await user.click(screen.getByRole("button", { name: "Apply mappings" }));
+    expect(applyRecipe.mock.calls[0]?.[0].items[1]).toMatchObject({
+      recipeIngredientId: "row-existing", recipeIngredientUpdatedAt: 1_700_000_000_002,
+      quantity: 3, unit: "COUNT", mapping: { kind: "unmapped" },
+    });
+  });
+
+  it("leaves an abstention unmapped even when semantic candidates are available", async () => {
+    previewRecipe.mockResolvedValueOnce({
+      data: {
+        ...preview,
+        items: [{ ...preview.items[3], candidates: [{ id: "ingredient-salt", name: "Salt", matchType: "semantic" }] }],
+      },
+      error: undefined,
+    });
+    render(<IngredientMappingReview recipeId="recipe-123" recipeTitle="Weeknight pasta" />);
+    await screen.findByRole("heading", { name: "salt to taste" });
+    const row = getRow("salt to taste");
+    expect(row.getByText("Unmapped")).toBeTruthy();
+    expect(row.getByRole("checkbox", { name: "Leave unmapped" })).toHaveProperty("checked", true);
+    expect(row.getByRole("combobox", { name: "Ingredient" })).toHaveProperty("value", "");
+    expect(applyRecipe).not.toHaveBeenCalled();
+  });
+
   it("applies every row and navigates to the recipe", async () => {
     const user = userEvent.setup();
     render(

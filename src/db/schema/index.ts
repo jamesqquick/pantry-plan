@@ -10,3 +10,4 @@ export * from "./orders";
 export * from "./meal-plan";
 export * from "./mcp-api-keys";
 export * from "./search-index";
+export * from "./ingredient-search-index";

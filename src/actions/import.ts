@@ -27,7 +27,7 @@ import {
   parseIngredientLineStructured,
   getDisplayTextFromIngredientLine,
 } from "@/lib/ingredients/parse-ingredient-line-structured";
-import { getDb, queueSearchSync, requireUser } from "./_shared";
+import { getDb, queueIngredientSync, queueSearchSync, requireUser } from "./_shared";
 import {
   createTextOnlyRecipe,
   filterOwnedTagIds,
@@ -303,7 +303,7 @@ export const recipeImport = {
       const aliasKeys = [...new Set(aliasEntries.map((e) => e.key))];
       const existingAliases = aliasKeys.length
         ? await db
-            .select({ id: ingredientAlias.id, aliasNormalized: ingredientAlias.aliasNormalized })
+            .select({ id: ingredientAlias.id, aliasNormalized: ingredientAlias.aliasNormalized, ingredientId: ingredientAlias.ingredientId })
             .from(ingredientAlias)
             .where(inArray(ingredientAlias.aliasNormalized, aliasKeys))
         : [];
@@ -330,6 +330,12 @@ export const recipeImport = {
       for (const chunk of chunkRows(aliasInserts, 3)) {
         await db.insert(ingredientAlias).values(chunk);
       }
+
+      await queueIngredientSync(ctx, db, [...new Set([
+        ...createdIngredients.map(({ id }) => id),
+        ...existingAliases.map(({ ingredientId }) => ingredientId),
+        ...aliasEntries.map(({ ingredientId }) => ingredientId),
+      ])]);
 
       return { recipeId };
     },

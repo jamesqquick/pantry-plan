@@ -178,3 +178,16 @@ against D1 before it is returned.
   `restart: true` first, repeating until `remaining` is `0`.
 - **Cache:** keep the instance cache disabled. Requests also disable it, since
   a shared semantic cache could return another user's results.
+
+### Ingredient matching with AI Search and Clef
+
+Ingredient mapping keeps deterministic matches first. The optional retrieval
+path searches a separate ingredient index, verifies candidates against D1, and
+asks Clef to select an existing ingredient or abstain. Suggestions remain
+editable until the user applies them.
+
+Production defaults keep this path disabled and its instance unconfigured.
+See the [ingredient matching guide](docs/ingredient-mapping.md) for development
+setup, admin backfill, rate limits, rollout, and exact testing steps. The
+[evaluation report](docs/ingredient-mapping-evaluation.md) records the small
+fixture comparison, including higher costs and incomplete automatic coverage.

@@ -17,6 +17,7 @@
     "db:migrate:remote": "wrangler d1 migrations apply pantry-plan --remote",
     "db:studio": "drizzle-kit studio",
     "test": "vitest run",
+    "test:ingredient-eval": "vitest run --config vitest.eval.config.ts",
     "test:watch": "vitest",
     "astro": "astro"
   },
@@ -56,14 +57,15 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.8",
-    "@cloudflare/workers-types": "^5.20261001.1",
+    "@cloudflare/workers-types": "^5.20261016.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.6",
     "@types/node": "^25.6.0",
     "drizzle-kit": "^0.31.10",
     "jsdom": "^28.1.0",
+    "miniflare": "5.20261012.1-beta",
     "typescript": "^5.9.3",
     "vitest": "^4.1.4",
-    "wrangler": "^4.147.0"
+    "wrangler": "^4.151.1"
   }
 }

@@ -111,13 +111,13 @@ export type SuggestionItem = {
     id: string;
     name: string;
     normalizedName: string;
-    matchType: "exact" | "alias" | "fuzzy" | "llm";
+    matchType: "exact" | "alias" | "fuzzy" | "llm" | "clef";
   };
   suggestedCreateName?: string;
   candidates?: Array<{
     id: string;
     name: string;
-    matchType: "exact" | "alias" | "fuzzy";
+    matchType: "exact" | "alias" | "fuzzy" | "semantic";
     score?: number;
   }>;
 };

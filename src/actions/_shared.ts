@@ -9,6 +9,11 @@ import { env } from "cloudflare:workers";
 import { ActionError, type ActionAPIContext } from "astro:actions";
 import { createDb, type Db } from "@/db";
 import { queueRecipeIndexSync } from "@/lib/search/recipe-index";
+import { getIngredientSearchInstance, queueIngredientIndexSync } from "@/lib/search/ingredient-index";
+import { suggestIngredientMappings, IngredientMappingInputError } from "@/lib/ingredients/suggest-ingredient-mappings";
+import type { IngredientMappingStage } from "@/lib/ingredients/mapping-request";
+import { getBooleanFlag } from "@/lib/feature-flags";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import type { User } from "better-auth";
 
 /** Base User shape plus our custom `role` field set via Better Auth additionalFields. */
@@ -74,4 +79,45 @@ export function queueSearchSync(
 ): Promise<void> {
   const cf = ctx.locals.cfContext;
   return queueRecipeIndexSync(db, env, cf?.waitUntil.bind(cf), recipeIds);
+}
+
+export function queueIngredientSync(
+  ctx: ActionAPIContext,
+  db: Db,
+  ingredientIds: readonly string[],
+): Promise<void> {
+  const cf = ctx.locals.cfContext;
+  return queueIngredientIndexSync(db, env, cf?.waitUntil.bind(cf), ingredientIds);
+}
+
+export async function suggestIngredientMappingsForUser(
+  ctx: ActionAPIContext,
+  db: Db,
+  lines: string[],
+  user: AuthenticatedUser,
+) {
+  const enabled = await getBooleanFlag(
+    env.FLAGS,
+    "ingredient-clef-mapping",
+    env.INGREDIENT_CLEF_MAPPING_ENABLED === "true",
+    { email: user.email, userId: user.id },
+  ).catch(() => false);
+  let instance: ReturnType<typeof getIngredientSearchInstance> = null;
+  if (enabled) {
+    try { instance = getIngredientSearchInstance(env); }
+    catch { console.error(JSON.stringify({ event: "ingredient_mapping_binding", success: false })); }
+  }
+  const beforeRequest = (stage: IngredientMappingStage) => enforceRateLimit(
+    stage === "search" ? env.INGREDIENT_SEARCH_RATE_LIMIT : env.AI_RATE_LIMIT,
+    stage === "search" ? `ai:ingredient-search:${user.id}` : `ai:${user.id}`,
+  );
+  const cf = ctx.locals.cfContext;
+  try {
+    return await suggestIngredientMappings(db, lines, user.id, env.AI,
+      () => beforeRequest("generation"),
+      { enabled, instance, beforeRequest, waitUntil: cf?.waitUntil.bind(cf) });
+  } catch (error) {
+    if (!(error instanceof IngredientMappingInputError)) throw error;
+    throw new ActionError({ code: "BAD_REQUEST", message: error.message });
+  }
 }

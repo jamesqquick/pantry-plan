@@ -56,6 +56,7 @@ export const ingredient = sqliteTable(
   "Ingredient",
   {
     id: cuidPk(),
+    // The User deletion trigger removes private rows before this legacy SET NULL can promote them.
     userId: text("userId").references(() => user.id, { onDelete: "set null" }),
     baseIngredientId: text("baseIngredientId").references(
       (): AnySQLiteColumn => ingredient.id,

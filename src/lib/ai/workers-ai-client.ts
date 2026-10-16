@@ -73,7 +73,7 @@ function normalizeJsonResponse(response: unknown): string {
  * Returns the raw response string (caller parses/validates).
  */
 export async function workersAiTextJson(
-  ai: Ai,
+  ai: Pick<Ai, "run">,
   prompt: string,
   opts?: {
     maxTokens?: number;
@@ -114,7 +114,6 @@ export async function workersAiTextJson(
       model: WORKERS_AI_MODEL,
       success: false,
       durationMs: Date.now() - startTime,
-      errorMessage: err instanceof Error ? err.message : "Unknown error",
     });
     throw err;
   }
