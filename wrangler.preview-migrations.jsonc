@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "account_id": "4426cbeacb457b1ca1b865d6c36ced0d",
+  "d1_databases": [
+    {
+      "binding": "PREVIEW_DB",
+      "database_name": "pantry-plan-chatgpt-preview",
+      "database_id": "6617e043-58cb-4687-8544-7ca607e0fc45",
+      "migrations_dir": "src/db/migrations"
+    }
+  ]
+}

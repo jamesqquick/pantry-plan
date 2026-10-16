@@ -208,6 +208,46 @@ together when upgrading Astro.
 See the [plugin maintainer guide](plugins/quick-pantry/README.md) for scopes,
 discovery URLs, release packaging, reviewer fixtures, and publication steps.
 
+### Worker Previews
+
+The `previews` block in `wrangler.jsonc` configures the `feat/chatgpt-plugin`
+branch with its own D1 database, KV sessions, and OAuth origin:
+
+```text
+https://feat-chatgpt-plugin-pantry-plan.jamesqquick.workers.dev
+```
+
+Set a separate `AUTH_SECRET` in the Preview base configuration before creating
+the first Preview. Enter a newly generated secret at the prompt:
+
+```bash
+export CLOUDFLARE_ACCOUNT_ID=4426cbeacb457b1ca1b865d6c36ced0d
+pnpm exec wrangler preview base-config secret put AUTH_SECRET
+```
+
+From this branch, apply migrations to the Preview database and deploy:
+
+```bash
+pnpm db:migrate:preview
+pnpm deploy:preview
+```
+
+`wrangler.preview-migrations.jsonc` targets the same database as
+`previews.d1_databases`. Keep their database IDs aligned. For another branch,
+update `previews.vars.AUTH_URL` to its stable Preview origin and configure the
+database that branch should use before deploying it.
+
+Use email/password sign-in with a new Preview account. An administrator in the
+Preview database must register ChatGPT's exact callback through **Profile →
+ChatGPT publisher setup**. Connect ChatGPT to the Preview origin with `/mcp`
+appended, using client ID `quick-pantry-chatgpt` and no client secret. Recipe
+search uses D1 title matching in this Preview.
+
+For automatic branch updates, commit and push the Preview configuration before
+switching Workers Builds to Worker Previews. Its Preview deploy command must
+invoke `pnpm exec wrangler preview`; keep the existing build command. Cloudflare
+documents this as a one-way switch from the legacy version-preview workflow.
+
 ### Recipe search (Cloudflare AI Search)
 
 MCP `search_recipes` uses a Cloudflare AI Search instance for hybrid semantic
