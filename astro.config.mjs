@@ -19,6 +19,8 @@ export default defineConfig({
   // for multipart envelope overhead; Cloudflare Workers (Free plan)
   // allows up to 100 MB request bodies, so this is the binding limit.
   security: {
+    // Middleware preserves form-origin checks with an exception for OAuth token exchange.
+    checkOrigin: false,
     actionBodySizeLimit: 5 * 1024 * 1024, // 5 MB
   },
   integrations: [react()],

@@ -1,0 +1,32 @@
+---
+import { env } from "cloudflare:workers";
+import { verifyOAuthQueryParams } from "@better-auth/oauth-provider";
+import { eq } from "drizzle-orm";
+import { createDb, oauthClient } from "@/db";
+import AuthLayout from "@/layouts/AuthLayout.astro";
+import { OAuthConsent } from "@/components/auth/OAuthConsent";
+import { CHATGPT_CLIENT_ID, getOAuthUrls, OAUTH_SCOPES } from "@/lib/oauth-config";
+import { readSignedOAuthQuery } from "@/lib/oauth-query";
+
+export const prerender = false;
+Astro.response.headers.set("Cache-Control", "no-store");
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+const query = readSignedOAuthQuery(Astro.url.search);
+const params = new URLSearchParams(query ?? "");
+const scopes = (params.get("scope") ?? "").split(" ").filter(Boolean);
+const client = query && await verifyOAuthQueryParams(query, env.AUTH_SECRET)
+  ? await createDb(env.DB).query.oauthClient.findFirst({ where: eq(oauthClient.clientId, CHATGPT_CLIENT_ID) })
+  : null;
+const redirectUris: unknown = client ? JSON.parse(client.redirectUris) : [];
+const valid = !!Astro.locals.user && !!client && !client.disabled && params.get("client_id") === CHATGPT_CLIENT_ID &&
+  Array.isArray(redirectUris) && redirectUris.includes(params.get("redirect_uri")) &&
+  params.getAll("resource").length === 1 && params.get("resource") === getOAuthUrls(env.AUTH_URL).resource &&
+  scopes.length > 0 && scopes.every((scope) => OAUTH_SCOPES.includes(scope));
+if (!valid) Astro.response.status = 400;
+---
+
+<AuthLayout title="Connect to ChatGPT" heading={valid ? "Connect to ChatGPT" : "Connection request unavailable"}>
+  {valid && query ? <OAuthConsent client:load oauthQuery={query} scopes={scopes} email={Astro.locals.user!.email} /> : (
+    <p role="alert" class="text-sm">This connection request is invalid or expired. Restart the connection from ChatGPT.</p>
+  )}
+</AuthLayout>

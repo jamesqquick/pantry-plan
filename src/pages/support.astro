@@ -1,0 +1,61 @@
+---
+import InfoLayout from "@/layouts/InfoLayout.astro";
+
+export const prerender = true;
+---
+
+<InfoLayout
+  heading="Support"
+  description="Get help with Quick Pantry, recipe imports, account access, and AI client connections."
+>
+  <p>
+    Report a problem or ask a question through
+    <a href="https://github.com/jamesqquick/pantry-plan/issues">Quick Pantry's GitHub issues</a>.
+    Include what you were trying to do, what happened, and the error message
+    if one appeared. The issue tracker is public, so leave out passwords,
+    tokens, and private recipes or account details.
+  </p>
+
+  <section aria-labelledby="account-help">
+    <h2 id="account-help">Account access</h2>
+    <p>
+      <a href="/login">Sign in</a> with email/password or Google. For a forgotten
+      password, use <a href="/forgot-password">Forgot password</a> to request a
+      reset link. You can manage your name, password, and Google connection in
+      <a href="/profile">Profile</a>.
+    </p>
+  </section>
+
+  <section aria-labelledby="import-help">
+    <h2 id="import-help">Imports and connectivity</h2>
+    <p>
+      Review imported recipe drafts before saving. Some recipe URLs cannot be
+      parsed, and photo import is available only when enabled for your account.
+      If the app shows an offline message, reconnect to load live data or make
+      changes.
+    </p>
+  </section>
+
+  <section aria-labelledby="connection-help">
+    <h2 id="connection-help">ChatGPT and other AI clients</h2>
+    <p>
+      The hosted MCP endpoint is <a href="https://quickpantry.app/mcp">https://quickpantry.app/mcp</a>.
+      The ChatGPT plugin uses your own OAuth grant. Other MCP clients can use
+      a key created in Profile. Revoke OAuth connections or MCP keys in
+      <a href="/profile">Profile</a> when you want to stop their access.
+    </p>
+    <p>
+      ChatGPT's recipe and meal-planning tools return normal chat responses.
+      They do not manage grocery orders, make purchases, or delete recipes.
+    </p>
+  </section>
+
+  <section aria-labelledby="data-help">
+    <h2 id="data-help">Privacy and data questions</h2>
+    <p>
+      Read <a href="/privacy">Privacy</a> and <a href="/terms">Terms of use</a>.
+      For a privacy or data request, open a GitHub issue with a general
+      description of the request, without posting private account information.
+    </p>
+  </section>
+</InfoLayout>

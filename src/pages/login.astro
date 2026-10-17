@@ -1,12 +1,26 @@
 ---
 import AuthLayout from "@/layouts/AuthLayout.astro";
 import { LoginForm } from "@/components/auth/LoginForm";
+import { env } from "cloudflare:workers";
+import { verifyOAuthQueryParams } from "@better-auth/oauth-provider";
+import { readSignedOAuthQuery } from "@/lib/oauth-query";
 
 export const prerender = false;
 
 const nextParam = Astro.url.searchParams.get("next") ?? undefined;
+const query = readSignedOAuthQuery(Astro.url.search);
+const oauthQuery = query && await verifyOAuthQueryParams(query, env.AUTH_SECRET) ? query : undefined;
+const invalidOAuth = Astro.url.searchParams.has("sig") && !oauthQuery;
+Astro.response.headers.set("Cache-Control", "no-store");
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+if (invalidOAuth) Astro.response.status = 400;
 ---
 
 <AuthLayout title="Sign in" heading="Welcome back" subheading="Sign in to your Quick Pantry account.">
-  <LoginForm client:load next={nextParam} />
+  {invalidOAuth ? <p role="alert">This connection request is invalid or expired. Restart the connection from ChatGPT.</p> : (
+    <>
+      {oauthQuery && <p class="text-sm text-muted-foreground">Sign in to connect your Quick Pantry account to ChatGPT.</p>}
+      <LoginForm client:load next={nextParam} oauthQuery={oauthQuery} />
+    </>
+  )}
 </AuthLayout>

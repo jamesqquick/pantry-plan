@@ -21,6 +21,54 @@
   "observability": {
     "enabled": true
   },
+  "previews": {
+    "vars": {
+      "AUTH_URL": "https://feat-chatgpt-plugin-pantry-plan.jamesqquick.workers.dev"
+    },
+    "d1_databases": [
+      {
+        "binding": "DB",
+        "database_name": "pantry-plan-chatgpt-preview",
+        "database_id": "6617e043-58cb-4687-8544-7ca607e0fc45"
+      }
+    ],
+    "kv_namespaces": [
+      {
+        "binding": "SESSION",
+        "id": "6ab671e2da2d452d85eb1d83ce28dcd0"
+      }
+    ],
+    "ai": {
+      "binding": "AI"
+    },
+    "images": {
+      "binding": "IMAGES"
+    },
+    "send_email": [
+      {
+        "name": "EMAIL",
+        "allowed_sender_addresses": ["noreply@quickpantry.app"]
+      }
+    ],
+    "ratelimits": [
+      {
+        "name": "AI_RATE_LIMIT",
+        "namespace_id": "2001",
+        "simple": {
+          "limit": 5,
+          "period": 60
+        }
+      },
+      {
+        "name": "PASSWORD_RESET_RATE_LIMIT",
+        "namespace_id": "2002",
+        "simple": {
+          "limit": 5,
+          "period": 60
+        }
+      }
+    ]
+  },
 
   "vars": {
     // Public-ish config (not secrets). AUTH_URL must match the deployed origin.

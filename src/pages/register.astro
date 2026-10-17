@@ -1,10 +1,19 @@
 ---
 import AuthLayout from "@/layouts/AuthLayout.astro";
 import { RegisterForm } from "@/components/auth/RegisterForm";
+import { env } from "cloudflare:workers";
+import { verifyOAuthQueryParams } from "@better-auth/oauth-provider";
+import { readSignedOAuthQuery } from "@/lib/oauth-query";
 
 export const prerender = false;
+const query = readSignedOAuthQuery(Astro.url.search);
+const oauthQuery = query && await verifyOAuthQueryParams(query, env.AUTH_SECRET) ? query : undefined;
+const invalidOAuth = Astro.url.searchParams.has("sig") && !oauthQuery;
+Astro.response.headers.set("Cache-Control", "no-store");
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+if (invalidOAuth) Astro.response.status = 400;
 ---
 
 <AuthLayout title="Create account" heading="Create your account" subheading="Start planning your pantry.">
-  <RegisterForm client:load />
+  {invalidOAuth ? <p role="alert">This connection request is invalid or expired. Restart the connection from ChatGPT.</p> : <RegisterForm client:load oauthQuery={oauthQuery} />}
 </AuthLayout>

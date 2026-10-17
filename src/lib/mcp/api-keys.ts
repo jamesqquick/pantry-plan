@@ -47,10 +47,7 @@ export async function hashMcpApiKey(token: string): Promise<string> {
 }
 
 export function getBearerToken(header: string | null): string | null {
-  if (!header?.startsWith("Bearer ")) return null;
-  const token = header.slice("Bearer ".length);
-  if (!token || token.includes(" ")) return null;
-  return token;
+  return header?.match(/^Bearer ([^\s]+)$/i)?.[1] ?? null;
 }
 
 export async function listMcpApiKeys(db: Db, userId: string) {

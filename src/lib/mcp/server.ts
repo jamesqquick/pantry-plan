@@ -1,20 +1,26 @@
 import { createMcpHandler } from "agents/mcp/server";
-import { McpServer } from "@modelcontextprotocol/server";
+import { McpServer, type Tool, type ToolAnnotations } from "@modelcontextprotocol/server";
+import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { user, type Db } from "@/db";
 import { saveImportedRecipeTextOnlySchema } from "@/features/import/import.schemas";
 import {
   createRecipeToolSchema,
+  createdRecipeOutputSchema,
   createWeeklyMealPlanToolSchema,
   editRecipeToolSchema,
   getRecipeToolSchema,
   importRecipeFromUrlToolSchema,
+  recipeDetailsOutputSchema,
+  searchRecipesOutputSchema,
   searchRecipesToolSchema,
+  weeklyMealPlanOutputSchema,
 } from "@/features/mcp/mcp.schemas";
 import { createTextOnlyRecipe } from "@/features/recipes/create-text-recipe";
 import { parseRecipeFromUrl } from "@/lib/parse/parse-recipe";
 import { isSafeHttpUrl } from "@/lib/url";
-import { authenticateMcpApiKey } from "./api-keys";
+import { authenticateMcpRequest, mcpAuthChallenge } from "./auth";
+import { MCP_SCOPES } from "@/lib/oauth";
 import { searchRecipes } from "./search-recipes";
 import { createMcpRecipe } from "./create-recipe";
 import { editMcpRecipe } from "./edit-recipe";
@@ -36,6 +42,10 @@ function toolError(message: string) {
     content: [{ type: "text" as const, text: message }],
     isError: true,
   };
+}
+
+function objectJsonSchema(schema: z.ZodObject, io: "input" | "output"): { type: "object"; [key: string]: unknown } {
+  return { ...z.toJSONSchema(schema, { io }), type: "object" };
 }
 
 function createRecipeResult(origin: string, recipeId: string, title: string) {
@@ -89,7 +99,7 @@ export async function isRecipeAiSearchEnabled(
 
 /** Bindings for search indexing; absent in tests that only inspect schemas. */
 export type McpSearchContext = {
-  env: Pick<Env, "AI_SEARCH" | "AI_SEARCH_INSTANCE" | "FLAGS">;
+  env: Pick<Cloudflare.Env, "AI_SEARCH" | "AI_SEARCH_INSTANCE" | "FLAGS">;
   waitUntil?: WaitUntil;
 };
 
@@ -106,11 +116,33 @@ export function createServer(
   db: Db,
   userId: string,
   origin: string,
-  keyId: string,
   rateLimit: RateLimit | undefined,
   search?: McpSearchContext,
+  scopes: readonly string[] = MCP_SCOPES,
 ) {
   const server = new McpServer({ name: "quick-pantry", version: "1.0.0" });
+  const advertisedTools: Array<Tool & { securitySchemes: { type: string; scopes: string[] }[] }> = [];
+  function toolConfig<Input extends z.ZodObject, Output extends z.ZodObject>(
+    name: string,
+    scope: (typeof MCP_SCOPES)[number],
+    config: { title: string; description: string; inputSchema: Input; outputSchema: Output; annotations: ToolAnnotations },
+  ) {
+    const securitySchemes = [{ type: "oauth2", scopes: [scope] }];
+    const _meta = { securitySchemes };
+    advertisedTools.push({
+      ...config,
+      name,
+      inputSchema: objectJsonSchema(config.inputSchema, "input"),
+      outputSchema: objectJsonSchema(config.outputSchema, "output"),
+      securitySchemes,
+      _meta,
+    });
+    return { ...config, _meta };
+  }
+  const permissionError = (scope: (typeof MCP_SCOPES)[number]) => scopes.includes(scope) ? null : {
+    ...toolError(`Quick Pantry requires the ${scope} permission for this tool.`),
+    _meta: { "mcp/www_authenticate": [mcpAuthChallenge(origin, scope)] },
+  };
 
   const queueIndexSync = (recipeIds: string[]) =>
     search
@@ -119,13 +151,18 @@ export function createServer(
 
   server.registerTool(
     "create_recipe",
-    {
+    toolConfig("create_recipe", "recipes:write", {
+      title: "Create recipe",
       description:
         "Create a recipe in the authenticated user's Quick Pantry account.",
       inputSchema: createRecipeToolSchema,
-    },
+      outputSchema: createdRecipeOutputSchema,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+    }),
     async (input) => {
-      if (await isRateLimited(rateLimit, keyId)) {
+      const denied = permissionError("recipes:write");
+      if (denied) return denied;
+      if (await isRateLimited(rateLimit, userId)) {
         return toolError("Too many requests. Please try again later.");
       }
       try {
@@ -146,13 +183,18 @@ export function createServer(
 
   server.registerTool(
     "get_recipe",
-    {
+    toolConfig("get_recipe", "recipes:read", {
+      title: "Get recipe",
       description:
         "Get the complete editable recipe, including structured ingredients and ordered instructions, from the authenticated user's Quick Pantry account.",
       inputSchema: getRecipeToolSchema,
-    },
+      outputSchema: recipeDetailsOutputSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    }),
     async ({ recipeId }) => {
-      if (await isRateLimited(rateLimit, keyId)) {
+      const denied = permissionError("recipes:read");
+      if (denied) return denied;
+      if (await isRateLimited(rateLimit, userId)) {
         return toolError("Too many requests. Please try again later.");
       }
       try {
@@ -176,13 +218,18 @@ export function createServer(
 
   server.registerTool(
     "edit_recipe",
-    {
+    toolConfig("edit_recipe", "recipes:write", {
+      title: "Edit recipe",
       description:
         "Partially edit a recipe in the authenticated user's Quick Pantry account. Omitted fields remain unchanged, null clears optional metadata, and supplied ingredients or instructions replace the complete ordered list.",
       inputSchema: editRecipeToolSchema,
-    },
+      outputSchema: recipeDetailsOutputSchema,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+    }),
     async (input) => {
-      if (await isRateLimited(rateLimit, keyId)) {
+      const denied = permissionError("recipes:write");
+      if (denied) return denied;
+      if (await isRateLimited(rateLimit, userId)) {
         return toolError("Too many requests. Please try again later.");
       }
       try {
@@ -208,13 +255,18 @@ export function createServer(
 
   server.registerTool(
     "import_recipe_from_url",
-    {
+    toolConfig("import_recipe_from_url", "recipes:write", {
+      title: "Import recipe from URL",
       description:
         "Fetch a recipe URL, extract its structured recipe data, and save it in the authenticated user's Quick Pantry account.",
       inputSchema: importRecipeFromUrlToolSchema,
-    },
+      outputSchema: createdRecipeOutputSchema,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    }),
     async ({ url }) => {
-      if (await isRateLimited(rateLimit, keyId)) {
+      const denied = permissionError("recipes:write");
+      if (denied) return denied;
+      if (await isRateLimited(rateLimit, userId)) {
         return toolError("Too many requests. Please try again later.");
       }
       try {
@@ -266,13 +318,18 @@ export function createServer(
 
   server.registerTool(
     "search_recipes",
-    {
+    toolConfig("search_recipes", "recipes:read", {
+      title: "Search recipes",
       description:
-        "Search the authenticated user's Quick Pantry recipes by title, ingredients, instructions, and notes. Accepts natural-language queries such as \"something with leftover chicken\". Optionally filter by tag name.",
+        "Search the authenticated user's saved Quick Pantry recipes. Natural-language search includes ingredients, instructions, and notes when semantic search is available; otherwise results use title matching. Optionally filter by tag name. Search may update the account's background search index without changing saved recipes.",
       inputSchema: searchRecipesToolSchema,
-    },
+      outputSchema: searchRecipesOutputSchema,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    }),
     async ({ query, limit, tag }) => {
-      if (await isRateLimited(rateLimit, keyId)) {
+      const denied = permissionError("recipes:read");
+      if (denied) return denied;
+      if (await isRateLimited(rateLimit, userId)) {
         return toolError("Too many requests. Please try again later.");
       }
       try {
@@ -323,13 +380,18 @@ export function createServer(
 
   server.registerTool(
     "create_weekly_meal_plan",
-    {
+    toolConfig("create_weekly_meal_plan", "meal-plans:write", {
+      title: "Replace weekly meal plan",
       description:
-        "Replace an entire week of meals with saved recipes from the authenticated user's Quick Pantry account.",
+        "Replace the authenticated user's entire week of planned meals with their saved recipes. Ask the user to confirm the week and replacement before calling. An empty meals list clears that week.",
       inputSchema: createWeeklyMealPlanToolSchema,
-    },
+      outputSchema: weeklyMealPlanOutputSchema,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+    }),
     async (input) => {
-      if (await isRateLimited(rateLimit, keyId)) {
+      const denied = permissionError("meal-plans:write");
+      if (denied) return denied;
+      if (await isRateLimited(rateLimit, userId)) {
         return toolError("Too many requests. Please try again later.");
       }
       try {
@@ -363,36 +425,35 @@ export function createServer(
     },
   );
 
+  // MCP SDK v2's registration config does not retain OpenAI's root securitySchemes extension.
+  server.server.setRequestHandler("tools/list", async () => ({ tools: advertisedTools }));
   return server;
 }
 
 export async function handleMcpRequest(
   request: Request,
   db: Db,
-  env: Env,
+  env: Cloudflare.Env,
   ctx: ExecutionContext,
 ): Promise<Response> {
-  const auth = await authenticateMcpApiKey(
-    db,
-    request.headers.get("Authorization"),
-  );
+  const auth = await authenticateMcpRequest(db, env, request);
   if (!auth) {
     return new Response("Unauthorized", {
       status: 401,
-      headers: { "WWW-Authenticate": 'Bearer realm="Quick Pantry MCP"' },
+      headers: { "WWW-Authenticate": mcpAuthChallenge(env.AUTH_URL), "Cache-Control": "no-store" },
     });
   }
 
-  const origin = new URL(request.url).origin;
+  const origin = new URL(env.AUTH_URL).origin;
   const handler = createMcpHandler(
     () =>
-      createServer(db, auth.userId, origin, auth.id, env.AI_RATE_LIMIT, {
+      createServer(db, auth.userId, origin, env.AI_RATE_LIMIT, {
         env,
         waitUntil: ctx.waitUntil.bind(ctx),
-      }),
+      }, auth.scopes),
     {
       route: "/mcp",
-      authContext: { props: { userId: auth.userId, keyId: auth.id } },
+      authContext: { props: { userId: auth.userId, scopes: auth.scopes } },
     },
   );
   return handler(request, env, ctx);

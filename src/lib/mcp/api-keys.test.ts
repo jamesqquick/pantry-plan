@@ -18,9 +18,10 @@ describe("MCP API keys", () => {
 
   it("reads a valid bearer token", () => {
     expect(getBearerToken("Bearer pp_mcp_abc123")).toBe("pp_mcp_abc123");
+    expect(getBearerToken("bearer pp_mcp_abc123")).toBe("pp_mcp_abc123");
   });
 
-  it.each([null, "", "Basic abc", "Bearer", "bearer abc", "Bearer  abc"])(
+  it.each([null, "", "Basic abc", "Bearer", "Bearer abc\tdef", "Bearer  abc"])(
     "rejects malformed authorization header %j",
     (header) => {
       expect(getBearerToken(header)).toBeNull();

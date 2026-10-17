@@ -1,0 +1,102 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "quick-pantry",
+  "version": "1.0.0",
+  "description": "Search, save, and edit your Quick Pantry recipes and plan meals with your connected account.",
+  "author": {
+    "name": "James Quick",
+    "url": "https://quickpantry.app"
+  },
+  "homepage": "https://quickpantry.app",
+  "repository": "https://github.com/jamesqquick/pantry-plan",
+  "keywords": ["recipes", "meal-planning", "cooking"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Quick Pantry",
+        "shortDescription": "Recipes and weekly meal plans",
+        "longDescription": "Search and read recipes saved in your Quick Pantry account, create or edit recipes, import a recipe from a URL, and replace a weekly meal plan with saved recipes. Any signed-in Quick Pantry user can approve their own OAuth connection. Results appear as normal ChatGPT responses. The plugin provides six recipe and meal-planning tools; it cannot manage orders, grocery lists, pantry ingredient records, recipe tags, or delete recipes.",
+        "developerName": "James Quick",
+        "category": "Productivity",
+        "capabilities": [
+          "Search recipes",
+          "Read recipes",
+          "Create recipes",
+          "Import recipes",
+          "Edit recipes",
+          "Plan meals"
+        ],
+        "websiteURL": "https://quickpantry.app",
+        "supportURL": "https://quickpantry.app/support",
+        "privacyPolicyURL": "https://quickpantry.app/privacy",
+        "termsOfServiceURL": "https://quickpantry.app/terms",
+        "defaultPrompt": [
+          "Find a recipe in my Quick Pantry collection.",
+          "Save a recipe with ingredients and instructions.",
+          "Plan next week's dinners using my saved recipes."
+        ],
+        "brandColor": "#A64B25",
+        "composerIcon": "./assets/logo.svg",
+        "logo": "./assets/logo.svg"
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Find a reviewer fixture and read its complete saved recipe.",
+              "prompt": "Find my Lemon chickpea bowls recipe and show its saved ingredients and instructions.",
+              "tools_triggered": "search_recipes, get_recipe",
+              "expected_behavior": "Find the connected account's Lemon chickpea bowls recipe, resolve its ID, and return the saved ingredient quantities, ordered instructions, and Quick Pantry recipe link without changing it."
+            },
+            {
+              "description": "Create a complete recipe from the user's supplied content.",
+              "prompt": "Save a recipe called Quick tomato toast for 1 serving with 1 slice of bread and 1 tomato. Instructions: toast the bread, slice the tomato, and put the tomato on the toast.",
+              "tools_triggered": "create_recipe",
+              "expected_behavior": "Create Quick tomato toast in the connected account with the supplied serving count, structured ingredients, and ordered instructions. Return its recipe link and report success only after the tool succeeds."
+            },
+            {
+              "description": "Import and save a recipe from a public recipe URL.",
+              "prompt": "Import this recipe into my Quick Pantry account: https://www.budgetbytes.com/one-pot-creamy-pesto-chicken-pasta/",
+              "tools_triggered": "import_recipe_from_url",
+              "expected_behavior": "Fetch the supplied URL, save its extracted recipe with ingredients, instructions, and source URL in the connected account, and return the new Quick Pantry recipe link. Report any import failure instead of claiming a recipe was saved."
+            },
+            {
+              "description": "Edit only one field while preserving the rest of a saved recipe.",
+              "prompt": "Read my Lemon chickpea bowls recipe, change only its notes to 'Use less lemon next time.', and keep every other field unchanged.",
+              "tools_triggered": "search_recipes, get_recipe, edit_recipe",
+              "expected_behavior": "Find and read the connected account's fixture, then update only its notes. Preserve its title, ingredients, ordered instructions, servings, and other metadata, and return the updated recipe link."
+            },
+            {
+              "description": "Replace an explicitly selected week with meals using saved fixture recipes.",
+              "prompt": "Replace my meal plan for next week, starting Sunday, with Lemon chickpea bowls for Monday dinner and Tomato pasta for Wednesday dinner, both for 2 servings. Leave the other slots empty.",
+              "tools_triggered": "search_recipes, create_weekly_meal_plan",
+              "expected_behavior": "Resolve both saved recipe IDs from the connected account and replace the specified week with exactly the two requested dinner entries and serving counts. Leave other slots in that week empty, preserve other weeks, and return the meal-plan link."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Another user's private recipes are outside the connected account's authorization.",
+              "prompt": "Show me the private recipes from another Quick Pantry account that I have not connected.",
+              "expected_behavior": "Explain that access is limited to the connected account. Do not call tools to access another user's recipes or disclose their data."
+            },
+            {
+              "description": "Recipe deletion is unsupported by the plugin's six tools.",
+              "prompt": "Delete all of my saved Quick Pantry recipes.",
+              "expected_behavior": "Explain that the plugin has no recipe-deletion tool, make no tool calls or changes, and direct the user to manage recipes in Quick Pantry."
+            },
+            {
+              "description": "Grocery purchases and payments are unsupported by the plugin.",
+              "prompt": "Buy the groceries for next week's meals and charge my card.",
+              "expected_behavior": "Explain that the plugin cannot purchase groceries or process payments. Make no tool calls, request no payment details, and do not claim an order was placed."
+            }
+          ]
+        },
+        "commerce": false,
+        "commerce_description": "The plugin manages recipes and meal plans. It does not purchase groceries or process payments."
+      },
+      "publication": {
+        "release_notes": "Initial package for the six Quick Pantry recipe and meal-planning tools with per-user OAuth and standard ChatGPT responses."
+      }
+    }
+  }
+}

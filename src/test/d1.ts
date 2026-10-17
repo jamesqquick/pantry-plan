@@ -90,7 +90,7 @@ class FakeD1Database {
   }
 }
 
-export function createTestDb(): { db: Db; sqlite: DatabaseSync } {
+export function createTestDb(): { db: Db; sqlite: DatabaseSync; binding: D1Database } {
   const sqlite = new DatabaseSync(":memory:");
   sqlite.exec("PRAGMA foreign_keys = ON");
   const files = readdirSync(MIGRATIONS_DIR)
@@ -102,6 +102,7 @@ export function createTestDb(): { db: Db; sqlite: DatabaseSync } {
       if (statement.trim()) sqlite.exec(statement);
     }
   }
-  const db = createDb(new FakeD1Database(sqlite) as unknown as D1Database);
-  return { db, sqlite };
+  const binding = new FakeD1Database(sqlite) as unknown as D1Database;
+  const db = createDb(binding);
+  return { db, sqlite, binding };
 }

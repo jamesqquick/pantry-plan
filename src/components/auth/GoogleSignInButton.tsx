@@ -5,14 +5,15 @@ import { Button } from "@/components/ui/Button";
 interface Props {
   next?: string;
   label?: string;
+  oauthQuery?: string;
 }
 
-export function GoogleSignInButton({ next, label = "Continue with Google" }: Props) {
+export function GoogleSignInButton({ next, label = "Continue with Google", oauthQuery }: Props) {
   const handleClick = async () => {
     try {
       const destination = safeRelativePath(next, "/recipes");
       const callbackURL = `${window.location.origin}${destination}`;
-      const errorURL = new URL("/login", window.location.origin);
+      const errorURL = new URL(oauthQuery ? `/login?${oauthQuery}` : "/login", window.location.origin);
       if (next) errorURL.searchParams.set("next", destination);
 
       await signIn.social({
@@ -22,7 +23,9 @@ export function GoogleSignInButton({ next, label = "Continue with Google" }: Pro
       });
     } catch {
       // Better Auth normally returns errors, but network failures reject.
-      window.location.href = "/login?auth_error=google_sign_in_failed";
+      const errorURL = new URL(oauthQuery ? `/login?${oauthQuery}` : "/login", window.location.origin);
+      errorURL.searchParams.set("auth_error", "google_sign_in_failed");
+      window.location.href = errorURL.toString();
     }
   };
 
