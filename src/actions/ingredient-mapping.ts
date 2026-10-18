@@ -10,7 +10,6 @@ import {
   ingredientMappingApplySchema,
   ingredientMappingPreviewSchema,
 } from "@/features/recipes/ingredient-mapping.schemas";
-import { getDisplayTextFromIngredientLine } from "@/lib/ingredients/parse-ingredient-line-structured";
 import { normalizeIngredientName } from "@/lib/ingredients/normalize";
 import { autoConvert } from "@/lib/measurements/auto-convert";
 import {
@@ -298,7 +297,6 @@ export const ingredientMapping = {
                     matchType: "current",
                   }
                 : (suggestion?.suggestedIngredient ?? null);
-            const quantity = suggestion?.parsed?.quantity;
             const previewFields = currentIngredient
               ? {
                   displayText: row.displayText,
@@ -311,12 +309,6 @@ export const ingredientMapping = {
                   storedDisplayText: row.displayText,
                   storedQuantity: row.quantity,
                   storedUnit: row.unit,
-                  parsedDisplayText: getDisplayTextFromIngredientLine(line),
-                  parsedQuantity:
-                    quantity != null && Number.isFinite(quantity)
-                      ? quantity
-                      : null,
-                  parsedUnit: suggestion?.parsed?.unit ?? null,
                 });
 
             return {

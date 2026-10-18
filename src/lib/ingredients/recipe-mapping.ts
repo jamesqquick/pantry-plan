@@ -1,4 +1,5 @@
 import type { IngredientUnit } from "@/db/schema/enums";
+import { parseScalableIngredientLine } from "./parse-ingredient-line-structured";
 
 export const NEW_INGREDIENT_INSERT_PARAMS_PER_ROW = 5;
 
@@ -181,23 +182,19 @@ export function getRecipeMappingPreviewFields(input: {
   storedDisplayText: string;
   storedQuantity: number | null;
   storedUnit: IngredientUnit | null;
-  parsedDisplayText: string;
-  parsedQuantity: number | null;
-  parsedUnit: IngredientUnit | null;
 }): {
   displayText: string;
   quantity: number | null;
   unit: IngredientUnit | null;
 } {
-  const useParsedFields =
-    !input.isMapped && input.storedDisplayText === input.rawText;
+  const amount = !input.isMapped && input.storedDisplayText === input.rawText
+    ? parseScalableIngredientLine(input.rawText)
+    : null;
+  const parsed = amount?.kind === "scalable" ? amount : null;
 
   return {
-    displayText: useParsedFields
-      ? input.parsedDisplayText.trim() || input.storedDisplayText
-      : input.storedDisplayText,
-    quantity:
-      input.storedQuantity ?? (useParsedFields ? input.parsedQuantity : null),
-    unit: input.storedUnit ?? (useParsedFields ? input.parsedUnit : null),
+    displayText: parsed?.displayText ?? input.storedDisplayText,
+    quantity: input.storedQuantity ?? parsed?.quantity ?? null,
+    unit: input.storedUnit ?? parsed?.unit ?? null,
   };
 }
