@@ -3,13 +3,17 @@
  * user review/modify before saving or continuing to ingredient mapping.
  */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { actions } from "astro:actions";
 
+import type { IngredientUnit } from "@/db/schema/enums";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { TagToggle } from "@/components/ui/TagToggle";
+import { INGREDIENT_UNITS, UNIT_LABELS } from "@/lib/ingredients/units";
+import { parseScalableIngredientLine } from "@/lib/ingredients/parse-ingredient-line-structured";
+import { formatQuantityForInput, parseQuantityText } from "@/lib/quantity/quantity";
 import {
   Tooltip,
   TooltipContent,
@@ -37,6 +41,47 @@ interface Props {
   allTags: { id: string; name: string }[];
 }
 
+type IngredientReviewStatus = "parsed" | "unquantified" | "needs-review" | "empty";
+
+type IngredientReviewRow = {
+  id: string;
+  rawText: string | null;
+  displayText: string;
+  quantityText: string;
+  unit: IngredientUnit | "";
+  status: IngredientReviewStatus;
+  edited: boolean;
+};
+
+function createIngredientReviewRow(rawText: string, id: string): IngredientReviewRow {
+  if (!rawText.trim()) {
+    return { id, rawText: null, displayText: "", quantityText: "", unit: "", status: "empty", edited: false };
+  }
+
+  const parsed = parseScalableIngredientLine(rawText);
+  if (parsed.kind === "scalable") {
+    return {
+      id,
+      rawText,
+      displayText: parsed.displayText,
+      quantityText: formatQuantityForInput(parsed.quantity),
+      unit: parsed.unit,
+      status: "parsed",
+      edited: false,
+    };
+  }
+
+  return {
+    id,
+    rawText,
+    displayText: parsed.displayText,
+    quantityText: "",
+    unit: "",
+    status: parsed.kind,
+    edited: false,
+  };
+}
+
 export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
   const [title, setTitle] = useState(draft.title);
   const [sourceUrl, setSourceUrl] = useState(draft.sourceUrl);
@@ -54,9 +99,13 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
     draft.totalTimeMinutes?.toString() ?? "",
   );
   const [notes, setNotes] = useState(draft.notes);
-  const [ingredients, setIngredients] = useState<string[]>(
-    draft.ingredients.length > 0 ? draft.ingredients : [""],
-  );
+  const [ingredients, setIngredients] = useState<IngredientReviewRow[]>(() => {
+    const lines = draft.ingredients.filter((line) => line.trim() !== "");
+    return lines.length > 0
+      ? lines.map((line, index) => createIngredientReviewRow(line, `ingredient-${index}`))
+      : [createIngredientReviewRow("", "ingredient-0")];
+  });
+  const nextIngredientId = useRef(ingredients.length);
   const [instructions, setInstructions] = useState<string[]>(
     draft.instructions.length > 0 ? draft.instructions : [""],
   );
@@ -64,23 +113,29 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
   const [savingDestination, setSavingDestination] = useState<
     "detail" | "map" | null
   >(null);
+  const [invalidFieldId, setInvalidFieldId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const saving = savingDestination !== null;
 
-  function handleIngredientChange(idx: number, value: string) {
+  function updateIngredient(id: string, patch: Partial<IngredientReviewRow>) {
+    setError(null);
+    setInvalidFieldId(null);
     setIngredients((prev) => {
-      const next = [...prev];
-      next[idx] = value;
-      return next;
+      return prev.map((row) => row.id === id ? { ...row, ...patch, edited: true } : row);
     });
   }
 
-  function removeIngredient(idx: number) {
-    setIngredients((prev) => prev.filter((_, i) => i !== idx));
+  function removeIngredient(id: string) {
+    setError(null);
+    setInvalidFieldId(null);
+    setIngredients((prev) => prev.filter((row) => row.id !== id));
   }
 
   function addIngredient() {
-    setIngredients((prev) => [...prev, ""]);
+    setError(null);
+    setInvalidFieldId(null);
+    const id = `ingredient-${nextIngredientId.current++}`;
+    setIngredients((prev) => [...prev, createIngredientReviewRow("", id)]);
   }
 
   function parseIntOr(val: string): number | undefined {
@@ -92,6 +147,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
     if (saving) return;
 
     setError(null);
+    setInvalidFieldId(null);
 
     const recipePayload = {
       title: title.trim(),
@@ -117,10 +173,46 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
       return;
     }
 
-    const filteredIngredients = ingredients
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (filteredIngredients.length === 0) {
+    const cleanIngredients: {
+      rawText: string | null;
+      displayText: string;
+      quantity: number | null;
+      unit: IngredientUnit | null;
+    }[] = [];
+    for (const row of ingredients) {
+      const quantityText = row.quantityText.trim();
+      if (!row.rawText?.trim() && !row.displayText.trim() && !quantityText && !row.unit) {
+        continue;
+      }
+
+      const label = row.rawText?.trim() || row.displayText.trim() || "this ingredient";
+      const displayText = row.displayText.trim();
+      if (!displayText) {
+        const fieldId = `draft-${row.id}-text`;
+        setError(`Ingredient text is required for "${label}".`);
+        setInvalidFieldId(fieldId);
+        window.setTimeout(() => document.getElementById(fieldId)?.focus(), 0);
+        return;
+      }
+
+      const quantity = quantityText === "" ? null : parseQuantityText(quantityText);
+      if (quantityText !== "" && (quantity === null || !Number.isFinite(quantity))) {
+        const fieldId = `draft-${row.id}-quantity`;
+        setError(`Quantity for "${label}" must be a valid number or fraction that is 0 or greater.`);
+        setInvalidFieldId(fieldId);
+        window.setTimeout(() => document.getElementById(fieldId)?.focus(), 0);
+        return;
+      }
+
+      cleanIngredients.push({
+        rawText: row.rawText,
+        displayText,
+        quantity,
+        unit: row.unit || null,
+      });
+    }
+
+    if (cleanIngredients.length === 0) {
       setError("At least one ingredient is required.");
       return;
     }
@@ -130,7 +222,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
     try {
       const { data, error: saveError } = await actions.recipeImport.saveTextOnly({
         recipe: recipePayload,
-        ingredients: filteredIngredients,
+        ingredients: cleanIngredients,
       });
 
       if (saveError) {
@@ -186,6 +278,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
     <div className="space-y-6">
       {error && (
         <div
+          id="recipe-import-error"
           role="alert"
           className="rounded-input bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300"
         >
@@ -276,55 +369,161 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
       </div>
 
       {/* Ingredients */}
-      <div>
-        <label className="mb-2 block text-sm font-medium">Ingredients</label>
-
-        <div className="space-y-2">
-          {ingredients.map((line, idx) => (
-            <div key={idx} className="flex gap-2">
-              <Input
-                value={line}
-                onChange={(e) => handleIngredientChange(idx, e.target.value)}
-                placeholder={`Ingredient ${idx + 1}`}
-                className="min-w-0 flex-1"
-              />
-              {ingredients.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeIngredient(idx)}
-                  className="min-h-11 min-w-11 cursor-pointer rounded-input px-3 py-2 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
-                  title="Remove ingredient"
-                  aria-label={`Remove ingredient ${idx + 1}`}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4"
-                    aria-hidden="true"
-                  >
-                    <path d="M18 6 6 18" />
-                    <path d="m6 6 12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          ))}
+      <section aria-labelledby="draft-ingredients-heading" className="space-y-3">
+        <div>
+          <h2 id="draft-ingredients-heading" className="text-lg font-semibold">
+            Ingredients
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Review how each line was split into an amount, unit, and ingredient before saving.
+          </p>
         </div>
+
+        <div className="space-y-3">
+          {ingredients.map((row, idx) => {
+            const textId = `draft-${row.id}-text`;
+            const quantityId = `draft-${row.id}-quantity`;
+            const unitId = `draft-${row.id}-unit`;
+            const statusId = `draft-${row.id}-status`;
+            const statusMessage = row.status === "parsed"
+              ? row.edited
+                ? "Your edits will be saved as entered."
+                : null
+              : row.status === "unquantified"
+                ? row.edited
+                  ? "No quantity was found automatically. Your edits will be saved as entered."
+                  : "No quantity was detected automatically. This line will be saved without an amount."
+                : row.status === "needs-review"
+                  ? "Couldn't automatically parse ingredient."
+                  : null;
+
+            return (
+              <article
+                key={row.id}
+                className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Original line
+                    </p>
+                    <p className="mt-1 break-words font-medium italic text-foreground">
+                      {row.rawText?.trim() || row.displayText || "New ingredient"}
+                    </p>
+                  </div>
+                  {ingredients.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeIngredient(row.id)}
+                      disabled={saving}
+                      className="min-h-11 min-w-11 shrink-0 cursor-pointer rounded-input px-3 py-2 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-red-900/20"
+                      title="Remove ingredient"
+                      aria-label={`Remove ingredient ${idx + 1}`}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-4 w-4"
+                        aria-hidden="true"
+                      >
+                        <path d="M18 6 6 18" />
+                        <path d="m6 6 12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-[minmax(0,1fr)_8rem_9rem]">
+                  <div className="col-span-2 min-w-0 md:col-span-1">
+                    <label htmlFor={textId} className="mb-1 block text-sm font-medium">
+                      Ingredient text
+                    </label>
+                    <Input
+                      id={textId}
+                      className="min-h-11"
+                      value={row.displayText}
+                      placeholder="Ingredient name"
+                      aria-label={`Ingredient text for ingredient ${idx + 1}`}
+                      aria-invalid={invalidFieldId === textId}
+                      aria-describedby={invalidFieldId === textId ? "recipe-import-error" : statusMessage ? statusId : undefined}
+                      disabled={saving}
+                      onChange={(event) => updateIngredient(row.id, { displayText: event.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor={quantityId} className="mb-1 block text-sm font-medium">
+                      Quantity
+                    </label>
+                    <Input
+                      id={quantityId}
+                      className="min-h-11"
+                      type="text"
+                      inputMode="decimal"
+                      value={row.quantityText}
+                      placeholder="Optional"
+                      aria-label={`Quantity for ingredient ${idx + 1}`}
+                      aria-invalid={invalidFieldId === quantityId}
+                      aria-describedby={invalidFieldId === quantityId ? "recipe-import-error" : statusMessage ? statusId : undefined}
+                      disabled={saving}
+                      onChange={(event) => updateIngredient(row.id, { quantityText: event.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor={unitId} className="mb-1 block text-sm font-medium">
+                      Unit
+                    </label>
+                    <select
+                      id={unitId}
+                      value={row.unit}
+                      aria-label={`Unit for ingredient ${idx + 1}`}
+                      aria-invalid={invalidFieldId === unitId}
+                      aria-describedby={invalidFieldId === unitId ? "recipe-import-error" : statusMessage ? statusId : undefined}
+                      disabled={saving}
+                      className="flex min-h-11 w-full rounded-input border border-input bg-card px-3 py-1.5 font-ui text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+                      onChange={(event) => updateIngredient(row.id, { unit: event.target.value as IngredientUnit | "" })}
+                    >
+                      <option value="">No unit</option>
+                      {INGREDIENT_UNITS.map((unit) => (
+                        <option key={unit} value={unit}>
+                          {UNIT_LABELS[unit]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {statusMessage && (
+                  <p
+                    id={statusId}
+                    role={row.status === "needs-review" ? "status" : undefined}
+                    className={row.status === "needs-review"
+                      ? "rounded-input border border-warning/30 bg-warning/10 p-3 text-sm leading-relaxed text-foreground"
+                      : "text-xs leading-relaxed text-muted-foreground"}
+                  >
+                    {statusMessage}
+                  </p>
+                )}
+              </article>
+            );
+          })}
+        </div>
+
         <Button
           type="button"
           variant="secondary"
           size="sm"
           onClick={addIngredient}
+          disabled={saving}
           className="mt-2"
         >
           Add ingredient
         </Button>
-      </div>
+      </section>
 
       {/* Instructions */}
       <div>

@@ -47,14 +47,26 @@ export async function createTextOnlyRecipe(
     text: text.trim() || "—",
   }));
   const ingredientRows = ingredients.map((line, sortOrder) => {
-    const amount = parseScalableIngredientLine(line);
+    if (typeof line === "string") {
+      const amount = parseScalableIngredientLine(line);
+      return {
+        recipeId,
+        ingredientId: null,
+        quantity: amount.kind === "scalable" ? amount.quantity : null,
+        unit: amount.kind === "scalable" ? amount.unit : null,
+        displayText: amount.displayText,
+        rawText: line.trim(),
+        sortOrder,
+      };
+    }
+
     return {
       recipeId,
       ingredientId: null,
-      quantity: amount.kind === "scalable" ? amount.quantity : null,
-      unit: amount.kind === "scalable" ? amount.unit : null,
-      displayText: amount.displayText,
-      rawText: line.trim(),
+      quantity: line.quantity,
+      unit: line.unit,
+      displayText: line.displayText,
+      rawText: line.rawText,
       sortOrder,
     };
   });

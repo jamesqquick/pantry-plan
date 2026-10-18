@@ -92,10 +92,6 @@ export function ImportUrlTab({
             {parsing ? "Parsing\u2026" : "Import"}
           </Button>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Paste a link to any recipe page. We'll extract the recipe data
-          automatically.
-        </p>
       </div>
 
       {parseError && (

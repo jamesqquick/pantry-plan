@@ -39,4 +39,47 @@ describe("quick recipe saves", () => {
         ...lines.slice(2).map((line) => ({ quantity: null, unit: null, displayText: line, rawText: line })),
       ]);
   });
+
+  it("stores reviewed ingredient fields without reparsing the original line", async () => {
+    const test = createTestDb();
+    sqlite = test.sqlite;
+    sqlite.exec(`INSERT INTO user (id, name, email, createdAt, updatedAt)
+      VALUES ('cook', 'Cook', 'cook@example.test', 1, 1)`);
+
+    await createTextOnlyRecipe(test.db, "cook", {
+      recipe: { title: "Pasta", instructions: ["Cook."], tagIds: [] },
+      ingredients: [
+        {
+          rawText: "2-3 cloves garlic",
+          displayText: "cloves garlic",
+          quantity: 2,
+          unit: "COUNT",
+        },
+        {
+          rawText: "1 cup flour (120 g)",
+          displayText: "1 cup flour (120 g)",
+          quantity: null,
+          unit: null,
+        },
+        {
+          rawText: null,
+          displayText: "saffron",
+          quantity: 0.01,
+          unit: "G",
+        },
+      ],
+    });
+
+    const rows = await test.db.select().from(recipeIngredient);
+    expect(rows.map(({ quantity, unit, displayText, rawText }) => ({
+      quantity,
+      unit,
+      displayText,
+      rawText,
+    }))).toEqual([
+      { quantity: 2, unit: "COUNT", displayText: "cloves garlic", rawText: "2-3 cloves garlic" },
+      { quantity: null, unit: null, displayText: "1 cup flour (120 g)", rawText: "1 cup flour (120 g)" },
+      { quantity: 0.01, unit: "G", displayText: "saffron", rawText: null },
+    ]);
+  });
 });
