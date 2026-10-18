@@ -1,0 +1,47 @@
+src/components/app/AppHeader.test.tsx
+  s_348f2f1062e6bb::t_133d9bc0a5bc62 1-37
+src/components/app/AppHeader.tsx
+  s_348f2f1062e6bb::t_33e94ae6f5378a 26,68-69
+src/components/recipes/RecipeCookMode.test.tsx
+  s_9520646dc9c744::t_a667ac9e19aabc 9,11,15-18,61,66-180
+src/components/recipes/RecipeForm.test.tsx
+  s_b396a1ef322d0f::t_301e3f3aac99f8 1-63
+src/lib/ingredients/recipe-mapping.ts
+  s_b396a1ef322d0f::t_cb4f86a17520a2 2,190-193,196-198
+src/lib/quantity/quantity.ts
+  s_b396a1ef322d0f::t_07375b67f2ca91 19,108-112
+src/pages/recipes/[id]/edit.astro
+  s_b396a1ef322d0f::t_3f0e79287ea932 10,73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "532c56bfe4571ab66a1bfd16ccffebe043438163",
+  "prompts": {},
+  "sessions": {
+    "s_348f2f1062e6bb": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_eb0bcb9a1ffe1a9cNmSq0o6Ii9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    },
+    "s_9520646dc9c744": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_eb0dfd38dffec99mf1zBUFZA7W",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    },
+    "s_b396a1ef322d0f": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_eca6b9598ffeFnj0kOPPkHtM1N",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
