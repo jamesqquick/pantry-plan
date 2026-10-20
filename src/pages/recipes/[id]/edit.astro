@@ -7,7 +7,7 @@ import RecipeForm, {
   type RecipeFormInitial,
   type RecipeIngredientDraft,
 } from "@/components/recipes/RecipeForm";
-import { formatQuantity } from "@/lib/quantity/quantity";
+import { formatQuantityForInput } from "@/lib/quantity/quantity";
 import {
   createDb,
   ingredient,
@@ -70,10 +70,7 @@ const [ingredients, instructions, tagLinks, allTags] = await Promise.all([
 
 const ingredientDrafts: RecipeIngredientDraft[] = ingredients.map((i) => ({
   displayText: i.displayText,
-  quantityText:
-    i.quantity != null && Number.isFinite(i.quantity)
-      ? formatQuantity(i.quantity)
-      : "",
+  quantityText: formatQuantityForInput(i.quantity),
   unit: (i.unit ?? "") as RecipeIngredientDraft["unit"],
   rawText: i.rawText,
   ingredientId: i.ingredientId,

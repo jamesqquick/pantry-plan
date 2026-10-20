@@ -23,6 +23,7 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
   const [phase, setPhase] = useState<PanelPhase>("hidden");
   const hamburgerRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const wasMounted = useRef(false);
 
   const mounted = phase !== "hidden";
   const open = phase === "open";
@@ -64,7 +65,8 @@ export function AppHeader({ userEmail, pathname }: AppHeaderProps) {
 
   // Return focus to the hamburger after the panel fully unmounts.
   useEffect(() => {
-    if (!mounted && !open) hamburgerRef.current?.focus();
+    if (wasMounted.current && !mounted && !open) hamburgerRef.current?.focus();
+    wasMounted.current = mounted;
   }, [mounted, open]);
 
   return (

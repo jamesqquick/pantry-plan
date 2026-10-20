@@ -106,9 +106,6 @@ describe("getRecipeMappingPreviewFields", () => {
         storedDisplayText: "hand-edited tomatoes",
         storedQuantity: 3,
         storedUnit: "COUNT",
-        parsedDisplayText: "cans tomatoes",
-        parsedQuantity: 2,
-        parsedUnit: "CUP",
       }),
     ).toEqual({
       displayText: "hand-edited tomatoes",
@@ -125,9 +122,6 @@ describe("getRecipeMappingPreviewFields", () => {
         storedDisplayText: "2 cups flour",
         storedQuantity: null,
         storedUnit: null,
-        parsedDisplayText: "flour",
-        parsedQuantity: 2,
-        parsedUnit: "CUP",
       }),
     ).toEqual({ displayText: "flour", quantity: 2, unit: "CUP" });
   });
@@ -140,9 +134,6 @@ describe("getRecipeMappingPreviewFields", () => {
         storedDisplayText: "salt",
         storedQuantity: 0,
         storedUnit: null,
-        parsedDisplayText: "salt",
-        parsedQuantity: 1,
-        parsedUnit: "PINCH",
       }).quantity,
     ).toBe(0);
   });
@@ -155,9 +146,6 @@ describe("getRecipeMappingPreviewFields", () => {
         storedDisplayText: "bread flour",
         storedQuantity: null,
         storedUnit: null,
-        parsedDisplayText: "all-purpose flour",
-        parsedQuantity: 2,
-        parsedUnit: "CUP",
       }),
     ).toEqual({
       displayText: "bread flour",
@@ -174,11 +162,23 @@ describe("getRecipeMappingPreviewFields", () => {
         storedDisplayText: "flour",
         storedQuantity: null,
         storedUnit: null,
-        parsedDisplayText: "flour",
-        parsedQuantity: 2,
-        parsedUnit: "CUP",
       }),
     ).toEqual({ displayText: "flour", quantity: null, unit: null });
+  });
+
+  it.each([
+    "0.75 l milk", "500 ml milk", "1 fl oz vanilla", "400g tin tomatoes",
+    "1 cup plus a tablespoon sugar", "2 heaping tbsp sugar", "2 rounded tsp sugar",
+    "1 cup sugar, plus another tablespoon", "1 cup sugar, and another tablespoon",
+    "1 cup sugar, plus extra tablespoon", "1 cup sugar with an extra tablespoon",
+  ])("does not suggest count units or partial amounts for %s", (line) => {
+    expect(getRecipeMappingPreviewFields({
+      isMapped: false,
+      rawText: line,
+      storedDisplayText: line,
+      storedQuantity: null,
+      storedUnit: null,
+    })).toEqual({ displayText: line, quantity: null, unit: null });
   });
 });
 

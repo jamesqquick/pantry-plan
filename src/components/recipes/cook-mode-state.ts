@@ -1,9 +1,9 @@
-export function toggleCheckedItem(
-  current: ReadonlySet<number>,
-  index: number,
-): Set<number> {
+export function toggleCheckedItem<T>(
+  current: ReadonlySet<T>,
+  item: T,
+): Set<T> {
   const next = new Set(current);
-  if (next.has(index)) next.delete(index);
-  else next.add(index);
+  if (next.has(item)) next.delete(item);
+  else next.add(item);
   return next;
 }

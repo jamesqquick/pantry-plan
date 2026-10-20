@@ -77,6 +77,165 @@ describe("RecipeDraftEditor", () => {
     ).toHaveProperty("disabled", false);
   });
 
+  it("shows parsed quantity, unit, ingredient text, and the original line", () => {
+    renderEditor();
+
+    expect(
+      screen.getAllByText("Original line")[0].nextElementSibling?.className,
+    ).toContain("italic");
+    expect(screen.getAllByText("Original line")[0].parentElement?.textContent).toContain(
+      "2 cups flour",
+    );
+    expect(
+      screen.queryByText("Parsed automatically. Check or edit these fields before saving."),
+    ).toBeNull();
+    expect(screen.getByLabelText("Ingredient text for ingredient 1")).toHaveProperty(
+      "value",
+      "flour",
+    );
+    expect(screen.getByLabelText("Quantity for ingredient 1")).toHaveProperty(
+      "value",
+      "2",
+    );
+    expect(screen.getByLabelText("Unit for ingredient 1")).toHaveProperty(
+      "value",
+      "CUP",
+    );
+    expect(screen.getByLabelText("Quantity for ingredient 2")).toHaveProperty(
+      "value",
+      "3",
+    );
+    expect(screen.getByLabelText("Unit for ingredient 2")).toHaveProperty(
+      "value",
+      "COUNT",
+    );
+  });
+
+  it("keeps small fractions and metric decimals precise through the reviewed save", async () => {
+    const user = userEvent.setup();
+    renderEditor({
+      ...validDraft,
+      ingredients: ["1/64 tsp salt", "1.2345 g flour"],
+    });
+
+    expect(screen.getByLabelText("Quantity for ingredient 1")).toHaveProperty(
+      "value",
+      "0.015625",
+    );
+    expect(screen.getByLabelText("Quantity for ingredient 2")).toHaveProperty(
+      "value",
+      "1.2345",
+    );
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+
+    await waitFor(() => {
+      expect(saveTextOnly).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ingredients: [
+            { rawText: "1/64 tsp salt", displayText: "salt", quantity: 1 / 64, unit: "TSP" },
+            { rawText: "1.2345 g flour", displayText: "flour", quantity: 1.2345, unit: "G" },
+          ],
+        }),
+      );
+    });
+  });
+
+  it("keeps an ambiguous line intact and lets the user confirm a structured amount", async () => {
+    const user = userEvent.setup();
+    renderEditor({ ...validDraft, ingredients: ["2-3 cloves garlic"] });
+
+    expect(screen.getByRole("status").textContent).toBe(
+      "Couldn't automatically parse ingredient.",
+    );
+    expect(screen.getByLabelText("Ingredient text for ingredient 1")).toHaveProperty(
+      "value",
+      "2-3 cloves garlic",
+    );
+    expect(screen.getByLabelText("Quantity for ingredient 1")).toHaveProperty(
+      "value",
+      "",
+    );
+
+    await user.clear(screen.getByLabelText("Ingredient text for ingredient 1"));
+    await user.type(screen.getByLabelText("Ingredient text for ingredient 1"), "cloves garlic");
+    await user.type(screen.getByLabelText("Quantity for ingredient 1"), "2");
+    await user.selectOptions(screen.getByLabelText("Unit for ingredient 1"), "COUNT");
+    expect(screen.getByRole("status").textContent).toBe(
+      "Couldn't automatically parse ingredient.",
+    );
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+
+    await waitFor(() => {
+      expect(saveTextOnly).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ingredients: [
+            {
+              rawText: "2-3 cloves garlic",
+              displayText: "cloves garlic",
+              quantity: 2,
+              unit: "COUNT",
+            },
+          ],
+        }),
+      );
+    });
+  });
+
+  it("identifies intentionally unquantified ingredients without flagging them for review", async () => {
+    const user = userEvent.setup();
+    renderEditor({ ...validDraft, ingredients: ["Salt to taste"] });
+
+    expect(screen.getByText("No quantity was detected automatically. This line will be saved without an amount.")).toBeTruthy();
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByLabelText("Ingredient text for ingredient 1")).toHaveProperty(
+      "value",
+      "Salt to taste",
+    );
+    expect(screen.getByLabelText("Quantity for ingredient 1")).toHaveProperty(
+      "value",
+      "",
+    );
+
+    await user.type(screen.getByLabelText("Quantity for ingredient 1"), "1");
+    expect(screen.getByText("No quantity was found automatically. Your edits will be saved as entered.")).toBeTruthy();
+  });
+
+  it("leaves unresolved lines as original text when the user does not edit them", async () => {
+    const user = userEvent.setup();
+    renderEditor({ ...validDraft, ingredients: ["1 cup flour (120 g)"] });
+
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+
+    await waitFor(() => {
+      expect(saveTextOnly).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ingredients: [
+            {
+              rawText: "1 cup flour (120 g)",
+              displayText: "1 cup flour (120 g)",
+              quantity: null,
+              unit: null,
+            },
+          ],
+        }),
+      );
+    });
+  });
+
+  it("validates edited quantities before saving", async () => {
+    const user = userEvent.setup();
+    renderEditor();
+    await user.clear(screen.getByLabelText("Quantity for ingredient 1"));
+    await user.type(screen.getByLabelText("Quantity for ingredient 1"), "1/0");
+
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      'Quantity for "2 cups flour" must be a valid number or fraction that is 0 or greater.',
+    );
+    expect(saveTextOnly).not.toHaveBeenCalled();
+  });
+
   it("explains the save and map action in a tooltip", async () => {
     const user = userEvent.setup();
     renderEditor();
@@ -96,7 +255,12 @@ describe("RecipeDraftEditor", () => {
 
     await waitFor(() => {
       expect(saveTextOnly).toHaveBeenCalledWith(
-        expect.objectContaining({ ingredients: ["2 cups flour", "3 eggs"] }),
+        expect.objectContaining({
+          ingredients: [
+            { rawText: " 2 cups flour ", displayText: "flour", quantity: 2, unit: "CUP" },
+            { rawText: "3 eggs", displayText: "eggs", quantity: 3, unit: "COUNT" },
+          ],
+        }),
       );
       expect(softNavigate).toHaveBeenCalledWith("/recipes/recipe-123");
     });
@@ -110,7 +274,12 @@ describe("RecipeDraftEditor", () => {
 
     await waitFor(() => {
       expect(saveTextOnly).toHaveBeenCalledWith(
-        expect.objectContaining({ ingredients: ["2 cups flour", "3 eggs"] }),
+        expect.objectContaining({
+          ingredients: [
+            { rawText: " 2 cups flour ", displayText: "flour", quantity: 2, unit: "CUP" },
+            { rawText: "3 eggs", displayText: "eggs", quantity: 3, unit: "COUNT" },
+          ],
+        }),
       );
       expect(softNavigate).toHaveBeenCalledWith(
         "/recipes/recipe-123/map-ingredients",
@@ -137,6 +306,10 @@ describe("RecipeDraftEditor", () => {
     expect(saveRecipe).toHaveProperty("disabled", true);
     expect(saveAndMap).toHaveProperty("disabled", true);
     expect(cancel).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: "Add ingredient" })).toHaveProperty(
+      "disabled",
+      true,
+    );
 
     await user.click(saveRecipe);
     await user.click(saveAndMap);

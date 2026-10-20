@@ -16,7 +16,7 @@ const UNICODE_TO_ASCII: { char: string; replacement: string }[] = [
 ];
 
 function normalizeForParse(input: string): string {
-  let s = input.trim().replace(/\s+/g, " ");
+  let s = input.trim().replace(/(\d)([½¼¾⅓⅔⅛⅜⅝⅞])/g, "$1 $2").replace(/\s+/g, " ");
   for (const { char, replacement } of UNICODE_TO_ASCII) {
     s = s.split(char).join(replacement);
   }
@@ -104,6 +104,11 @@ function toRational(x: number, maxDenom: number): { num: number; den: number } {
 }
 
 const INTEGER_EPSILON = 0.0001;
+
+/** Editable quantities must not use approximate display fractions. */
+export function formatQuantityForInput(value: number | null): string {
+  return value != null && Number.isFinite(value) && value >= 0 ? String(value) : "";
+}
 
 /**
  * Format a numeric quantity as a mixed fraction string for display.

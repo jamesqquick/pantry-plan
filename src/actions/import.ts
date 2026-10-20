@@ -2,7 +2,7 @@
  * Import actions: save a parsed recipe draft to the database.
  * Two paths:
  *   - saveWithMappings: structured ingredient rows with ingredientId or createName
- *   - saveTextOnly: raw text ingredient lines (no mapping, for quick saves)
+ *   - saveTextOnly: reviewed ingredient fields or raw text lines (no mapping)
  */
 
 import { ActionError, defineAction } from "astro:actions";
@@ -336,8 +336,8 @@ export const recipeImport = {
   }),
 
   /**
-   * Save a recipe with raw text ingredient lines (no mapping).
-   * Used for quick saves where the user skips ingredient mapping.
+   * Save reviewed ingredient fields or raw text lines without mapping.
+   * Raw text lines are conservatively parsed for quick saves and MCP imports.
    */
   saveTextOnly: defineAction({
     input: saveImportedRecipeTextOnlySchema,

@@ -2,8 +2,56 @@ import { describe, it, expect } from "vitest";
 import {
   parseIngredientLineStructured,
   mergeParsedIntoStructured,
+  parseScalableIngredientLine,
   type ParsedIngredientLineStructured,
 } from "./parse-ingredient-line-structured";
+
+describe("parseScalableIngredientLine", () => {
+  it.each([
+    ["2 cups flour", 2, "CUP", "flour"],
+    ["1 1/2 cups flour", 1.5, "CUP", "flour"],
+    ["1-1/2 cups flour", 1.5, "CUP", "flour"],
+    ["1½ cups flour", 1.5, "CUP", "flour"],
+    ["½ tsp salt", 0.5, "TSP", "salt"],
+    ["11/2 cups flour", 5.5, "CUP", "flour"],
+    [".5 cup milk", 0.5, "CUP", "milk"],
+    ["400g flour", 400, "G", "flour"],
+    ["2 large eggs", 2, "COUNT", "large eggs"],
+    ["2 (14-ounce) cans tomatoes", 2, "COUNT", "(14-ounce) cans tomatoes"],
+    ["1 cup 2% milk", 1, "CUP", "2% milk"],
+    ["1 cup half and half", 1, "CUP", "half and half"],
+    ["1 cup half-and-half", 1, "CUP", "half-and-half"],
+    ["<span>2 cups</span> flour", 2, "CUP", "flour"],
+  ])("safely interprets %s", (text, quantity, unit, displayText) => {
+    expect(parseScalableIngredientLine(text as string)).toEqual({
+      kind: "scalable", quantity, unit, displayText,
+    });
+  });
+
+  it.each([
+    "2-3 cloves garlic", "2 – 3 cloves garlic", "2 to 3 cloves garlic",
+    "about 2 cups flour", "1/0 cup milk", "1 cup milk plus 2 tbsp for brushing",
+    "1 cup flour (120 g)", "1,000 g flour", "1.5.2 cups flour", "2x400g tomatoes",
+    "1e3 g flour", "-1 cup milk", "flour", "2", "1/2/3 cup milk",
+    "1 cup plus a tablespoon sugar", "1 cup or two cups milk", "1 cup and a half flour",
+    "1 ⅙ tsp salt", "1 cup flour (⅕ kg)", "Salt to taste, plus ⅙ tsp",
+    "400g tin chopped tomatoes", "12 oz bag chocolate chips",
+    "0.75 l milk", "500 ml milk", "1 fl oz vanilla", "1 pint cream",
+    "1 cup + a tablespoon sugar", "1 cup minus a tablespoon flour", "1 tbsp butter (half an ounce)",
+    "1 cup sugar, plus another tablespoon", "1 cup sugar, and another tablespoon",
+    "1 cup sugar, plus extra tablespoon", "1 cup sugar with an extra tablespoon",
+    "2 heaping tbsp sugar", "2 rounded tsp sugar", "2 heaped tablespoons sugar",
+    "400g small tin chopped tomatoes", "12 oz resealable bag chocolate chips", "400 g (one tin) chopped tomatoes",
+    "1 to 2% salt", "2 to 3% milk", "1 or 2% salt",
+    `${"1" + "0".repeat(303)} g flour`,
+  ])("preserves an unsupported or ambiguous line: %s", (text) => {
+    expect(parseScalableIngredientLine(text)).toEqual({ kind: "needs-review", displayText: text });
+  });
+
+  it.each(["Salt to taste", "Oil as needed", "Flour for dusting", "Basil for garnish"])("does not treat %s as a parsing error", (text) => {
+    expect(parseScalableIngredientLine(text)).toEqual({ kind: "unquantified", displayText: text });
+  });
+});
 
 describe("parseIngredientLineStructured", () => {
   it("parses quantity, unit, and name", () => {
