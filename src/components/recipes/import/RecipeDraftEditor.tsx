@@ -17,6 +17,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/Tooltip";
 import { softNavigate } from "@/lib/navigate";
+import { SortableRecipeList } from "../SortableRecipeList";
+import { useRecipeEditorRows } from "../useRecipeEditorRows";
 
 export type RecipeDraft = {
   title: string;
@@ -54,34 +56,14 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
     draft.totalTimeMinutes?.toString() ?? "",
   );
   const [notes, setNotes] = useState(draft.notes);
-  const [ingredients, setIngredients] = useState<string[]>(
-    draft.ingredients.length > 0 ? draft.ingredients : [""],
-  );
-  const [instructions, setInstructions] = useState<string[]>(
-    draft.instructions.length > 0 ? draft.instructions : [""],
-  );
+  const ingredients = useRecipeEditorRows(draft.ingredients, () => "");
+  const instructions = useRecipeEditorRows(draft.instructions, () => "");
   const [tagIds, setTagIds] = useState<Set<string>>(new Set());
   const [savingDestination, setSavingDestination] = useState<
     "detail" | "map" | null
   >(null);
   const [error, setError] = useState<string | null>(null);
   const saving = savingDestination !== null;
-
-  function handleIngredientChange(idx: number, value: string) {
-    setIngredients((prev) => {
-      const next = [...prev];
-      next[idx] = value;
-      return next;
-    });
-  }
-
-  function removeIngredient(idx: number) {
-    setIngredients((prev) => prev.filter((_, i) => i !== idx));
-  }
-
-  function addIngredient() {
-    setIngredients((prev) => [...prev, ""]);
-  }
 
   function parseIntOr(val: string): number | undefined {
     const n = parseInt(val.trim(), 10);
@@ -101,8 +83,8 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
       prepTimeMinutes: parseIntOr(prepTime),
       cookTimeMinutes: parseIntOr(cookTime),
       totalTimeMinutes: parseIntOr(totalTime),
-      instructions: instructions
-        .map((s) => s.trim())
+      instructions: instructions.rows
+        .map((row) => row.value.trim())
         .filter(Boolean),
       notes: notes.trim() || undefined,
       tagIds: Array.from(tagIds),
@@ -117,8 +99,8 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
       return;
     }
 
-    const filteredIngredients = ingredients
-      .map((s) => s.trim())
+    const filteredIngredients = ingredients.rows
+      .map((row) => row.value.trim())
       .filter(Boolean);
     if (filteredIngredients.length === 0) {
       setError("At least one ingredient is required.");
@@ -155,22 +137,6 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
     softNavigate(
       destination === "map" ? `${recipePath}/map-ingredients` : recipePath,
     );
-  }
-
-  function updateInstruction(idx: number, value: string) {
-    setInstructions((prev) => {
-      const next = [...prev];
-      next[idx] = value;
-      return next;
-    });
-  }
-
-  function removeInstruction(idx: number) {
-    setInstructions((prev) => prev.filter((_, i) => i !== idx));
-  }
-
-  function addInstruction() {
-    setInstructions((prev) => [...prev, ""]);
   }
 
   function toggleTag(id: string) {
@@ -276,109 +242,59 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
       </div>
 
       {/* Ingredients */}
-      <div>
-        <label className="mb-2 block text-sm font-medium">Ingredients</label>
-
-        <div className="space-y-2">
-          {ingredients.map((line, idx) => (
-            <div key={idx} className="flex gap-2">
-              <Input
-                value={line}
-                onChange={(e) => handleIngredientChange(idx, e.target.value)}
-                placeholder={`Ingredient ${idx + 1}`}
-                className="min-w-0 flex-1"
-              />
-              {ingredients.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeIngredient(idx)}
-                  className="min-h-11 min-w-11 cursor-pointer rounded-input px-3 py-2 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
-                  title="Remove ingredient"
-                  aria-label={`Remove ingredient ${idx + 1}`}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4"
-                    aria-hidden="true"
-                  >
-                    <path d="M18 6 6 18" />
-                    <path d="m6 6 12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={addIngredient}
-          className="mt-2"
+      <section className="space-y-3">
+        <h2 className="font-display text-xl text-foreground">Ingredients</h2>
+        <SortableRecipeList
+          kind="ingredient"
+          rows={ingredients.rows}
+          disabled={saving}
+          onAdd={ingredients.add}
+          onMove={ingredients.move}
+          onRemove={ingredients.remove}
+          getText={(text) => text}
         >
-          Add ingredient
-        </Button>
-      </div>
+          {({ id, value }, idx) => (
+            <>
+              <label htmlFor={id} className="sr-only">Ingredient {idx + 1}</label>
+              <Input
+                id={id}
+                value={value}
+                onChange={(e) => ingredients.update(id, e.target.value)}
+                placeholder="e.g. 2 cups all-purpose flour"
+                className="h-11 text-base sm:text-sm"
+              />
+            </>
+          )}
+        </SortableRecipeList>
+      </section>
 
       {/* Instructions */}
-      <div>
-        <label className="mb-2 block text-sm font-medium">Instructions</label>
-        <div className="space-y-2">
-          {instructions.map((step, idx) => (
-            <div key={idx} className="flex gap-2">
-              <span className="mt-2.5 text-xs text-muted-foreground">
-                {idx + 1}.
-              </span>
-              <Textarea
-                value={step}
-                onChange={(e) => updateInstruction(idx, e.target.value)}
-                placeholder={`Step ${idx + 1}`}
-                rows={2}
-                className="flex-1"
-              />
-              {instructions.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeInstruction(idx)}
-                  className="min-h-11 min-w-11 cursor-pointer self-start rounded-input px-3 py-2 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
-                  title="Remove step"
-                  aria-label={`Remove step ${idx + 1}`}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4"
-                    aria-hidden="true"
-                  >
-                    <path d="M18 6 6 18" />
-                    <path d="m6 6 12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={addInstruction}
-          className="mt-2"
+      <section className="space-y-3">
+        <h2 className="font-display text-xl text-foreground">Instructions</h2>
+        <SortableRecipeList
+          kind="step"
+          rows={instructions.rows}
+          disabled={saving}
+          onAdd={instructions.add}
+          onMove={instructions.move}
+          onRemove={instructions.remove}
+          getText={(text) => text}
         >
-          Add step
-        </Button>
-      </div>
+          {({ id, value }, idx) => (
+            <>
+              <label htmlFor={id} className="sr-only">Step {idx + 1}</label>
+              <Textarea
+                id={id}
+                value={value}
+                onChange={(e) => instructions.update(id, e.target.value)}
+                placeholder={`Describe step ${idx + 1}`}
+                rows={3}
+                className="min-h-24 resize-y text-base [field-sizing:content] sm:text-sm"
+              />
+            </>
+          )}
+        </SortableRecipeList>
+      </section>
 
       {/* Notes */}
       <div>

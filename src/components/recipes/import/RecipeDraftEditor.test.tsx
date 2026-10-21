@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { RecipeDraftEditor, type RecipeDraft } from "./RecipeDraftEditor";
@@ -118,6 +118,34 @@ describe("RecipeDraftEditor", () => {
     });
   });
 
+  it.each([
+    ["Save recipe", "/recipes/recipe-123"],
+    ["Save and map", "/recipes/recipe-123/map-ingredients"],
+  ])("preserves the reordered draft when using %s", async (button, destination) => {
+    const user = userEvent.setup();
+    renderEditor();
+    const eggs = screen.getByRole("textbox", { name: "Ingredient 3" });
+
+    await user.click(screen.getByRole("button", { name: "Move ingredient 3 up" }));
+    await user.click(screen.getByRole("button", { name: "Move ingredient 2 up" }));
+    await user.click(screen.getByRole("button", { name: "Move step 2 up" }));
+
+    expect(screen.getByRole("textbox", { name: "Ingredient 1" })).toBe(eggs);
+    expect(screen.getByRole("textbox", { name: "Step 1" })).toHaveProperty("value", "Cook until tender.");
+    await user.click(screen.getByRole("button", { name: button }));
+
+    await waitFor(() => {
+      expect(saveTextOnly).toHaveBeenCalledWith({
+        recipe: expect.objectContaining({
+          title: validDraft.title,
+          instructions: ["Cook until tender.", "Mix the dough."],
+        }),
+        ingredients: ["3 eggs", "2 cups flour"],
+      });
+      expect(softNavigate).toHaveBeenCalledWith(destination);
+    });
+  });
+
   it("allows only one save request while a save is pending", async () => {
     const user = userEvent.setup();
     let resolveSave: ((result: unknown) => void) | undefined;
@@ -137,6 +165,13 @@ describe("RecipeDraftEditor", () => {
     expect(saveRecipe).toHaveProperty("disabled", true);
     expect(saveAndMap).toHaveProperty("disabled", true);
     expect(cancel).toHaveProperty("disabled", true);
+    for (const name of ["Ingredients", "Instructions"]) {
+      for (const button of within(screen.getByRole("list", { name })).getAllByRole("button")) {
+        expect(button).toHaveProperty("disabled", true);
+      }
+    }
+    expect(screen.getByRole("button", { name: "Add ingredient" })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: "Add step" })).toHaveProperty("disabled", true);
 
     await user.click(saveRecipe);
     await user.click(saveAndMap);

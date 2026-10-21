@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/Select";
 import { TagToggle } from "@/components/ui/TagToggle";
 import { IngredientMapper } from "@/components/recipes/IngredientMapper";
+import { SortableRecipeList } from "./SortableRecipeList";
+import { useRecipeEditorRows } from "./useRecipeEditorRows";
 
 export type RecipeFormMode = "create" | "edit";
 
@@ -79,44 +81,16 @@ export default function RecipeForm({
   const [cookTime, setCookTime] = useState(initial.cookTimeMinutes);
   const [totalTime, setTotalTime] = useState(initial.totalTimeMinutes);
   const [notes, setNotes] = useState(initial.notes);
-  const [instructions, setInstructions] = useState<string[]>(
-    initial.instructions.length > 0 ? initial.instructions : [""]
-  );
-  const [ingredients, setIngredients] = useState<RecipeIngredientDraft[]>(
-    initial.ingredients.length > 0 ? initial.ingredients : [emptyIngredient()]
-  );
-  const [tagIds, setTagIds] = useState<Set<string>>(
-    new Set(initial.tagIds)
-  );
+  const instructions = useRecipeEditorRows(initial.instructions, () => "");
+  const ingredients = useRecipeEditorRows(initial.ingredients, emptyIngredient);
+  const [tagIds, setTagIds] = useState<Set<string>>(new Set(initial.tagIds));
 
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
-  function setInstruction(idx: number, value: string) {
-    setInstructions((prev) => prev.map((s, i) => (i === idx ? value : s)));
-  }
-  function addInstruction() {
-    setInstructions((prev) => [...prev, ""]);
-  }
-  function removeInstruction(idx: number) {
-    setInstructions((prev) =>
-      prev.length === 1 ? prev : prev.filter((_, i) => i !== idx)
-    );
-  }
-
-  function setIngredient(idx: number, patch: Partial<RecipeIngredientDraft>) {
-    setIngredients((prev) =>
-      prev.map((row, i) => (i === idx ? { ...row, ...patch } : row))
-    );
-  }
-  function addIngredient() {
-    setIngredients((prev) => [...prev, emptyIngredient()]);
-  }
-  function removeIngredient(idx: number) {
-    setIngredients((prev) =>
-      prev.length === 1 ? prev : prev.filter((_, i) => i !== idx)
-    );
+  function setIngredient(id: string, patch: Partial<RecipeIngredientDraft>) {
+    ingredients.update(id, (row) => ({ ...row, ...patch }));
   }
 
   function toggleTag(id: string) {
@@ -130,15 +104,21 @@ export default function RecipeForm({
 
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (pending) return;
     setPending(true);
     setError(null);
     setFieldErrors({});
 
     // Build payload. Shape must match features/recipes/recipes.schemas.ts
     // extended with ingredientsStructured (see src/actions/recipes.ts).
-    const cleanInstructions = instructions.map((s) => s.trim()).filter(Boolean);
-    const cleanIngredients = ingredients
-      .filter((r) => r.displayText.trim() !== "" || r.quantityText.trim() !== "")
+    const cleanInstructions = instructions.rows
+      .map((row) => row.value.trim())
+      .filter(Boolean);
+    const cleanIngredients = ingredients.rows
+      .map((row) => row.value)
+      .filter(
+        (r) => r.displayText.trim() !== "" || r.quantityText.trim() !== "",
+      )
       .map((r, idx) => {
         const qty = parseQuantityText(r.quantityText);
         return {
@@ -172,40 +152,45 @@ export default function RecipeForm({
       return;
     }
 
-    if (mode === "create") {
-      const { data, error: err } = await actions.recipes.create(payload);
-      if (err) {
-        setError(err.message || "Could not create recipe");
-        if ("fields" in err && err.fields) {
-          setFieldErrors(err.fields as Record<string, string[]>);
+    try {
+      if (mode === "create") {
+        const { data, error: err } = await actions.recipes.create(payload);
+        if (err) {
+          setError(err.message || "Could not create recipe");
+          if ("fields" in err && err.fields) {
+            setFieldErrors(err.fields as Record<string, string[]>);
+          }
+          setPending(false);
+          return;
         }
-        setPending(false);
-        return;
-      }
-      if (data) {
-        window.location.href = `/recipes/${data.id}`;
-      }
-    } else {
-      if (!initial.id) {
-        setError("Missing recipe id");
-        setPending(false);
-        return;
-      }
-      const { data, error: err } = await actions.recipes.update({
-        ...payload,
-        id: initial.id,
-      });
-      if (err) {
-        setError(err.message || "Could not update recipe");
-        if ("fields" in err && err.fields) {
-          setFieldErrors(err.fields as Record<string, string[]>);
+        if (data) {
+          window.location.href = `/recipes/${data.id}`;
         }
-        setPending(false);
-        return;
+      } else {
+        if (!initial.id) {
+          setError("Missing recipe id");
+          setPending(false);
+          return;
+        }
+        const { data, error: err } = await actions.recipes.update({
+          ...payload,
+          id: initial.id,
+        });
+        if (err) {
+          setError(err.message || "Could not update recipe");
+          if ("fields" in err && err.fields) {
+            setFieldErrors(err.fields as Record<string, string[]>);
+          }
+          setPending(false);
+          return;
+        }
+        if (data) {
+          window.location.href = `/recipes/${data.id}`;
+        }
       }
-      if (data) {
-        window.location.href = `/recipes/${data.id}`;
-      }
+    } catch {
+      setError("Could not save recipe. Please try again.");
+      setPending(false);
     }
   }
 
@@ -226,13 +211,18 @@ export default function RecipeForm({
             aria-invalid={!!fieldErrors.title}
           />
           {fieldErrors.title?.[0] && (
-            <p className="mt-1 text-xs text-destructive">{fieldErrors.title[0]}</p>
+            <p className="mt-1 text-xs text-destructive">
+              {fieldErrors.title[0]}
+            </p>
           )}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="sourceUrl" className="mb-1 block text-sm font-medium">
+            <label
+              htmlFor="sourceUrl"
+              className="mb-1 block text-sm font-medium"
+            >
               Source URL
               <span className="ml-1 text-muted-foreground">(optional)</span>
             </label>
@@ -247,7 +237,10 @@ export default function RecipeForm({
             />
           </div>
           <div>
-            <label htmlFor="imageUrl" className="mb-1 block text-sm font-medium">
+            <label
+              htmlFor="imageUrl"
+              className="mb-1 block text-sm font-medium"
+            >
               Image URL
               <span className="ml-1 text-muted-foreground">(optional)</span>
             </label>
@@ -265,13 +258,36 @@ export default function RecipeForm({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           {[
-            { id: "servings", label: "Servings", value: servings, setter: setServings },
-            { id: "prepTime", label: "Prep (min)", value: prepTime, setter: setPrepTime },
-            { id: "cookTime", label: "Cook (min)", value: cookTime, setter: setCookTime },
-            { id: "totalTime", label: "Total (min)", value: totalTime, setter: setTotalTime },
+            {
+              id: "servings",
+              label: "Servings",
+              value: servings,
+              setter: setServings,
+            },
+            {
+              id: "prepTime",
+              label: "Prep (min)",
+              value: prepTime,
+              setter: setPrepTime,
+            },
+            {
+              id: "cookTime",
+              label: "Cook (min)",
+              value: cookTime,
+              setter: setCookTime,
+            },
+            {
+              id: "totalTime",
+              label: "Total (min)",
+              value: totalTime,
+              setter: setTotalTime,
+            },
           ].map((field) => (
             <div key={field.id}>
-              <label htmlFor={field.id} className="mb-1 block text-sm font-medium">
+              <label
+                htmlFor={field.id}
+                className="mb-1 block text-sm font-medium"
+              >
                 {field.label}
               </label>
               <Input
@@ -289,155 +305,144 @@ export default function RecipeForm({
       </section>
 
       <section className="space-y-3">
-        <div className="flex items-baseline justify-between">
-          <h2 className="font-display text-xl text-foreground">Ingredients</h2>
-          <button
-            type="button"
-            onClick={addIngredient}
-            className="min-h-11 cursor-pointer rounded-input px-3 py-2 text-xs font-semibold text-primary-on-card transition-colors hover:bg-primary/10"
-          >
-            + Add ingredient
-          </button>
-        </div>
-        <ul className="space-y-2">
-          {ingredients.map((row, idx) => (
-            <li
-              key={idx}
-              className="rounded-input border border-border bg-card p-2"
-            >
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <Input
-                  value={row.quantityText}
-                  onChange={(e) => setIngredient(idx, { quantityText: e.target.value })}
-                  placeholder="Qty"
-                  aria-label="Quantity"
-                  inputMode="decimal"
-                  autoComplete="off"
-                  className="sm:w-16 sm:shrink-0"
-                />
-                <Select
-                  value={row.unit}
-                  onValueChange={(value) =>
-                    setIngredient(idx, {
-                      unit: (value || "") as IngredientUnit | "",
-                    })
-                  }
-                >
-                  <SelectTrigger
-                    aria-label="Unit"
-                    className="sm:w-24 sm:shrink-0"
+        <h2 className="font-display text-xl text-foreground">Ingredients</h2>
+        <SortableRecipeList
+          kind="ingredient"
+          rows={ingredients.rows}
+          disabled={pending}
+          onAdd={ingredients.add}
+          onMove={ingredients.move}
+          onRemove={ingredients.remove}
+          getText={(row) =>
+            [row.quantityText, row.unit.toLowerCase(), row.displayText]
+              .filter(Boolean)
+              .join(" ")
+          }
+        >
+          {({ id, value: row }, idx) => (
+            <>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-[5rem_5rem_minmax(0,1fr)]">
+                <div className="min-w-0 space-y-1">
+                  <label
+                    htmlFor={`${id}-quantity`}
+                    className="block text-xs font-medium text-muted-foreground"
                   >
-                    <SelectValue placeholder="Unit" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {INGREDIENT_UNITS.map((u) => (
-                      <SelectItem key={u} value={u}>
-                        {u.toLowerCase()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  value={row.displayText}
-                  onChange={(e) => setIngredient(idx, { displayText: e.target.value })}
-                  placeholder="Ingredient (e.g. all-purpose flour)"
-                  aria-label="Ingredient name"
-                  className="min-w-0 sm:flex-1"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeIngredient(idx)}
-                  aria-label="Remove ingredient"
-                  className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-1 rounded-input px-3 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:h-11 sm:w-11 sm:shrink-0"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-3.5 w-3.5"
-                    aria-hidden="true"
+                    Quantity
+                  </label>
+                  <Input
+                    id={`${id}-quantity`}
+                    value={row.quantityText}
+                    onChange={(e) =>
+                      setIngredient(id, { quantityText: e.target.value })
+                    }
+                    placeholder="e.g. 1/2"
+                    aria-label={`Ingredient ${idx + 1} quantity`}
+                    inputMode="decimal"
+                    autoComplete="off"
+                    className="h-11 text-base sm:text-sm"
+                  />
+                </div>
+                <div className="min-w-0 space-y-1">
+                  <label
+                    htmlFor={`${id}-unit`}
+                    className="block text-xs font-medium text-muted-foreground"
                   >
-                    <path d="M18 6 6 18" />
-                    <path d="m6 6 12 12" />
-                  </svg>
-                  <span className="sm:hidden">Remove ingredient</span>
-                </button>
+                    Unit
+                  </label>
+                  <Select
+                    value={row.unit}
+                    onValueChange={(value) =>
+                      setIngredient(id, {
+                        unit: (value || "") as IngredientUnit | "",
+                      })
+                    }
+                  >
+                    <SelectTrigger
+                      id={`${id}-unit`}
+                      aria-label={`Ingredient ${idx + 1} unit`}
+                      className="h-11 text-base sm:text-sm"
+                    >
+                      <SelectValue placeholder="Unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INGREDIENT_UNITS.map((unit) => (
+                        <SelectItem key={unit} value={unit}>
+                          {unit.toLowerCase()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-2 min-w-0 space-y-1 sm:col-span-1">
+                  <label
+                    htmlFor={id}
+                    className="block text-xs font-medium text-muted-foreground"
+                  >
+                    Ingredient text
+                  </label>
+                  <Input
+                    id={id}
+                    value={row.displayText}
+                    onChange={(e) =>
+                      setIngredient(id, { displayText: e.target.value })
+                    }
+                    placeholder="e.g. all-purpose flour"
+                    aria-label={`Ingredient ${idx + 1} name`}
+                    className="h-11 text-base sm:text-sm"
+                  />
+                </div>
               </div>
-              <div className="mt-1">
+              <div className="mt-3">
                 <IngredientMapper
                   ingredientId={row.ingredientId}
                   ingredientName={row.ingredientName}
-                  onMap={(id, name) =>
-                    setIngredient(idx, { ingredientId: id, ingredientName: name })
+                  onMap={(ingredientId, name) =>
+                    setIngredient(id, { ingredientId, ingredientName: name })
                   }
                   onClear={() =>
-                    setIngredient(idx, { ingredientId: null, ingredientName: null })
+                    setIngredient(id, {
+                      ingredientId: null,
+                      ingredientName: null,
+                    })
                   }
                 />
               </div>
-            </li>
-          ))}
-        </ul>
+            </>
+          )}
+        </SortableRecipeList>
       </section>
 
       <section className="space-y-3">
-        <div className="flex items-baseline justify-between">
-          <h2 className="font-display text-xl text-foreground">Instructions</h2>
-          <button
-            type="button"
-            onClick={addInstruction}
-            className="min-h-11 cursor-pointer rounded-input px-3 py-2 text-xs font-semibold text-primary-on-card transition-colors hover:bg-primary/10"
-          >
-            + Add step
-          </button>
-        </div>
-        <ol className="space-y-2">
-          {instructions.map((text, idx) => (
-            <li
-              key={idx}
-              className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-2"
-            >
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground sm:mt-2">
-                {idx + 1}
-              </span>
+        <h2 className="font-display text-xl text-foreground">Instructions</h2>
+        <SortableRecipeList
+          kind="step"
+          rows={instructions.rows}
+          disabled={pending}
+          onAdd={instructions.add}
+          onMove={instructions.move}
+          onRemove={instructions.remove}
+          getText={(text) => text}
+        >
+          {({ id, value }, idx) => (
+            <>
+              <label htmlFor={id} className="sr-only">
+                Step {idx + 1}
+              </label>
               <Textarea
-                value={text}
-                onChange={(e) => setInstruction(idx, e.target.value)}
-                rows={2}
-                placeholder={`Step ${idx + 1}`}
-                className="min-h-[2.5rem] min-w-0 sm:flex-1"
+                id={id}
+                value={value}
+                onChange={(e) => instructions.update(id, e.target.value)}
+                rows={3}
+                placeholder={`Describe step ${idx + 1}`}
+                className="min-h-24 resize-y text-base [field-sizing:content] sm:text-sm"
               />
-              <button
-                type="button"
-                onClick={() => removeInstruction(idx)}
-                aria-label="Remove step"
-                className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-1 rounded-input px-3 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:mt-1 sm:h-11 sm:w-11 sm:shrink-0"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-3.5 w-3.5"
-                  aria-hidden="true"
-                >
-                  <path d="M18 6 6 18" />
-                  <path d="m6 6 12 12" />
-                </svg>
-                <span className="sm:hidden">Remove step</span>
-              </button>
-            </li>
-          ))}
-        </ol>
+            </>
+          )}
+        </SortableRecipeList>
         {fieldErrors.instructions?.[0] && (
-          <p className="text-xs text-destructive">{fieldErrors.instructions[0]}</p>
+          <p className="text-xs text-destructive">
+            {fieldErrors.instructions[0]}
+          </p>
         )}
       </section>
 
@@ -461,7 +466,9 @@ export default function RecipeForm({
       <section className="space-y-2">
         <label htmlFor="notes" className="block text-sm font-medium">
           Notes
-          <span className="ml-1 text-muted-foreground">(markdown supported)</span>
+          <span className="ml-1 text-muted-foreground">
+            (markdown supported)
+          </span>
         </label>
         <Textarea
           id="notes"
@@ -474,7 +481,10 @@ export default function RecipeForm({
       </section>
 
       {error && (
-        <div className="rounded-input border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div
+          role="alert"
+          className="rounded-input border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        >
           {error}
         </div>
       )}
@@ -482,11 +492,19 @@ export default function RecipeForm({
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
         <Button
           variant="secondary"
-          href={mode === "edit" && initial.id ? `/recipes/${initial.id}` : "/recipes"}
+          href={
+            mode === "edit" && initial.id
+              ? `/recipes/${initial.id}`
+              : "/recipes"
+          }
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={pending} className="w-full px-5 sm:w-auto">
+        <Button
+          type="submit"
+          disabled={pending}
+          className="w-full px-5 sm:w-auto"
+        >
           {pending
             ? mode === "create"
               ? "Creating…"
