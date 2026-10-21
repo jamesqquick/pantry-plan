@@ -1,9 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { ChefHat, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { toggleCheckedItem } from "./cook-mode-state";
+import { RecipeScaleControl } from "./RecipeScaleControl";
+import {
+  scaleRecipeIngredient,
+  scaleRecipeServings,
+  type RecipeIngredientForScaling,
+  type RecipeScale,
+} from "@/features/recipes/recipe-scaling";
+import { formatIngredientQuantity } from "@/lib/ingredients/format-ingredient-line";
 
 interface RecipeMetaItem {
   label: string;
@@ -11,27 +19,60 @@ interface RecipeMetaItem {
 }
 
 interface RecipeCookModeProps {
+  recipeId: string;
   title: string;
+  servings: number | null;
   meta: RecipeMetaItem[];
-  ingredients: string[];
+  ingredients: RecipeIngredientForScaling[];
   instructions: string[];
 }
 
 export function RecipeCookMode({
+  recipeId,
   title,
+  servings,
   meta,
   ingredients,
   instructions,
 }: RecipeCookModeProps) {
   const [isActive, setIsActive] = useState(false);
-  const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(
+  const [scale, setScale] = useState<RecipeScale>(1);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const scrollAnchor = useRef<{ element: HTMLLabelElement; top: number } | null>(null);
+  const [checkedIngredients, setCheckedIngredients] = useState<Set<string>>(
     () => new Set(),
   );
   const [checkedInstructions, setCheckedInstructions] = useState<Set<number>>(
     () => new Set(),
   );
+
+  function changeScale(nextScale: RecipeScale) {
+    const panel = panelRef.current;
+    scrollAnchor.current = null;
+    if (panel && panel.scrollTop > 0) {
+      const headerBottom = panel.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+      const visibleLabels = Array.from(panel.querySelectorAll<HTMLLabelElement>("main label"))
+        .filter((label) => {
+          const bounds = label.getBoundingClientRect();
+          return bounds.bottom > headerBottom && bounds.top < panel.clientHeight;
+        });
+      const anchor = visibleLabels.find((label) => label.contains(document.activeElement)) ?? visibleLabels[0];
+      if (anchor) scrollAnchor.current = { element: anchor, top: anchor.getBoundingClientRect().top };
+    }
+    setScale(nextScale);
+  }
+
+  useLayoutEffect(() => {
+    const anchor = scrollAnchor.current;
+    scrollAnchor.current = null;
+    if (anchor && panelRef.current) {
+      panelRef.current.scrollTop += anchor.element.getBoundingClientRect().top - anchor.top;
+    }
+  }, [scale]);
+
   function exitCookMode() {
     setIsActive(false);
+    setScale(1);
     setCheckedIngredients(new Set());
     setCheckedInstructions(new Set());
   }
@@ -105,9 +146,15 @@ export function RecipeCookMode({
     };
   }, [isActive]);
 
+  const scaledIngredients = ingredients.map((ingredient) => scaleRecipeIngredient(ingredient, scale));
+  const scalableCount = scaledIngredients.filter((ingredient) => ingredient.status === "scalable").length;
+  const reviewCount = scaledIngredients.filter((ingredient) => ingredient.status === "needs-review").length;
+  const scaledServings = scaleRecipeServings(servings, scale);
+
   const panel = (
     <DialogPrimitive.Content
-      className="fixed inset-0 z-[60] overflow-y-auto bg-background text-foreground"
+      ref={panelRef}
+      className="fixed inset-0 z-[60] overflow-y-auto bg-background text-foreground [overflow-anchor:none]"
     >
       <DialogPrimitive.Description className="sr-only">
         A focused cooking view with checkable ingredients and instructions.
@@ -123,6 +170,9 @@ export function RecipeCookMode({
                 {title}
               </h1>
             </DialogPrimitive.Title>
+            <p className="mt-1 font-ui text-sm text-muted-foreground">
+              {scale === 1 ? "Original batch" : `${scale}× batch`}
+            </p>
           </div>
           <DialogPrimitive.Close asChild>
             <Button
@@ -138,13 +188,40 @@ export function RecipeCookMode({
       </header>
 
       <main className="mx-auto max-w-6xl space-y-8 py-6 pb-[calc(2rem+env(safe-area-inset-bottom))] pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] sm:py-8 sm:pl-[max(2rem,env(safe-area-inset-left))] sm:pr-[max(2rem,env(safe-area-inset-right))]">
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-divider pb-6 font-ui text-sm">
-          {meta.map((item) => (
-            <div key={item.label} className="flex items-baseline gap-1.5">
-              <span className="text-muted-foreground">{item.label}</span>
-              <span className="font-semibold tabular-nums">{item.value}</span>
+        <div className="space-y-4 border-b border-divider pb-6 font-ui text-sm">
+          <RecipeScaleControl value={scale} onChange={changeScale} disabled={scalableCount === 0} />
+          <p role="status" aria-live="polite" aria-atomic="true" className="text-muted-foreground">
+            {scaledServings != null
+              ? `Makes ${formatIngredientQuantity(scaledServings, null)} servings${scale !== 1 ? ` · Original recipe serves ${servings}` : ""}`
+              : scale === 1 ? "Original recipe" : `${scale}× original recipe`}
+          </p>
+          {scalableCount === 0 ? (
+            <p className="text-muted-foreground">Add ingredient quantities to use batch scaling.</p>
+          ) : scale !== 1 && (
+            <p className="text-muted-foreground">
+              {`${scalableCount} ingredient amount${scalableCount === 1 ? "" : "s"} adjusted.${reviewCount > 0 ? ` ${reviewCount} ${reviewCount === 1 ? "needs" : "need"} checking.` : ""}`}
+            </p>
+          )}
+          {(scalableCount === 0 || (scale !== 1 && reviewCount > 0)) && (
+            <a href={`/recipes/${recipeId}/edit#recipe-ingredients`} className="inline-flex min-h-11 items-center font-semibold text-primary-on-card underline underline-offset-4">
+              Review quantities
+            </a>
+          )}
+          {meta.length > 0 && (
+            <div className="space-y-2 pt-1">
+              <p className="text-xs text-muted-foreground">
+                {scale === 1 ? "Recipe timing" : "Original recipe timing"}
+              </p>
+              <div className="flex flex-wrap gap-x-6 gap-y-3">
+                {meta.map((item) => (
+                  <div key={item.label} className="flex items-baseline gap-1.5">
+                    <span className="text-muted-foreground">{item.label}</span>
+                    <span className="font-semibold tabular-nums">{item.value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
+          )}
         </div>
 
         <div className="grid gap-10 lg:grid-cols-5 lg:gap-12">
@@ -156,17 +233,20 @@ export function RecipeCookMode({
               <p className="mt-4 text-muted-foreground">No ingredients listed.</p>
             ) : (
               <ul className="mt-4 divide-y divide-divider">
-                {ingredients.map((ingredient, index) => {
-                  const checked = checkedIngredients.has(index);
+                {scaledIngredients.map((ingredient) => {
+                  const checked = checkedIngredients.has(ingredient.id);
+                  const needsReview = scale !== 1 && ingredient.status === "needs-review";
                   return (
-                    <li key={`${ingredient}-${index}`}>
+                    <li key={ingredient.id}>
                       <label className="flex min-h-12 cursor-pointer items-start gap-3 py-3 text-base leading-relaxed">
                         <input
                           type="checkbox"
+                          aria-label={ingredient.text}
+                          aria-describedby={needsReview ? `cook-review-${ingredient.id}` : undefined}
                           checked={checked}
                           onChange={() =>
                             setCheckedIngredients((current) =>
-                              toggleCheckedItem(current, index),
+                              toggleCheckedItem(current, ingredient.id),
                             )
                           }
                           className="mt-0.5 h-5 w-5 shrink-0 accent-primary"
@@ -177,7 +257,13 @@ export function RecipeCookMode({
                             checked && "text-muted-foreground line-through opacity-70",
                           )}
                         >
-                          {ingredient}
+                          {ingredient.text}
+                          {needsReview && (
+                            <span id={`cook-review-${ingredient.id}`} className="mt-1 block text-xs font-normal text-muted-foreground">
+                              <span className="font-semibold text-foreground">Check amount</span>
+                              {" · Original amount shown for 1×"}
+                            </span>
+                          )}
                         </span>
                       </label>
                     </li>
@@ -191,6 +277,11 @@ export function RecipeCookMode({
             <h2 id="cook-instructions-title" className="font-editorial text-3xl">
               Instructions
             </h2>
+            {scale !== 1 && (
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                Steps and timing are for the original batch. Use the adjusted ingredient amounts above; cooking times may vary.
+              </p>
+            )}
             {instructions.length === 0 ? (
               <p className="mt-4 text-muted-foreground">No instructions listed.</p>
             ) : (

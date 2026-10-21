@@ -7,9 +7,7 @@ import RecipeActions from "@/components/recipes/RecipeActions";
 import { RecipeCookMode } from "@/components/recipes/RecipeCookMode";
 import { TagBadge } from "@/components/ui/TagBadge";
 import { renderMarkdownToHtml } from "@/features/markdown/render-markdown";
-import { formatQuantity } from "@/lib/quantity/quantity";
-import { formatUnitForDisplay } from "@/lib/units";
-import { UNIT_LABELS } from "@/lib/ingredients/units";
+import { formatIngredientLine } from "@/lib/ingredients/format-ingredient-line";
 import {
   createDb,
   ingredient,
@@ -85,21 +83,6 @@ const notesHtml = r.notes?.trim()
   : null;
 
 const hasUnmappedIngredients = ingredients.some((i) => !i.ingredientId);
-
-/** Format a single ingredient line from structured fields. */
-function formatIngredientLine(i: (typeof ingredients)[number]): string {
-  const parts: string[] = [];
-  if (i.quantity != null && Number.isFinite(i.quantity)) {
-    parts.push(formatQuantity(i.quantity));
-  }
-  const unitLabel = i.unit ? UNIT_LABELS[i.unit] : null;
-  const unitDisplay = formatUnitForDisplay(unitLabel, i.quantity);
-  if (unitDisplay) parts.push(unitDisplay);
-  const name =
-    (i.displayText?.trim() || i.ingredientName?.trim()) ?? "Unparsed ingredient";
-  parts.push(name);
-  return parts.join(" ");
-}
 
 const meta: { label: string; value: string }[] = [];
 if (r.prepTimeMinutes != null) meta.push({ label: "Prep", value: `${r.prepTimeMinutes}m` });
@@ -196,9 +179,11 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
         <div slot="actions" class="flex items-center gap-2">
           <RecipeCookMode
             client:load
+            recipeId={r.id}
             title={r.title}
-            meta={meta}
-            ingredients={ingredients.map(formatIngredientLine)}
+            servings={r.servings}
+            meta={meta.filter((item) => item.label !== "Servings")}
+            ingredients={ingredients}
             instructions={instructions.map((instruction) => instruction.text)}
           />
           <RecipeActions client:load recipeId={r.id} hasUnmappedIngredients={hasUnmappedIngredients} />

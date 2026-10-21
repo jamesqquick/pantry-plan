@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   parseQuantityText,
   formatQuantity,
+  formatQuantityForInput,
   normalizeQuantityText,
   adjustQuantity,
 } from "./quantity";
@@ -28,6 +29,8 @@ describe("parseQuantityText", () => {
     expect(parseQuantityText("¼")).toBe(0.25);
     expect(parseQuantityText("¾")).toBeCloseTo(0.75);
     expect(parseQuantityText("⅓")).toBeCloseTo(1 / 3);
+    expect(parseQuantityText("1½")).toBe(1.5);
+    expect(parseQuantityText("2¼")).toBe(2.25);
   });
   it("returns null for empty", () => {
     expect(parseQuantityText("")).toBeNull();
@@ -43,6 +46,16 @@ describe("parseQuantityText", () => {
     expect(parseQuantityText("1e3")).toBeNull();
     expect(parseQuantityText("12abc34")).toBeNull();
     expect(parseQuantityText("1abc")).toBeNull();
+  });
+});
+
+describe("formatQuantityForInput", () => {
+  it.each([1 / 64, 1 / 32, 0.01, 1.2345, 0, 250])("round-trips editable quantity %s without a display approximation", (quantity) => {
+    expect(parseQuantityText(formatQuantityForInput(quantity))).toBe(quantity);
+  });
+
+  it.each([null, Number.NaN, Number.POSITIVE_INFINITY, -1])("leaves invalid quantity %s blank", (quantity) => {
+    expect(formatQuantityForInput(quantity)).toBe("");
   });
 });
 

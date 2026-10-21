@@ -74,10 +74,20 @@ export const saveImportedRecipeSchema = z.object({
     .min(1, "At least one ingredient required"),
 });
 
+export const saveImportedRecipeTextOnlyIngredientSchema = z.union([
+  z.string().max(MAX_INGREDIENT_LINE),
+  z.object({
+    rawText: z.string().max(MAX_INGREDIENT_LINE).nullable(),
+    displayText: z.string().trim().min(1, "Ingredient text is required.").max(MAX_INGREDIENT_LINE),
+    quantity: z.number().min(0, "Quantity must be 0 or greater").nullable(),
+    unit: z.enum(INGREDIENT_UNITS).nullable(),
+  }),
+]);
+
 export const saveImportedRecipeTextOnlySchema = z.object({
   recipe: saveImportedRecipeRecipeSchema,
   ingredients: z
-    .array(z.string().max(MAX_INGREDIENT_LINE))
+    .array(saveImportedRecipeTextOnlyIngredientSchema)
     .max(MAX_LINES_PER_RECIPE)
     .min(1, "At least one ingredient required"),
 });

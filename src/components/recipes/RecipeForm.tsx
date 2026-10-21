@@ -304,7 +304,7 @@ export default function RecipeForm({
         </div>
       </section>
 
-      <section className="space-y-3">
+      <section id="recipe-ingredients" className="scroll-mt-24 space-y-3">
         <h2 className="font-display text-xl text-foreground">Ingredients</h2>
         <SortableRecipeList
           kind="ingredient"
