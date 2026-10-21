@@ -1,0 +1,63 @@
+src/actions/import.ts
+  s_348f2f1062e6bb::t_83c95468a3d211 5,339-340
+src/components/app/AppHeader.test.tsx
+  s_348f2f1062e6bb::t_f5a95885f7411b 1-37
+src/components/app/AppHeader.tsx
+  s_348f2f1062e6bb::t_b5176d975600a7 26,68-69
+src/components/recipes/RecipeCookMode.test.tsx
+  s_348f2f1062e6bb::t_166d845e49f071 9,11,15-18,61,66-180
+src/components/recipes/RecipeCookMode.tsx
+  s_348f2f1062e6bb::t_144d35b0837d1e 1,7-14,22,24,26,31,33,39-42,48-72,75,149-153,156-157,173-175,191-222,224,236-238,240,244-245,249,260-266,280-284
+src/components/recipes/RecipeScaleControl.tsx
+  s_348f2f1062e6bb::t_edc41f4846147b 1-37
+src/components/recipes/cook-mode-state.ts
+  s_348f2f1062e6bb::t_bb59fc99276954 1-4,6-7
+src/features/import/import.schemas.test.ts
+  s_348f2f1062e6bb::t_5bdf243b09f2f3 1-60
+src/features/import/import.schemas.ts
+  s_348f2f1062e6bb::t_820fb250a65342 77-86,90
+src/features/recipes/create-text-recipe.test.ts
+  s_348f2f1062e6bb::t_8706e63f0e531b 1-85
+src/features/recipes/create-text-recipe.ts
+  s_348f2f1062e6bb::t_d3d4ad9a2d1248 13,49-72
+src/features/recipes/recipe-scaling.test.ts
+  s_348f2f1062e6bb::t_d73b8f80b9b658 1-129
+src/features/recipes/recipe-scaling.ts
+  s_348f2f1062e6bb::t_15ab2d6c912787 1-59
+src/lib/ingredients/format-ingredient-line.test.ts
+  s_348f2f1062e6bb::t_b580ee2af3c80b 1-27
+src/lib/ingredients/format-ingredient-line.ts
+  s_348f2f1062e6bb::t_1124ec9f44eacd 1-39
+src/lib/ingredients/parse-ingredient-line-structured.test.ts
+  s_348f2f1062e6bb::t_74a4a8ed060dbd 5,9-55
+src/lib/ingredients/parse-ingredient-line-structured.ts
+  s_348f2f1062e6bb::t_a5419bb8421215 9,18-84
+src/lib/ingredients/recipe-mapping.test.ts
+  s_348f2f1062e6bb::t_69209e15224ea1 168-182
+src/lib/ingredients/recipe-mapping.ts
+  s_348f2f1062e6bb::t_e66ff484d8fe84 2,190-193,196-198
+src/lib/quantity/quantity.test.ts
+  s_348f2f1062e6bb::t_41b613c15a855d 5,32-33,52-61
+src/lib/quantity/quantity.ts
+  s_348f2f1062e6bb::t_c306db4fb61e03 19,108-112
+src/pages/recipes/[id]/edit.astro
+  s_348f2f1062e6bb::t_667866a39c3c63 10,73
+src/pages/recipes/[id]/index.astro
+  s_348f2f1062e6bb::t_8e1973f5cbacee 10,182,184-186
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "3f2ccdc6726ba05b36261f2da93074d5c7adf88a",
+  "prompts": {},
+  "sessions": {
+    "s_348f2f1062e6bb": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_eb0bcb9a1ffe1a9cNmSq0o6Ii9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
