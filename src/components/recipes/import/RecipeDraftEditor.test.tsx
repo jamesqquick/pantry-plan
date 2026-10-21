@@ -54,6 +54,33 @@ afterEach(() => {
 });
 
 describe("RecipeDraftEditor", () => {
+  it("places full-width add actions after each list and styles remove actions destructively", () => {
+    renderEditor();
+
+    const addIngredient = screen.getByRole("button", { name: "Add ingredient" });
+    expect(addIngredient.className).toContain("bg-background");
+    expect(addIngredient.className).toContain("w-full");
+    expect(addIngredient.className).toContain("sm:w-auto");
+    expect(addIngredient.parentElement?.className).toContain("justify-end");
+    expect(addIngredient.parentElement?.previousElementSibling?.className)
+      .toContain("space-y-3");
+
+    const addStep = screen.getByRole("button", { name: "Add step" });
+    expect(addStep.className).toContain("bg-background");
+    expect(addStep.className).toContain("w-full");
+    expect(addStep.className).toContain("sm:w-auto");
+    expect(addStep.parentElement?.className).toContain("justify-end");
+    expect(addStep.parentElement?.previousElementSibling?.className)
+      .toContain("space-y-2");
+
+    for (const label of ["Remove ingredient 1", "Remove step 1"]) {
+      const removeButton = screen.getByRole("button", { name: label });
+      expect(removeButton.className).toContain("bg-destructive");
+      expect(removeButton.className).toContain("h-11");
+      expect(removeButton.className).toContain("w-11");
+    }
+  });
+
   it("does not request ingredient mapping on render", () => {
     renderEditor();
 

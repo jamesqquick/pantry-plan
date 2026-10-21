@@ -14,10 +14,11 @@ const { update } = vi.hoisted(() => ({ update: vi.fn() }));
 vi.mock("astro:actions", () => ({ actions: { recipes: { update } } }));
 vi.mock("./IngredientMapper", () => ({ IngredientMapper: () => null }));
 
-let sqlite: DatabaseSync;
+let sqlite: DatabaseSync | undefined;
 afterEach(() => {
   cleanup();
   sqlite?.close();
+  sqlite = undefined;
   vi.resetAllMocks();
 });
 
@@ -60,4 +61,56 @@ it("preserves imported small quantities when submitting an unrelated title edit"
     })),
   });
   expect(rows.map((row) => row.quantity)).toEqual([1 / 64, 1 / 32, 0.01, 1.2345]);
+});
+
+it("places add actions after their lists and gives remove actions destructive styling", () => {
+  render(
+    <RecipeForm
+      mode="create"
+      allTags={[]}
+      initial={{
+        title: "Recipe",
+        sourceUrl: "",
+        imageUrl: "",
+        servings: "",
+        prepTimeMinutes: "",
+        cookTimeMinutes: "",
+        totalTimeMinutes: "",
+        notes: "",
+        instructions: ["Mix ingredients."],
+        ingredients: [{
+          displayText: "flour",
+          quantityText: "1",
+          unit: "",
+          rawText: null,
+          ingredientId: null,
+        }],
+        tagIds: [],
+      }}
+    />,
+  );
+
+  const addIngredient = screen.getByRole("button", { name: /Add ingredient/ });
+  expect(addIngredient.className).toContain("bg-background");
+  expect(addIngredient.className).toContain("min-h-11");
+  expect(addIngredient.className).toContain("w-full");
+  expect(addIngredient.className).toContain("sm:w-auto");
+  expect(addIngredient.parentElement?.className).toContain("justify-end");
+  expect(addIngredient.parentElement?.previousElementSibling?.tagName).toBe("UL");
+
+  const addStep = screen.getByRole("button", { name: /Add step/ });
+  expect(addStep.className).toContain("bg-background");
+  expect(addStep.className).toContain("min-h-11");
+  expect(addStep.className).toContain("w-full");
+  expect(addStep.className).toContain("sm:w-auto");
+  expect(addStep.parentElement?.className).toContain("justify-end");
+  expect(addStep.parentElement?.previousElementSibling?.tagName).toBe("OL");
+
+  const removeIngredient = screen.getByRole("button", { name: "Remove ingredient" });
+  expect(removeIngredient.className).toContain("bg-destructive");
+  expect(removeIngredient.className).toContain("min-h-11");
+
+  const removeStep = screen.getByRole("button", { name: "Remove step" });
+  expect(removeStep.className).toContain("bg-destructive");
+  expect(removeStep.className).toContain("min-h-11");
 });

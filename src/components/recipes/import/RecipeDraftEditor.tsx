@@ -412,11 +412,13 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                     </p>
                   </div>
                   {ingredients.length > 1 && (
-                    <button
+                    <Button
                       type="button"
+                      variant="danger"
+                      size="sm"
                       onClick={() => removeIngredient(row.id)}
                       disabled={saving}
-                      className="min-h-11 min-w-11 shrink-0 cursor-pointer rounded-input px-3 py-2 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-red-900/20"
+                      className="h-11 w-11 shrink-0 p-0"
                       title="Remove ingredient"
                       aria-label={`Remove ingredient ${idx + 1}`}
                     >
@@ -434,7 +436,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                         <path d="M18 6 6 18" />
                         <path d="m6 6 12 12" />
                       </svg>
-                    </button>
+                    </Button>
                   )}
                 </div>
 
@@ -513,16 +515,18 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
           })}
         </div>
 
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={addIngredient}
-          disabled={saving}
-          className="mt-2"
-        >
-          Add ingredient
-        </Button>
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={addIngredient}
+            disabled={saving}
+            className="mt-2 min-h-11 w-full sm:w-auto"
+          >
+            Add ingredient
+          </Button>
+        </div>
       </section>
 
       {/* Instructions */}
@@ -542,10 +546,12 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                 className="flex-1"
               />
               {instructions.length > 1 && (
-                <button
+                <Button
                   type="button"
+                  variant="danger"
+                  size="sm"
                   onClick={() => removeInstruction(idx)}
-                  className="min-h-11 min-w-11 cursor-pointer self-start rounded-input px-3 py-2 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                  className="h-11 w-11 shrink-0 self-start p-0"
                   title="Remove step"
                   aria-label={`Remove step ${idx + 1}`}
                 >
@@ -563,20 +569,22 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                     <path d="M18 6 6 18" />
                     <path d="m6 6 12 12" />
                   </svg>
-                </button>
+                </Button>
               )}
             </div>
           ))}
         </div>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={addInstruction}
-          className="mt-2"
-        >
-          Add step
-        </Button>
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={addInstruction}
+            className="mt-2 min-h-11 w-full sm:w-auto"
+          >
+            Add step
+          </Button>
+        </div>
       </div>
 
       {/* Notes */}
