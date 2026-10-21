@@ -289,16 +289,7 @@ export default function RecipeForm({
       </section>
 
       <section id="recipe-ingredients" className="scroll-mt-24 space-y-3">
-        <div className="flex items-baseline justify-between">
-          <h2 className="font-display text-xl text-foreground">Ingredients</h2>
-          <button
-            type="button"
-            onClick={addIngredient}
-            className="min-h-11 cursor-pointer rounded-input px-3 py-2 text-xs font-semibold text-primary-on-card transition-colors hover:bg-primary/10"
-          >
-            + Add ingredient
-          </button>
-        </div>
+        <h2 className="font-display text-xl text-foreground">Ingredients</h2>
         <ul className="space-y-2">
           {ingredients.map((row, idx) => (
             <li
@@ -344,11 +335,14 @@ export default function RecipeForm({
                   aria-label="Ingredient name"
                   className="min-w-0 sm:flex-1"
                 />
-                <button
+                <Button
                   type="button"
+                  variant="danger"
+                  size="sm"
                   onClick={() => removeIngredient(idx)}
                   aria-label="Remove ingredient"
-                  className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-1 rounded-input px-3 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:h-11 sm:w-11 sm:shrink-0"
+                  title="Remove ingredient"
+                  className="min-h-11 w-full shrink-0 sm:h-11 sm:min-w-11 sm:w-11 sm:px-0"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -365,7 +359,7 @@ export default function RecipeForm({
                     <path d="m6 6 12 12" />
                   </svg>
                   <span className="sm:hidden">Remove ingredient</span>
-                </button>
+                </Button>
               </div>
               <div className="mt-1">
                 <IngredientMapper
@@ -382,19 +376,21 @@ export default function RecipeForm({
             </li>
           ))}
         </ul>
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={addIngredient}
+            className="min-h-11 w-full sm:w-auto"
+          >
+            + Add ingredient
+          </Button>
+        </div>
       </section>
 
       <section className="space-y-3">
-        <div className="flex items-baseline justify-between">
-          <h2 className="font-display text-xl text-foreground">Instructions</h2>
-          <button
-            type="button"
-            onClick={addInstruction}
-            className="min-h-11 cursor-pointer rounded-input px-3 py-2 text-xs font-semibold text-primary-on-card transition-colors hover:bg-primary/10"
-          >
-            + Add step
-          </button>
-        </div>
+        <h2 className="font-display text-xl text-foreground">Instructions</h2>
         <ol className="space-y-2">
           {instructions.map((text, idx) => (
             <li
@@ -411,11 +407,14 @@ export default function RecipeForm({
                 placeholder={`Step ${idx + 1}`}
                 className="min-h-[2.5rem] min-w-0 sm:flex-1"
               />
-              <button
+              <Button
                 type="button"
+                variant="danger"
+                size="sm"
                 onClick={() => removeInstruction(idx)}
                 aria-label="Remove step"
-                className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-1 rounded-input px-3 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:mt-1 sm:h-11 sm:w-11 sm:shrink-0"
+                title="Remove step"
+                className="min-h-11 w-full shrink-0 sm:mt-1 sm:h-11 sm:min-w-11 sm:w-11 sm:px-0"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -432,13 +431,24 @@ export default function RecipeForm({
                   <path d="m6 6 12 12" />
                 </svg>
                 <span className="sm:hidden">Remove step</span>
-              </button>
+              </Button>
             </li>
           ))}
         </ol>
         {fieldErrors.instructions?.[0] && (
           <p className="text-xs text-destructive">{fieldErrors.instructions[0]}</p>
         )}
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={addInstruction}
+            className="min-h-11 w-full sm:w-auto"
+          >
+            + Add step
+          </Button>
+        </div>
       </section>
 
       {allTags.length > 0 && (
