@@ -26,16 +26,16 @@ export function OAuthConsent({ oauthQuery, scopes, email }: { oauthQuery: string
 
   return (
     <div className="space-y-5">
-      <p className="break-words text-sm">Connecting as <strong>{email}</strong>.</p>
+      <p className="break-words text-body">Connecting as <strong>{email}</strong>.</p>
       <div className="space-y-2">
-        <h2 className="text-sm font-semibold">ChatGPT is requesting permission to:</h2>
-        <ul className="list-disc space-y-2 pl-5 text-sm">
+        <h2 className="text-body font-semibold">ChatGPT is requesting permission to:</h2>
+        <ul className="list-disc space-y-2 pl-5 text-body">
           {scopes.map((scope) => <li key={scope}>{OAUTH_SCOPE_LABELS[scope]}</li>)}
         </ul>
       </div>
-      <p className="text-sm text-muted-foreground">ChatGPT will receive the recipe and meal-plan data returned by the tools you use. You can disconnect at any time in your Quick Pantry Profile.</p>
-      <p className="text-sm"><a className="text-primary-on-card underline" href="/privacy" target="_blank" rel="noopener noreferrer">Privacy policy</a>{" · "}<a className="text-primary-on-card underline" href="/terms" target="_blank" rel="noopener noreferrer">Terms of service</a></p>
-      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      <p className="text-body text-muted-foreground">ChatGPT will receive the recipe and meal-plan data returned by the tools you use. You can disconnect at any time in your Quick Pantry Profile.</p>
+      <p className="text-body"><a className="text-primary-on-card underline" href="/privacy" target="_blank" rel="noopener noreferrer">Privacy policy</a>{" · "}<a className="text-primary-on-card underline" href="/terms" target="_blank" rel="noopener noreferrer">Terms of service</a></p>
+      {error && <p role="alert" className="text-body text-destructive">{error}</p>}
       <div className="flex flex-col gap-3 sm:flex-row-reverse">
         <Button className="min-h-11 w-full" type="button" disabled={pending !== null} onClick={() => decide(true)}>{pending === "allow" ? "Connecting…" : "Allow connection"}</Button>
         <Button className="min-h-11 w-full" type="button" variant="outline" disabled={pending !== null} onClick={() => decide(false)}>{pending === "deny" ? "Declining…" : "Decline"}</Button>

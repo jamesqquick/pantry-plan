@@ -83,12 +83,12 @@ export function ProfileForm({ initialName, email, role }: Props) {
               className="flex-1 opacity-60"
             />
             {role === "ADMIN" && (
-              <span className="inline-flex items-center rounded-input px-2 py-0.5 bg-primary-icon-bg text-primary-icon-fg text-xs font-semibold shrink-0">
+              <span className="inline-flex items-center rounded-input px-2 py-0.5 bg-primary-icon-bg text-primary-icon-fg text-meta font-semibold shrink-0">
                 ADMIN
               </span>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-meta text-muted-foreground">
             Email cannot be changed.
           </p>
         </div>
@@ -123,7 +123,7 @@ export function ProfileForm({ initialName, email, role }: Props) {
 
       {/* Inline error */}
       {error && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-body text-destructive">
           {error}
         </p>
       )}
@@ -132,7 +132,7 @@ export function ProfileForm({ initialName, email, role }: Props) {
       {success && (
         <div
           role="status"
-          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-lg border border-green-600/30 bg-green-600 px-4 py-3 text-center text-sm font-medium text-white shadow-lg animate-toast-in lg:bottom-[calc(1rem+env(safe-area-inset-bottom))]"
+          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-lg border border-green-600/30 bg-green-600 px-4 py-3 text-center text-body font-medium text-white shadow-lg animate-toast-in lg:bottom-[calc(1rem+env(safe-area-inset-bottom))]"
         >
           Profile updated
         </div>

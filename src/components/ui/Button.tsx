@@ -15,7 +15,7 @@ const buttonVariants = cva(
         "ghost-danger": "border-[1.5px] border-destructive/30 bg-transparent text-destructive hover:bg-destructive/10",
       },
       size: {
-        sm: "px-3 py-1.5 text-xs",
+        sm: "px-3 py-1.5 text-meta",
         default: "px-4 py-2",
         lg: "px-6 py-3 text-base",
       },

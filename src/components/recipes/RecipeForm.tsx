@@ -260,7 +260,7 @@ export default function RecipeForm({
             aria-invalid={!!fieldErrors.title}
           />
           {fieldErrors.title?.[0] && (
-            <p className="mt-1 text-xs text-destructive">
+            <p className="mt-1 text-meta text-destructive">
               {fieldErrors.title[0]}
             </p>
           )}
@@ -374,7 +374,7 @@ export default function RecipeForm({
                 <div className="min-w-0 space-y-1">
                   <label
                     htmlFor={`${id}-quantity`}
-                    className="block text-xs font-medium text-muted-foreground"
+                    className="block text-meta font-medium text-muted-foreground"
                   >
                     Quantity
                   </label>
@@ -391,13 +391,13 @@ export default function RecipeForm({
                     aria-describedby={invalidFieldId === `${id}-quantity` ? "recipe-form-error" : undefined}
                     inputMode="decimal"
                     autoComplete="off"
-                    className="h-11 text-base sm:text-sm"
+                    className="h-11"
                   />
                 </div>
                 <div className="min-w-0 space-y-1">
                   <label
                     htmlFor={`${id}-unit`}
-                    className="block text-xs font-medium text-muted-foreground"
+                    className="block text-meta font-medium text-muted-foreground"
                   >
                     Unit
                   </label>
@@ -414,7 +414,7 @@ export default function RecipeForm({
                       aria-required="true"
                       aria-invalid={invalidFieldId === `${id}-unit`}
                       aria-describedby={invalidFieldId === `${id}-unit` ? "recipe-form-error" : undefined}
-                      className="h-11 text-base sm:text-sm"
+                      className="h-11"
                     >
                       <SelectValue placeholder="Unit" />
                     </SelectTrigger>
@@ -431,7 +431,7 @@ export default function RecipeForm({
                 <div className="col-span-2 min-w-0 space-y-1 sm:col-span-1">
                   <label
                     htmlFor={id}
-                    className="block text-xs font-medium text-muted-foreground"
+                    className="block text-meta font-medium text-muted-foreground"
                   >
                     Ingredient name
                   </label>
@@ -445,7 +445,7 @@ export default function RecipeForm({
                     aria-label={`Ingredient ${idx + 1} name`}
                     aria-invalid={invalidFieldId === id}
                     aria-describedby={invalidFieldId === id ? "recipe-form-error" : undefined}
-                    className="h-11 text-base sm:text-sm"
+                    className="h-11"
                   />
                 </div>
               </div>
@@ -491,13 +491,13 @@ export default function RecipeForm({
                 onChange={(e) => instructions.update(id, e.target.value)}
                 rows={3}
                 placeholder={`Describe step ${idx + 1}`}
-                className="min-h-24 resize-y text-base [field-sizing:content] sm:text-sm"
+                className="min-h-24 resize-y [field-sizing:content]"
               />
             </>
           )}
         </SortableRecipeList>
         {fieldErrors.instructions?.[0] && (
-          <p className="text-xs text-destructive">
+          <p className="text-meta text-destructive">
             {fieldErrors.instructions[0]}
           </p>
         )}
@@ -541,7 +541,7 @@ export default function RecipeForm({
         <div
           id="recipe-form-error"
           role="alert"
-          className="rounded-input border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+          className="rounded-input border border-destructive/40 bg-destructive/5 px-4 py-3 text-body text-destructive"
         >
           {error}
         </div>

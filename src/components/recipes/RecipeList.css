@@ -221,6 +221,15 @@
   .recipe-media { aspect-ratio: 16 / 9; }
 }
 
+@media (max-width: 39.999rem) {
+  .recipe-search input { font-size: var(--font-size-body); }
+  .recipe-more-tags,
+  .recipe-result-count,
+  .recipe-meta { font-size: var(--font-size-body); }
+  .recipe-add-photo { font-size: var(--font-size-meta); }
+  .recipe-source { font-size: var(--font-size-meta); }
+}
+
 @media (hover: hover) and (pointer: fine) {
   .recipe-add-photo { opacity: 0; }
   .recipe-card:hover .recipe-add-photo,

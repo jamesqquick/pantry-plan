@@ -105,14 +105,14 @@ export function ImportImageTab({
             <polyline points="17 8 12 3 7 8" />
             <line x1="12" x2="12" y1="3" y2="15" />
           </svg>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-body text-muted-foreground">
             {parsing
               ? "Extracting recipe..."
               : fileName
                 ? <span className="max-w-full break-all">{fileName}</span>
                 : "Click to upload a recipe photo"}
           </span>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-meta text-muted-foreground">
             JPEG, PNG, or WebP. Max 4 MB.
           </span>
           <input
@@ -131,17 +131,17 @@ export function ImportImageTab({
       </div>
 
       {parsing && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-body text-muted-foreground">
           <Spinner className="h-4 w-4" label="Analyzing image" />
           Analyzing image with AI… this may take a moment.
         </div>
       )}
 
       {parseError && (
-        <div role="alert" className="rounded-input bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">
+        <div role="alert" className="rounded-input bg-red-50 p-3 text-body text-red-700 dark:bg-red-900/20 dark:text-red-300">
           <p className="font-medium">Could not extract recipe from image</p>
           <p className="mt-1">{parseError}</p>
-          <p className="mt-2 text-xs opacity-80">
+          <p className="mt-2 text-meta opacity-80">
             Try a clearer photo, or use the "From URL" or "Manual" tabs instead.
           </p>
         </div>

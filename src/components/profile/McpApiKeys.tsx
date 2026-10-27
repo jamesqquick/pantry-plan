@@ -96,17 +96,17 @@ export function McpApiKeys({ endpoint, initialKeys }: Props) {
     <section className="rounded-lg border border-border bg-card p-6 space-y-5">
       <div className="space-y-1">
         <h2 className="text-lg font-semibold text-card-foreground">MCP access</h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           Create a key for each AI client that should be able to add recipes to
           your account.
         </p>
       </div>
 
       <div className="rounded-input border border-border bg-muted/40 p-3 space-y-1">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <p className="text-meta font-medium uppercase tracking-wide text-muted-foreground">
           MCP endpoint
         </p>
-        <code className="block break-all text-sm text-foreground">{endpoint}</code>
+        <code className="block break-all text-body text-foreground">{endpoint}</code>
       </div>
 
       <form onSubmit={handleCreate} className="flex flex-col gap-2 sm:flex-row">
@@ -126,12 +126,12 @@ export function McpApiKeys({ endpoint, initialKeys }: Props) {
       {newToken && (
         <div className="rounded-input border border-primary/30 bg-primary/5 p-4 space-y-3">
           <div>
-            <p className="text-sm font-semibold text-foreground">Copy your new key now</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-body font-semibold text-foreground">Copy your new key now</p>
+            <p className="text-meta text-muted-foreground">
               Quick Pantry cannot show this secret again.
             </p>
           </div>
-          <code className="block break-all rounded-input bg-background p-3 text-xs text-foreground">
+          <code className="block break-all rounded-input bg-background p-3 text-base text-foreground sm:text-xs">
             {newToken}
           </code>
           <div className="flex gap-2">
@@ -145,22 +145,22 @@ export function McpApiKeys({ endpoint, initialKeys }: Props) {
         </div>
       )}
 
-      {error && !keyToRevoke && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      {error && !keyToRevoke && <p role="alert" className="text-body text-destructive">{error}</p>}
 
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-foreground">Active keys</h3>
         {keys.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No MCP keys yet.</p>
+          <p className="text-body text-muted-foreground">No MCP keys yet.</p>
         ) : (
           <ul className="divide-y divide-border rounded-input border border-border">
             {keys.map((key) => (
               <li key={key.id} className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-foreground">{key.name}</p>
-                  <p className="font-mono text-xs text-muted-foreground">
+          <p className="font-mono text-meta text-muted-foreground">
                     {key.keyPrefix}...
                   </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-meta text-muted-foreground">
                     Created {formatDate(key.createdAt)} · Last used {formatDate(key.lastUsedAt)}
                   </p>
                 </div>

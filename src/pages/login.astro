@@ -19,7 +19,7 @@ if (invalidOAuth) Astro.response.status = 400;
 <AuthLayout title="Sign in" heading="Welcome back" subheading="Sign in to your Quick Pantry account.">
   {invalidOAuth ? <p role="alert">This connection request is invalid or expired. Restart the connection from ChatGPT.</p> : (
     <>
-      {oauthQuery && <p class="text-sm text-muted-foreground">Sign in to connect your Quick Pantry account to ChatGPT.</p>}
+      {oauthQuery && <p class="text-body text-muted-foreground">Sign in to connect your Quick Pantry account to ChatGPT.</p>}
       <LoginForm client:load next={nextParam} oauthQuery={oauthQuery} />
     </>
   )}

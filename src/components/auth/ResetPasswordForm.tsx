@@ -46,7 +46,7 @@ export function ResetPasswordForm({ token }: Props) {
   if (!token) {
     return (
       <div className="space-y-4">
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-body text-destructive">
           This password reset link is missing or invalid.
         </p>
         <a href="/forgot-password" className="block text-center text-sm font-medium text-primary-on-card hover:underline">
@@ -59,7 +59,7 @@ export function ResetPasswordForm({ token }: Props) {
   if (complete) {
     return (
       <div className="space-y-4">
-        <p role="status" className="text-sm text-muted-foreground">
+        <p role="status" className="text-body text-muted-foreground">
           Your password has been updated. You can sign in with your new password.
         </p>
         <a href="/login" className="block text-center text-sm font-medium text-primary-on-card hover:underline">
@@ -106,7 +106,7 @@ export function ResetPasswordForm({ token }: Props) {
       </div>
 
       {error && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-body text-destructive">
           {error}
         </p>
       )}

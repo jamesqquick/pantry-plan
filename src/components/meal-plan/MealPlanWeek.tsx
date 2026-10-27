@@ -175,7 +175,7 @@ export function MealPlanWeek({
           <h2 className="font-display text-xl text-card-foreground">
             Meals this week
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-body text-muted-foreground">
             Add or move meals by day. Drag a meal to another day to reschedule.
           </p>
         </div>
@@ -218,7 +218,7 @@ export function MealPlanWeek({
             <h2 className="font-display text-xl text-card-foreground">
               This week's recipes
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-body text-muted-foreground">
               Open a recipe to view details or edit ingredients.
             </p>
           </div>
@@ -227,7 +227,7 @@ export function MealPlanWeek({
               <li key={r.id}>
                 <a
                   href={`/recipes/${r.id}`}
-                  className="flex min-h-11 min-w-0 cursor-pointer items-center px-4 py-3 text-sm font-medium text-card-foreground transition-colors [overflow-wrap:anywhere] hover:bg-primary/5 hover:text-primary-on-card sm:px-6"
+                  className="flex min-h-11 min-w-0 cursor-pointer items-center px-4 py-3 text-body font-medium text-card-foreground transition-colors [overflow-wrap:anywhere] hover:bg-primary/5 hover:text-primary-on-card sm:px-6"
                 >
                   {r.title}
                 </a>
@@ -249,7 +249,7 @@ export function MealPlanWeek({
                 </span>
               )}
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-body text-muted-foreground">
               {hasRecipeMeals
                 ? "Based on the recipes you've planned above. Change the plan to update the list."
                 : "Add recipe-based meals above to generate a merged grocery list."}
@@ -259,7 +259,7 @@ export function MealPlanWeek({
             {hasRecipeMeals ? (
               <GroceryListDisplay grocery={grocery} showCost={true} />
             ) : (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-body text-muted-foreground">
                 Add recipe-based meals to generate a grocery list. Custom entries
                 (e.g. leftovers, takeout) don't include ingredients.
               </p>
@@ -287,7 +287,7 @@ export function MealPlanWeek({
       {moveError && (
         <div
           role="alert"
-          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-lg border border-destructive/30 bg-destructive px-4 py-3 text-sm font-medium text-destructive-foreground shadow-lg lg:bottom-[calc(1rem+env(safe-area-inset-bottom))]"
+          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-lg border border-destructive/30 bg-destructive px-4 py-3 text-body font-medium text-destructive-foreground shadow-lg lg:bottom-[calc(1rem+env(safe-area-inset-bottom))]"
         >
           {moveError}
         </div>
