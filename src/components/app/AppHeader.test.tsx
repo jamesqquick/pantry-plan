@@ -11,6 +11,13 @@ vi.mock("./UserMenu", () => ({ UserMenu: () => null }));
 
 afterEach(cleanup);
 
+it("omits the mobile bottom navigation while keeping the menu trigger", () => {
+  render(<AppHeader userEmail="cook@example.test" pathname="/recipes" />);
+
+  expect(screen.queryByRole("navigation", { name: "Primary" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Open menu" })).toBeTruthy();
+});
+
 it("preserves focus on an anchored page when the header mounts", () => {
   render(<>
     <h2 tabIndex={-1} ref={(heading) => { heading?.focus(); }}>Ingredients</h2>

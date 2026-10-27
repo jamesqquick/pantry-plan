@@ -11,19 +11,14 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Where the nav renders: desktop header, mobile bottom bar, or full-screen menu. */
-export type AppNavVariant = "header" | "bar" | "overlay";
+/** Where the nav renders: desktop header or full-screen menu. */
+export type AppNavVariant = "header" | "overlay";
 
 const VARIANT_CLASS: Record<AppNavVariant, { base: string; active: string; idle: string }> = {
   header: {
     base: "rounded-full px-3.5 py-2.5 text-sm font-semibold",
     active: "bg-nav-active text-nav-active-foreground",
     idle: "text-foreground hover:bg-header-hover",
-  },
-  bar: {
-    base: "rounded-2xl text-sm font-semibold",
-    active: "bg-nav-active text-nav-active-foreground",
-    idle: "text-muted-foreground hover:bg-header-hover hover:text-foreground",
   },
   overlay: {
     base: "rounded-full px-5 font-semibold",
