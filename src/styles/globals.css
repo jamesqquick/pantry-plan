@@ -383,6 +383,7 @@
     transition: background-color 150ms ease-out;
   }
 
+  .mobile-action-button:hover,
   .mobile-action-button:active {
     background: var(--accent);
   }
