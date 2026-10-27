@@ -11,11 +11,28 @@ const validDateStringSchema = z
     return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
   });
 
-const mcpRecipeIngredientSchema = z
-  .object({
-    ...requiredIngredientMeasurementsSchema.shape,
-    displayText: z.string().trim().min(1).max(500),
-    rawText: z.string().max(1_000).nullable().optional(),
+const mcpRecipeIngredientSchema = requiredIngredientMeasurementsSchema
+  .extend({
+    quantity: requiredIngredientMeasurementsSchema.shape.quantity.describe(
+      "Required numeric ingredient quantity, supplied separately from displayText.",
+    ),
+    unit: requiredIngredientMeasurementsSchema.shape.unit.describe(
+      "Required supported unit enum value, supplied separately from displayText.",
+    ),
+    displayText: z
+      .string()
+      .trim()
+      .min(1)
+      .max(500)
+      .describe(
+        "Ingredient name or description. Supply quantity and unit in their separate fields; do not rely on extracting them from this text.",
+      ),
+    rawText: z
+      .string()
+      .max(1_000)
+      .nullable()
+      .optional()
+      .describe("Optional original ingredient line; it does not replace quantity or unit fields."),
   })
   .strict();
 
