@@ -121,12 +121,12 @@ export function MealPlanDayCard({
             >
               <div className="min-w-0 flex-1">
                 <span
-                  className="block whitespace-normal text-sm font-medium [overflow-wrap:anywhere]"
+                  className="block whitespace-normal text-body font-medium [overflow-wrap:anywhere]"
                   title={title}
                 >
                   {title}
                 </span>
-                <p className="text-xs opacity-90">{slotLabel}</p>
+                <p className="text-meta opacity-90">{slotLabel}</p>
               </div>
             </button>
           );

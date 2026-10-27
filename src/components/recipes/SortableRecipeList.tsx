@@ -120,7 +120,7 @@ function SortableRecipeRow({
         >
           <GripVertical className="size-5" aria-hidden="true" />
         </button>
-        <span className="ml-1 min-w-0 flex-1 text-xs font-semibold text-muted-foreground">
+        <span className="ml-1 min-w-0 flex-1 text-meta font-semibold text-muted-foreground">
           {kind === "ingredient" ? (
             <span className="sr-only">{label}</span>
           ) : (
@@ -217,7 +217,7 @@ export function SortableRecipeList<T>({
         onMove(String(source.id), source.index);
       }}
     >
-      <p className="text-xs leading-relaxed text-muted-foreground">
+      <p className="text-meta leading-relaxed text-muted-foreground">
         Hold the grip to drag, or use the arrows to reorder.
       </p>
       <List
@@ -275,8 +275,8 @@ export function SortableRecipeList<T>({
           >
             <GripVertical className="size-5 shrink-0 text-primary-on-card" />
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-primary-on-card">{source.data.label}</p>
-              <p className="line-clamp-2 break-words text-sm">{source.data.text}</p>
+              <p className="text-meta font-semibold text-primary-on-card">{source.data.label}</p>
+              <p className="line-clamp-2 break-words text-body">{source.data.text}</p>
             </div>
           </div>
         )}

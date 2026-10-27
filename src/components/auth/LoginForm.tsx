@@ -104,13 +104,13 @@ export function LoginForm({ next, oauthQuery }: Props) {
       </div>
 
       {error && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-body text-destructive">
           {error}
         </p>
       )}
 
       {oauthError && !error && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-body text-destructive">
           {getGoogleAuthErrorMessage(oauthError)}
         </p>
       )}
@@ -127,7 +127,7 @@ export function LoginForm({ next, oauthQuery }: Props) {
 
       <GoogleSignInButton next={next} oauthQuery={oauthQuery} />
 
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-center text-body text-muted-foreground">
         Don&apos;t have an account?{" "}
         <a href={oauthQuery ? `/register?${oauthQuery}` : "/register"} className="font-medium text-primary-on-card hover:underline">
           Create one

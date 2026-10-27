@@ -95,13 +95,13 @@ export function RegisterForm({ oauthQuery }: { oauthQuery?: string }) {
           onChange={(e) => setPassword(e.target.value)}
           aria-invalid={!!error}
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-meta text-muted-foreground">
           8 characters or more.
         </p>
       </div>
 
       {error && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-body text-destructive">
           {error}
         </p>
       )}
@@ -118,7 +118,7 @@ export function RegisterForm({ oauthQuery }: { oauthQuery?: string }) {
 
       <GoogleSignInButton label="Sign up with Google" oauthQuery={oauthQuery} />
 
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-center text-body text-muted-foreground">
         Already have an account?{" "}
         <a href={oauthQuery ? `/login?${oauthQuery}` : "/login"} className="font-medium text-primary-on-card hover:underline">
           Sign in

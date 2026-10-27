@@ -126,7 +126,7 @@ export function IngredientMapper({
       <button
         type="button"
         onClick={toggleOpen}
-        className={`inline-flex cursor-pointer items-center gap-1 rounded-full px-2 py-0.5 text-[10px] leading-tight font-medium ring-1 ring-transparent transition-all hover:shadow-sm ${
+        className={`inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-full px-2 py-0.5 text-meta leading-tight font-medium ring-1 ring-transparent transition-all hover:shadow-sm sm:min-h-0 sm:text-[10px] ${
           isMapped
             ? "bg-green-50 text-green-700 hover:bg-green-100 hover:ring-green-200 dark:bg-green-900/20 dark:text-green-300 dark:hover:bg-green-900/30 dark:hover:ring-green-700/40"
             : "bg-amber-50 text-amber-700 hover:bg-amber-100 hover:ring-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/30 dark:hover:ring-amber-700/40"
@@ -183,20 +183,20 @@ export function IngredientMapper({
               onChange={(e) => handleQueryChange(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Search ingredients..."
-              className="h-8 text-xs"
+              className="h-11 text-base sm:h-8 sm:text-xs"
               autoComplete="off"
             />
           </div>
 
           <div className="max-h-48 overflow-y-auto">
             {loading && (
-              <p className="px-3 py-2 text-xs text-muted-foreground">
+              <p className="px-3 py-2 text-meta text-muted-foreground">
                 Searching...
               </p>
             )}
 
             {!loading && query.trim().length >= 2 && results.length === 0 && (
-              <p className="px-3 py-2 text-xs text-muted-foreground">
+              <p className="px-3 py-2 text-meta text-muted-foreground">
                 No matches found
               </p>
             )}
@@ -206,14 +206,14 @@ export function IngredientMapper({
                 key={item.id}
                 type="button"
                 onClick={() => handleSelect(item)}
-                className={`flex w-full cursor-pointer items-center justify-between gap-2 px-3 py-1.5 text-left text-xs transition-colors ${
+                className={`flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 px-3 py-1.5 text-left text-meta transition-colors ${
                   idx === highlightIdx
                     ? "bg-primary/10 text-foreground"
                     : "text-foreground hover:bg-muted"
                 } ${item.id === ingredientId ? "font-semibold" : ""}`}
               >
                 <span className="truncate">{item.name}</span>
-                <span className="shrink-0 text-[9px] text-muted-foreground">
+                <span className="shrink-0 text-meta text-muted-foreground sm:text-[9px] sm:leading-tight">
                   {item.source === "custom" ? "yours" : "global"}
                 </span>
               </button>
@@ -226,7 +226,7 @@ export function IngredientMapper({
               <button
                 type="button"
                 onClick={handleClear}
-                className="cursor-pointer rounded px-2 py-1 text-[10px] font-medium text-amber-700 transition-colors hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-900/20"
+                className="min-h-11 cursor-pointer rounded px-2 py-1 text-meta font-medium text-amber-700 transition-colors hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-900/20 sm:min-h-0 sm:text-[10px] sm:leading-tight"
               >
                 Clear mapping
               </button>
@@ -234,7 +234,7 @@ export function IngredientMapper({
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="ml-auto cursor-pointer rounded px-2 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted"
+              className="ml-auto min-h-11 cursor-pointer rounded px-2 py-1 text-meta font-medium text-muted-foreground transition-colors hover:bg-muted sm:min-h-0 sm:text-[10px] sm:leading-tight"
             >
               Cancel
             </button>

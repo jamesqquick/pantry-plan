@@ -281,13 +281,13 @@ function CatalogPicker({
               id={`${listboxId}-status`}
               role="status"
               aria-live="polite"
-              className={`px-3 py-2 text-sm ${searchError ? "text-destructive" : "text-muted-foreground"}`}
+              className={`px-3 py-2 text-body ${searchError ? "text-destructive" : "text-muted-foreground"}`}
             >
               {statusMessage}
             </p>
           ) : (
             <>
-              <p className="px-3 py-2 text-xs text-muted-foreground">
+              <p className="px-3 py-2 text-meta text-muted-foreground">
                 {canCreate
                   ? `No matches for "${trimmedQuery}"`
                   : "Ingredient catalog"}
@@ -315,7 +315,7 @@ function CatalogPicker({
                     onClick={() => selectResult(result)}
                   >
                     <span className="min-w-0 wrap-anywhere">{result.name}</span>
-                    <span className="shrink-0 text-xs text-muted-foreground">
+                    <span className="shrink-0 text-meta text-muted-foreground">
                       {result.source === "custom" ? "Yours" : "Global"}
                     </span>
                   </button>
@@ -339,7 +339,7 @@ function CatalogPicker({
                 )}
               </div>
               {!canCreate && (
-                <p className="mt-1 border-t border-border px-3 py-2 text-xs text-muted-foreground">
+                <p className="mt-1 border-t border-border px-3 py-2 text-meta text-muted-foreground">
                   ↑ ↓ to browse · Enter to select · Esc to cancel
                 </p>
               )}
@@ -354,7 +354,7 @@ function CatalogPicker({
 function MappingBadge({ kind }: { kind: MappingKind }) {
   return (
     <span
-      className={`inline-flex shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
+      className={`inline-flex shrink-0 rounded-full px-2 py-1 text-meta font-medium ${
         kind === "create"
           ? "bg-success/10 text-success"
           : kind === "unmapped"
@@ -389,7 +389,7 @@ function ReviewRowCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <p className="text-meta font-medium uppercase tracking-wide text-muted-foreground">
             Original line
           </p>
           <h2
@@ -473,7 +473,7 @@ function ReviewRowCard({
                 : undefined
             }
             disabled={disabled}
-            className="flex min-h-11 w-full rounded-input border border-input bg-card px-3 py-1.5 font-ui text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-h-11 w-full rounded-input border border-input bg-card px-3 py-1.5 font-ui text-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
             onChange={(event) =>
               onChange({ unit: event.target.value as IngredientUnit | "" })
             }
@@ -496,7 +496,7 @@ function ReviewRowCard({
           >
             Ingredient
           </label>
-          <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-xs text-muted-foreground sm:min-h-8">
+          <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-meta text-muted-foreground sm:min-h-8">
             <input
               type="checkbox"
               checked={row.mappingKind === "unmapped"}
@@ -739,7 +739,7 @@ export function IngredientMappingReview({ recipeId, recipeTitle }: Props) {
     return (
       <div
         role="alert"
-        className="rounded-input bg-destructive/10 p-4 text-sm text-destructive"
+        className="rounded-input bg-destructive/10 p-4 text-body text-destructive"
       >
         {previewError}
       </div>
@@ -750,7 +750,7 @@ export function IngredientMappingReview({ recipeId, recipeTitle }: Props) {
     return (
       <div
         role="status"
-        className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground"
+        className="rounded-xl border border-border bg-card p-6 text-body text-muted-foreground"
       >
         Loading ingredient mappings for {recipeTitle}...
       </div>
@@ -760,7 +760,7 @@ export function IngredientMappingReview({ recipeId, recipeTitle }: Props) {
   if (rows.length === 0) {
     return (
       <div className="space-y-4 rounded-xl border border-dashed border-border bg-card/50 p-6 text-center">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           This recipe has no ingredients to map.
         </p>
         <Button
@@ -782,7 +782,7 @@ export function IngredientMappingReview({ recipeId, recipeTitle }: Props) {
       {automaticMappingWarning && (
         <div
           role="status"
-          className="rounded-input border border-warning/30 bg-warning/10 p-4 text-sm text-foreground"
+          className="rounded-input border border-warning/30 bg-warning/10 p-4 text-body text-foreground"
         >
           {automaticMappingWarning}
         </div>
@@ -805,7 +805,7 @@ export function IngredientMappingReview({ recipeId, recipeTitle }: Props) {
           <div
             id={validationErrorId}
             role="alert"
-            className="rounded-input bg-destructive/10 p-4 text-sm text-destructive"
+            className="rounded-input bg-destructive/10 p-4 text-body text-destructive"
           >
             {actionError}
           </div>

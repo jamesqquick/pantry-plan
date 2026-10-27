@@ -212,7 +212,7 @@ function batchLabel(v: number): string {
     {notesHtml && (
       <section class="rounded-lg border border-border bg-card p-6">
         <div
-          class="prose prose-sm max-w-none text-card-foreground dark:prose-invert"
+          class="prose max-w-none text-card-foreground dark:prose-invert sm:prose-sm"
           set:html={notesHtml}
         />
       </section>
@@ -231,7 +231,7 @@ function batchLabel(v: number): string {
           <li class="flex items-center justify-between gap-4 px-4 py-3">
             <a
               href={`/recipes/${item.recipeId}`}
-              class="min-w-0 truncate text-sm font-medium text-card-foreground hover:text-primary-on-card hover:underline cursor-pointer"
+              class="min-w-0 truncate text-body font-medium text-card-foreground hover:text-primary-on-card hover:underline cursor-pointer"
             >
               {item.recipeTitle}
             </a>
@@ -263,7 +263,7 @@ function batchLabel(v: number): string {
           Issues
           <span class="ml-2 text-sm font-normal">({issueCount})</span>
         </h2>
-        <div class="space-y-3 text-sm text-amber-700 dark:text-amber-300/80">
+        <div class="space-y-3 text-body text-amber-700 dark:text-amber-300/80">
           {groceryResult.issues.unmapped.length > 0 && (
             <div>
               <p class="font-medium">Unmapped ingredients ({groceryResult.issues.unmapped.length})</p>

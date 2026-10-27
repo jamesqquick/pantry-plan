@@ -14,7 +14,7 @@ export interface TagToggleProps {
 }
 
 const sizes = {
-  sm: "gap-1.5 px-3 py-1.5 text-xs",
+  sm: "gap-1.5 px-3 py-1.5 text-meta",
   default: "gap-1.5 px-3.5 py-2 text-[0.85rem]",
 } as const;
 

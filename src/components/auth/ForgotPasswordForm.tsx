@@ -29,7 +29,7 @@ export function ForgotPasswordForm() {
   if (submitted) {
     return (
       <div className="space-y-4">
-        <p role="status" className="text-sm text-muted-foreground">
+        <p role="status" className="text-body text-muted-foreground">
           If an account exists for that email, you&apos;ll receive a password reset link shortly.
         </p>
         <a href="/login" className="block text-center text-sm font-medium text-primary-on-card hover:underline">
@@ -61,7 +61,7 @@ export function ForgotPasswordForm() {
         {pending ? "Sending link…" : "Send reset link"}
       </Button>
 
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-center text-body text-muted-foreground">
         Remember your password?{" "}
         <a href="/login" className="font-medium text-primary-on-card hover:underline">
           Sign in

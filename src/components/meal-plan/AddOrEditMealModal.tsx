@@ -287,14 +287,14 @@ export function AddOrEditMealModal({
               </ul>
             )}
             {showDropdown && searchQuery.trim() && filteredRecipes.length === 0 && (
-              <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-card p-3 text-sm text-muted-foreground shadow-lg">
+              <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-card p-3 text-body text-muted-foreground shadow-lg">
                 No recipes found
               </div>
             )}
           </div>
 
           {error && (
-            <p className="text-sm text-destructive" role="alert">
+            <p className="text-body text-destructive" role="alert">
               {error}
             </p>
           )}

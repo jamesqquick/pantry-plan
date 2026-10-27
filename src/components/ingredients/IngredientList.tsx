@@ -112,7 +112,7 @@ export default function IngredientList({
         <h2 className="font-display text-xl text-card-foreground">
           No custom ingredients yet
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-body text-muted-foreground">
           Browse the global catalog or create your first custom ingredient.
         </p>
       </div>
@@ -210,7 +210,7 @@ export default function IngredientList({
       </form>
 
       {/* Results info */}
-      <p className="text-xs text-muted-foreground">
+      <p className="text-meta text-muted-foreground">
         {totalCount === 0
           ? "No ingredients match your filters."
           : `${totalCount} ingredient${totalCount === 1 ? "" : "s"} found.`}
@@ -230,13 +230,13 @@ export default function IngredientList({
                     {ing.name}
                   </p>
                   {ing.category && (
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    <p className="mt-0.5 truncate text-meta text-muted-foreground">
                       {ing.category}
                     </p>
                   )}
                 </div>
                 <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight ${
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-meta font-semibold leading-tight sm:text-[10px] ${
                     ing.userId === null
                       ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
                       : "bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300"

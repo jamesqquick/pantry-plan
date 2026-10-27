@@ -31,7 +31,7 @@ const { title, heading, subheading } = Astro.props;
       <section class="rounded-input border border-border bg-card p-8 space-y-6">
         <div class="space-y-1">
           <h1 class="text-2xl font-bold">{heading}</h1>
-          {subheading && <p class="text-sm text-muted-foreground">{subheading}</p>}
+          {subheading && <p class="text-body text-muted-foreground">{subheading}</p>}
         </div>
         <slot />
       </section>

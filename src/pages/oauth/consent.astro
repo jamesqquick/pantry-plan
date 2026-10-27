@@ -27,6 +27,6 @@ if (!valid) Astro.response.status = 400;
 
 <AuthLayout title="Connect to ChatGPT" heading={valid ? "Connect to ChatGPT" : "Connection request unavailable"}>
   {valid && query ? <OAuthConsent client:load oauthQuery={query} scopes={scopes} email={Astro.locals.user!.email} /> : (
-    <p role="alert" class="text-sm">This connection request is invalid or expired. Restart the connection from ChatGPT.</p>
+    <p role="alert" class="text-body">This connection request is invalid or expired. Restart the connection from ChatGPT.</p>
   )}
 </AuthLayout>

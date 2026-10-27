@@ -88,7 +88,7 @@ function formatDate(d: Date): string {
         <h2 class="font-display text-xl text-card-foreground">
           No orders yet
         </h2>
-        <p class="mt-1 text-sm text-muted-foreground">
+        <p class="mt-1 text-body text-muted-foreground">
           Select recipes, set batch sizes, and generate a grocery list with cost estimates.
         </p>
       </div>
@@ -104,7 +104,7 @@ function formatDate(d: Date): string {
                 <p class="truncate font-medium text-card-foreground">
                   {o.name || "Untitled order"}
                 </p>
-                <p class="mt-0.5 text-xs text-muted-foreground">
+                <p class="mt-0.5 text-meta text-muted-foreground">
                   {o.itemCount} {o.itemCount === 1 ? "recipe" : "recipes"} · Updated {formatDate(o.updatedAt)}
                 </p>
               </div>
