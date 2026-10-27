@@ -1,0 +1,35 @@
+src/components/app/UserMenu.tsx
+  s_6306fb38bd5244::t_4a66a95c6369f6 103,114,121
+src/components/profile/McpApiKeys.tsx
+  s_6306fb38bd5244::t_3161275385d2d8 99,106,109,129-130,134,148,153,160,163
+src/components/recipes/IngredientMapper.tsx
+  s_6306fb38bd5244::t_09d8f65ac60cb0 129,186,193,199,209,216,229,237
+src/components/recipes/RecipeActions.tsx
+  s_6306fb38bd5244::t_aa64aa368aa2d8 148
+src/components/recipes/RecipeList.tsx
+  s_6306fb38bd5244::t_fbe070fe32d92c 103,227
+src/lib/utils.test.ts
+  s_6306fb38bd5244::t_0b1cb1a03fa14d 1-18
+src/lib/utils.ts
+  s_6306fb38bd5244::t_942eb571a69fcd 2-10
+src/pages/recipes/[id]/index.astro
+  s_6306fb38bd5244::t_b4e4cdfb709308 141,151,200,206,213,217,222,226,239,246,249,261
+src/styles/globals.css
+  s_6306fb38bd5244::t_975f0ff2f43c63 23-26,121-129,268-273
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "62c2fe2157676debd863e2fedd48592daf29b933",
+  "prompts": {},
+  "sessions": {
+    "s_6306fb38bd5244": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e81b1b0d1ffeWCFRowEObzibff",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
