@@ -366,6 +366,33 @@
    Button system — consistent shadow + press feedback
    ========================================================================== */
 
+@media (max-width: 39.99rem) {
+  .mobile-action-button {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--outline-strong);
+    border-radius: 999px;
+    background: var(--card);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    text-decoration: none;
+    transition: background-color 150ms ease-out;
+  }
+
+  .mobile-action-button:active {
+    background: var(--accent);
+  }
+
+  .mobile-action-button:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
 .btn-primary,
 .btn-secondary {
   display: inline-flex;
