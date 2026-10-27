@@ -547,7 +547,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                     <button
                       type="button"
                       onClick={() => removeInstruction(idx)}
-                      className="min-h-11 min-w-11 shrink-0 cursor-pointer rounded-input px-3 py-2 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                      className="flex min-h-11 min-w-11 shrink-0 cursor-pointer items-start justify-center rounded-input px-3 py-0 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
                       title="Remove step"
                       aria-label={`Remove step ${idx + 1}`}
                     >
