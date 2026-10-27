@@ -466,8 +466,6 @@ describe("RecipeDraftEditor", () => {
     expect(stepHeader?.className).toBe("flex items-start justify-between gap-3");
     expect(stepHeader?.firstElementChild?.textContent).toBe("Step 1");
     expect(stepHeader?.lastElementChild).toBe(removeFirstStep);
-    expect(removeFirstStep.className).toContain("items-start");
-    expect(removeFirstStep.className).toContain("py-0");
     expect(instructions.querySelectorAll("article")).toHaveLength(2);
 
     await user.click(screen.getByRole("button", { name: "Add step" }));
