@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { INGREDIENT_UNITS } from "@/db/schema/enums";
+import { requiredIngredientMeasurementsSchema } from "@/features/recipes/ingredient-measurements";
 import { optionalHttpUrlSchema } from "@/lib/url";
 
 const validDateStringSchema = z
@@ -12,8 +13,7 @@ const validDateStringSchema = z
 
 const mcpRecipeIngredientSchema = z
   .object({
-    quantity: z.number().min(0).finite().nullable().optional(),
-    unit: z.enum(INGREDIENT_UNITS).nullable().optional(),
+    ...requiredIngredientMeasurementsSchema.shape,
     displayText: z.string().trim().min(1).max(500),
     rawText: z.string().max(1_000).nullable().optional(),
   })
@@ -63,7 +63,7 @@ export const editRecipeToolSchema = z
     "At least one recipe field must be provided.",
   );
 
-export type McpRecipeIngredient = z.infer<typeof mcpRecipeIngredientSchema>;
+export type McpRecipeIngredient = z.infer<typeof recipeDetailsOutputSchema>["ingredients"][number];
 export type CreateRecipeToolInput = z.infer<typeof createRecipeToolSchema>;
 export type GetRecipeToolInput = z.infer<typeof getRecipeToolSchema>;
 export type EditRecipeToolInput = z.infer<typeof editRecipeToolSchema>;

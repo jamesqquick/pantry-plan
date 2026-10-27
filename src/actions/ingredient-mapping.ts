@@ -545,13 +545,13 @@ export const ingredientMapping = {
         const currentRow = currentRowById.get(item.recipeIngredientId)!;
         const structureChanged =
           currentRow.ingredientId !== ingredientId ||
-          currentRow.quantity !== (item.quantity ?? null) ||
-          currentRow.unit !== (item.unit ?? null);
+          currentRow.quantity !== item.quantity ||
+          currentRow.unit !== item.unit;
         const converted =
           structureChanged && ingredientId
             ? autoConvert({
-                quantity: item.quantity ?? 1,
-                unit: item.unit ?? null,
+                quantity: item.quantity,
+                unit: item.unit,
                 ingredient: conversionIngredientById.get(ingredientId) ?? {
                   normalizedName: null,
                   gramsPerCup: null,
@@ -563,8 +563,8 @@ export const ingredientMapping = {
           currentRow,
           {
             ingredientId,
-            quantity: item.quantity ?? null,
-            unit: item.unit ?? null,
+            quantity: item.quantity,
+            unit: item.unit,
             displayText: item.displayText,
           },
           converted

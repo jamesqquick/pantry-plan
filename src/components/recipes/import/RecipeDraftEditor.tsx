@@ -3,7 +3,7 @@
  * user review/modify before saving or continuing to ingredient mapping.
  */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { actions } from "astro:actions";
 
 import type { IngredientUnit } from "@/db/schema/enums";
@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { TagToggle } from "@/components/ui/TagToggle";
+import type { SaveImportedRecipeTextOnlyInput } from "@/features/import/import.schemas";
+import { requiredIngredientMeasurementsSchema } from "@/features/recipes/ingredient-measurements";
 import { INGREDIENT_UNITS, UNIT_LABELS } from "@/lib/ingredients/units";
 import { parseScalableIngredientLine } from "@/lib/ingredients/parse-ingredient-line-structured";
 import { formatQuantityForInput, parseQuantityText } from "@/lib/quantity/quantity";
@@ -53,6 +55,23 @@ type IngredientReviewRow = {
   status: IngredientReviewStatus;
   edited: boolean;
 };
+
+function resizeInstructionTextarea(textarea: HTMLTextAreaElement) {
+  const style = window.getComputedStyle(textarea);
+  const lineHeight = Number.parseFloat(style.lineHeight) || 20;
+  const verticalPadding =
+    (Number.parseFloat(style.paddingTop) || 0) +
+    (Number.parseFloat(style.paddingBottom) || 0);
+  const verticalBorder =
+    (Number.parseFloat(style.borderTopWidth) || 0) +
+    (Number.parseFloat(style.borderBottomWidth) || 0);
+  const minHeight = lineHeight * 2 + verticalPadding + verticalBorder;
+
+  textarea.style.height = "auto";
+  const contentHeight = textarea.scrollHeight + verticalBorder;
+  textarea.style.height = `${Math.max(contentHeight, minHeight)}px`;
+  textarea.style.overflowY = "hidden";
+}
 
 function createIngredientReviewRow(rawText: string): IngredientReviewRow {
   if (!rawText.trim()) {
@@ -105,6 +124,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
     initialIngredients,
     () => createIngredientReviewRow(""),
   );
+  const instructionsSectionRef = useRef<HTMLElement | null>(null);
   const instructions = useRecipeEditorRows(draft.instructions, () => "");
   const [tagIds, setTagIds] = useState<Set<string>>(new Set());
   const [savingDestination, setSavingDestination] = useState<
@@ -114,10 +134,26 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
   const [error, setError] = useState<string | null>(null);
   const saving = savingDestination !== null;
 
+  useEffect(() => {
+    instructionsSectionRef.current
+      ?.querySelectorAll("textarea")
+      .forEach(resizeInstructionTextarea);
+  }, [instructions.rows]);
+
   function updateIngredient(id: string, patch: Partial<IngredientReviewRow>) {
     setError(null);
     setInvalidFieldId(null);
     ingredients.update(id, (row) => ({ ...row, ...patch, edited: true }));
+  }
+  function addIngredient() {
+    setError(null);
+    setInvalidFieldId(null);
+    return ingredients.add();
+  }
+  function removeIngredient(id: string) {
+    setError(null);
+    setInvalidFieldId(null);
+    ingredients.remove(id);
   }
   function parseIntOr(val: string): number | undefined {
     const n = parseInt(val.trim(), 10);
@@ -154,12 +190,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
       return;
     }
 
-    const cleanIngredients: {
-      rawText: string | null;
-      displayText: string;
-      quantity: number | null;
-      unit: IngredientUnit | null;
-    }[] = [];
+    const cleanIngredients: SaveImportedRecipeTextOnlyInput["ingredients"] = [];
     for (const { id, value: row } of ingredients.rows) {
       const quantityText = row.quantityText.trim();
       if (!row.rawText?.trim() && !row.displayText.trim() && !quantityText && !row.unit) {
@@ -176,10 +207,18 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
         return;
       }
 
-      const quantity = quantityText === "" ? null : parseQuantityText(quantityText);
-      if (quantityText !== "" && (quantity === null || !Number.isFinite(quantity))) {
-        const fieldId = `${id}-quantity`;
-        setError(`Quantity for "${label}" must be a valid number or fraction that is 0 or greater.`);
+      const measurements = requiredIngredientMeasurementsSchema.safeParse({
+        quantity: parseQuantityText(quantityText),
+        unit: row.unit,
+      });
+      if (!measurements.success) {
+        const invalidQuantity = measurements.error.issues.some((issue) => issue.path[0] === "quantity");
+        const fieldId = `${id}-${invalidQuantity ? "quantity" : "unit"}`;
+        setError(invalidQuantity
+          ? quantityText === ""
+            ? `Quantity is required for "${label}".`
+            : `Quantity for "${label}" must be a valid number or fraction that is 0 or greater.`
+          : `Choose a unit for "${label}".`);
         setInvalidFieldId(fieldId);
         window.setTimeout(() => document.getElementById(fieldId)?.focus(), 0);
         return;
@@ -188,8 +227,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
       cleanIngredients.push({
         rawText: row.rawText,
         displayText,
-        quantity,
-        unit: row.unit || null,
+        ...measurements.data,
       });
     }
 
@@ -348,9 +386,9 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
           kind="ingredient"
           rows={ingredients.rows}
           disabled={saving}
-          onAdd={ingredients.add}
+          onAdd={addIngredient}
           onMove={ingredients.move}
-          onRemove={ingredients.remove}
+          onRemove={removeIngredient}
           getText={(row) => row.rawText?.trim() || row.displayText || "New ingredient"}
         >
           {({ id, value: row }, idx) => {
@@ -358,16 +396,26 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
             const quantityId = `${id}-quantity`;
             const unitId = `${id}-unit`;
             const statusId = `${id}-status`;
-            const statusMessage = row.status === "parsed"
-              ? row.edited
-                ? "Your edits will be saved as entered."
-                : null
-              : row.status === "unquantified"
-                ? row.edited
-                  ? "No quantity was found automatically. Your edits will be saved as entered."
-                  : "No quantity was detected automatically. This line will be saved without an amount."
-                : row.status === "needs-review"
-                  ? "Couldn't automatically parse ingredient."
+            const hasIngredientContent = Boolean(
+              row.rawText?.trim() || row.displayText.trim() || row.quantityText.trim() || row.unit,
+            );
+            const measurements = requiredIngredientMeasurementsSchema.safeParse({
+              quantity: parseQuantityText(row.quantityText),
+              unit: row.unit,
+            });
+            const measurementIssues = hasIngredientContent && !measurements.success
+              ? measurements.error.issues
+              : [];
+            const quantityInvalid = invalidFieldId === quantityId ||
+              measurementIssues.some((issue) => issue.path[0] === "quantity");
+            const unitInvalid = invalidFieldId === unitId ||
+              measurementIssues.some((issue) => issue.path[0] === "unit");
+            const statusMessage = row.status === "unquantified" && !measurements.success
+              ? "No quantity was detected automatically. Enter a quantity and choose a unit before saving."
+              : row.status === "needs-review"
+                ? "Couldn't automatically parse ingredient."
+                : row.edited && measurements.success
+                  ? "Your edits will be saved as entered."
                   : null;
 
             return (
@@ -381,7 +429,51 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-[minmax(0,1fr)_8rem_9rem]">
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-[8rem_9rem_minmax(0,1fr)]">
+                  <div>
+                    <label htmlFor={quantityId} className="mb-1 block text-sm font-medium">
+                      Quantity
+                    </label>
+                    <Input
+                      id={quantityId}
+                      className="min-h-11"
+                      type="text"
+                      inputMode="decimal"
+                      value={row.quantityText}
+                      placeholder="e.g. 1/2"
+                      required
+                      aria-required="true"
+                      aria-label={`Quantity for ingredient ${idx + 1}`}
+                      aria-invalid={quantityInvalid}
+                      aria-describedby={invalidFieldId === quantityId ? "recipe-import-error" : statusMessage ? statusId : undefined}
+                      disabled={saving}
+                      onChange={(event) => updateIngredient(id, { quantityText: event.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor={unitId} className="mb-1 block text-sm font-medium">
+                      Unit
+                    </label>
+                    <select
+                      id={unitId}
+                      value={row.unit}
+                      required
+                      aria-required="true"
+                      aria-label={`Unit for ingredient ${idx + 1}`}
+                      aria-invalid={unitInvalid}
+                      aria-describedby={invalidFieldId === unitId ? "recipe-import-error" : statusMessage ? statusId : undefined}
+                      disabled={saving}
+                      className="flex min-h-11 w-full rounded-input border border-input bg-card px-3 py-1.5 font-ui text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 aria-invalid:border-destructive aria-invalid:ring-destructive/30 disabled:cursor-not-allowed disabled:opacity-50"
+                      onChange={(event) => updateIngredient(id, { unit: event.target.value as IngredientUnit | "" })}
+                    >
+                      <option value="">Select unit</option>
+                      {INGREDIENT_UNITS.map((unit) => (
+                        <option key={unit} value={unit}>
+                          {UNIT_LABELS[unit]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <div className="col-span-2 min-w-0 md:col-span-1">
                     <label htmlFor={textId} className="mb-1 block text-sm font-medium">
                       Ingredient text
@@ -397,46 +489,6 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                       disabled={saving}
                       onChange={(event) => updateIngredient(id, { displayText: event.target.value })}
                     />
-                  </div>
-                  <div>
-                    <label htmlFor={quantityId} className="mb-1 block text-sm font-medium">
-                      Quantity
-                    </label>
-                    <Input
-                      id={quantityId}
-                      className="min-h-11"
-                      type="text"
-                      inputMode="decimal"
-                      value={row.quantityText}
-                      placeholder="Optional"
-                      aria-label={`Quantity for ingredient ${idx + 1}`}
-                      aria-invalid={invalidFieldId === quantityId}
-                      aria-describedby={invalidFieldId === quantityId ? "recipe-import-error" : statusMessage ? statusId : undefined}
-                      disabled={saving}
-                      onChange={(event) => updateIngredient(id, { quantityText: event.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor={unitId} className="mb-1 block text-sm font-medium">
-                      Unit
-                    </label>
-                    <select
-                      id={unitId}
-                      value={row.unit}
-                      aria-label={`Unit for ingredient ${idx + 1}`}
-                      aria-invalid={invalidFieldId === unitId}
-                      aria-describedby={invalidFieldId === unitId ? "recipe-import-error" : statusMessage ? statusId : undefined}
-                      disabled={saving}
-                      className="flex min-h-11 w-full rounded-input border border-input bg-card px-3 py-1.5 font-ui text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
-                      onChange={(event) => updateIngredient(id, { unit: event.target.value as IngredientUnit | "" })}
-                    >
-                      <option value="">No unit</option>
-                      {INGREDIENT_UNITS.map((unit) => (
-                        <option key={unit} value={unit}>
-                          {UNIT_LABELS[unit]}
-                        </option>
-                      ))}
-                    </select>
                   </div>
                 </div>
 
@@ -458,8 +510,12 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
       </section>
 
       {/* Instructions */}
-      <section className="space-y-3">
-        <h2 className="font-display text-xl text-foreground">Instructions</h2>
+      <section
+        ref={instructionsSectionRef}
+        aria-labelledby="draft-instructions-heading"
+        className="space-y-3"
+      >
+        <h2 id="draft-instructions-heading" className="text-lg font-semibold">Instructions</h2>
         <SortableRecipeList
           kind="step"
           rows={instructions.rows}
@@ -475,10 +531,13 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
               <Textarea
                 id={id}
                 value={value}
-                onChange={(e) => instructions.update(id, e.target.value)}
+                onChange={(e) => {
+                  instructions.update(id, e.target.value);
+                  resizeInstructionTextarea(e.currentTarget);
+                }}
                 placeholder={`Describe step ${idx + 1}`}
-                rows={3}
-                className="min-h-24 resize-y text-base [field-sizing:content] sm:text-sm"
+                rows={2}
+                className="resize-none overflow-y-hidden leading-5"
               />
             </>
           )}

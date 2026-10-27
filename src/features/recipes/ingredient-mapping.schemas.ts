@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { INGREDIENT_UNITS } from "@/db/schema/enums";
+import { requiredIngredientMeasurementsSchema } from "./ingredient-measurements";
 import {
   MAX_INGREDIENT_LINE,
   MAX_LINES_PER_RECIPE,
@@ -28,8 +28,7 @@ export const ingredientMappingItemSchema = z
     recipeIngredientId: idSchema,
     recipeIngredientUpdatedAt: z.number().int().nonnegative(),
     displayText: z.string().trim().min(1).max(MAX_INGREDIENT_LINE),
-    quantity: z.number().finite().min(0).nullable().optional(),
-    unit: z.enum(INGREDIENT_UNITS).nullable().optional(),
+    ...requiredIngredientMeasurementsSchema.shape,
     mapping: ingredientMappingSelectionSchema,
   })
   .strict();

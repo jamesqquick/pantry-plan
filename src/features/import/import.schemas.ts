@@ -1,8 +1,6 @@
 import { z } from "zod";
-import { INGREDIENT_UNITS } from "@/db/schema/enums";
+import { requiredIngredientMeasurementsSchema } from "@/features/recipes/ingredient-measurements";
 import { optionalHttpUrlSchema } from "@/lib/url";
-
-const ingredientUnitSchema = z.enum(INGREDIENT_UNITS).nullable().optional();
 
 /** Caps for free-text fields. See recipes.schemas.ts for matching constants. */
 const MAX_RECIPE_NOTES = 20_000;
@@ -40,13 +38,7 @@ export const importIngredientLineSchema = z.object({
   displayText: z.string().max(500).optional(),
   ingredientId: z.string().min(1).max(100).optional(),
   createName: z.string().max(MAX_INGREDIENT_NAME).optional(),
-  quantity: z
-    .number()
-    .min(0, "Quantity must be 0 or greater")
-    .finite("Quantity must be finite")
-    .nullable()
-    .optional(),
-  unit: ingredientUnitSchema,
+  ...requiredIngredientMeasurementsSchema.shape,
   sortOrder: z.number().int().min(0),
 });
 
@@ -79,8 +71,7 @@ export const saveImportedRecipeTextOnlyIngredientSchema = z.union([
   z.object({
     rawText: z.string().max(MAX_INGREDIENT_LINE).nullable(),
     displayText: z.string().trim().min(1, "Ingredient text is required.").max(MAX_INGREDIENT_LINE),
-    quantity: z.number().min(0, "Quantity must be 0 or greater").nullable(),
-    unit: z.enum(INGREDIENT_UNITS).nullable(),
+    ...requiredIngredientMeasurementsSchema.shape,
   }),
 ]);
 

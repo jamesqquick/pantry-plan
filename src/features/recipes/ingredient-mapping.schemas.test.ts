@@ -55,28 +55,35 @@ describe("ingredient mapping schemas", () => {
     }
   });
 
-  it("allows nullable or omitted quantity and unit", () => {
-    expect(
-      ingredientMappingApplySchema.safeParse({
+  it.each([
+    { kind: "existing", ingredientId: "ingredient-1" },
+    { kind: "create", name: "Salt" },
+    { kind: "unmapped" },
+  ])("requires both measurements for $kind Apply", (mapping) => {
+    for (const amount of [
+      {},
+      { quantity: 1 },
+      { unit: "TSP" },
+      { quantity: null, unit: "TSP" },
+      { quantity: 1, unit: null },
+      { quantity: null, unit: null },
+    ]) {
+      expect(ingredientMappingApplySchema.safeParse({
         recipeId: "recipe-1",
-        items: [
-          {
-            recipeIngredientId: "row-1",
-            recipeIngredientUpdatedAt: 1_700_000_000_000,
-            displayText: "salt",
-            mapping: { kind: "unmapped" },
-          },
-          {
-            recipeIngredientId: "row-2",
-            recipeIngredientUpdatedAt: 1_700_000_000_000,
-            displayText: "pepper",
-            quantity: null,
-            unit: null,
-            mapping: { kind: "create", name: "Black pepper" },
-          },
-        ],
-      }).success,
-    ).toBe(true);
+        items: [{
+          recipeIngredientId: "row-1",
+          recipeIngredientUpdatedAt: 1_700_000_000_000,
+          displayText: "salt to taste",
+          mapping,
+          ...amount,
+        }],
+      }).success).toBe(false);
+    }
+
+    expect(ingredientMappingApplySchema.safeParse({
+      recipeId: "recipe-1",
+      items: [{ ...baseItem, quantity: 1 / 3, mapping }],
+    }).success).toBe(true);
   });
 
   it("shares the 1,000-character ingredient line limit", () => {

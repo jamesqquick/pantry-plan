@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import type { IngredientUnit } from "@/db/schema/enums";
 import type { IngredientMappingItemInput } from "@/features/recipes/ingredient-mapping.schemas";
+import { requiredIngredientMeasurementsSchema } from "@/features/recipes/ingredient-measurements";
 import type { RecipeIngredientMappingPreviewItem } from "@/actions/ingredient-mapping";
 import { INGREDIENT_UNITS, UNIT_LABELS } from "@/lib/ingredients/units";
 import { softNavigate } from "@/lib/navigate";
@@ -438,6 +439,8 @@ function ReviewRowCard({
             type="text"
             inputMode="decimal"
             value={row.quantityText}
+            required
+            aria-required="true"
             aria-invalid={
               invalidFieldId === `${row.recipeIngredientId}-quantity`
             }
@@ -447,7 +450,7 @@ function ReviewRowCard({
                 : undefined
             }
             disabled={disabled}
-            placeholder="Optional"
+            placeholder="e.g. 1/2"
             onChange={(event) => onChange({ quantityText: event.target.value })}
           />
         </div>
@@ -461,13 +464,21 @@ function ReviewRowCard({
           <select
             id={`${row.recipeIngredientId}-unit`}
             value={row.unit}
+            required
+            aria-required="true"
+            aria-invalid={invalidFieldId === `${row.recipeIngredientId}-unit`}
+            aria-describedby={
+              invalidFieldId === `${row.recipeIngredientId}-unit`
+                ? validationErrorId
+                : undefined
+            }
             disabled={disabled}
             className="flex min-h-11 w-full rounded-input border border-input bg-card px-3 py-1.5 font-ui text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
             onChange={(event) =>
               onChange({ unit: event.target.value as IngredientUnit | "" })
             }
           >
-            <option value="">No unit</option>
+            <option value="">Select unit</option>
             {INGREDIENT_UNITS.map((unit) => (
               <option key={unit} value={unit}>
                 {UNIT_LABELS[unit]}
@@ -555,13 +566,20 @@ function buildApplyItems(rows: ReviewRow[]):
     }
 
     const quantityText = row.quantityText.trim();
-    const quantity =
-      quantityText === "" ? null : parseQuantityText(quantityText);
-    if (quantityText !== "" && quantity === null) {
+    const measurements = requiredIngredientMeasurementsSchema.safeParse({
+      quantity: parseQuantityText(quantityText),
+      unit: row.unit,
+    });
+    if (!measurements.success) {
+      const invalidQuantity = measurements.error.issues.some((issue) => issue.path[0] === "quantity");
       return {
         items: null,
-        error: `Quantity for "${row.rawText}" must be a valid number or fraction that is 0 or greater.`,
-        invalidFieldId: `${row.recipeIngredientId}-quantity`,
+        error: invalidQuantity
+          ? quantityText === ""
+            ? `Quantity is required for "${row.rawText}".`
+            : `Quantity for "${row.rawText}" must be a valid number or fraction that is 0 or greater.`
+          : `Choose a unit for "${row.rawText}".`,
+        invalidFieldId: `${row.recipeIngredientId}-${invalidQuantity ? "quantity" : "unit"}`,
       };
     }
 
@@ -593,8 +611,7 @@ function buildApplyItems(rows: ReviewRow[]):
       recipeIngredientId: row.recipeIngredientId,
       recipeIngredientUpdatedAt: row.recipeIngredientUpdatedAt,
       displayText,
-      quantity,
-      unit: row.unit || null,
+      ...measurements.data,
       mapping,
     });
   }

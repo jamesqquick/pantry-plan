@@ -21,7 +21,6 @@ import {
 } from "@/db";
 import { chunkRows } from "@/db/chunked-insert";
 import { normalizeIngredientName } from "@/lib/ingredients/normalize";
-import { UNIT_FROM_LABEL } from "@/lib/ingredients/units";
 import { autoConvert } from "@/lib/measurements/auto-convert";
 import {
   parseIngredientLineStructured,
@@ -33,6 +32,7 @@ import {
   filterOwnedTagIds,
   RecipeCreationError,
 } from "@/features/recipes/create-text-recipe";
+import { IngredientMeasurementValidationError } from "@/features/recipes/ingredient-measurements";
 
 export const recipeImport = {
   /**
@@ -78,17 +78,8 @@ export const recipeImport = {
         const structuredParse = parseIngredientLineStructured(
           line.originalLine,
         );
-        const quantity =
-          line.quantity ??
-          (structuredParse.quantityDecimal != null &&
-          Number.isFinite(structuredParse.quantityDecimal)
-            ? structuredParse.quantityDecimal
-            : null);
-        const unitEnum =
-          line.unit ??
-          (structuredParse.unit
-            ? (UNIT_FROM_LABEL[structuredParse.unit] ?? null)
-            : null);
+        const quantity = line.quantity;
+        const unitEnum = line.unit;
         const displayText =
           line.displayText?.trim() ||
           getDisplayTextFromIngredientLine(line.originalLine) ||
@@ -209,8 +200,8 @@ export const recipeImport = {
               )!;
           const ing = convertById.get(ingredientId);
           const converted = autoConvert({
-            quantity: quantity ?? 1,
-            unit: unitEnum ?? null,
+            quantity,
+            unit: unitEnum,
             ingredient: ing ?? { normalizedName: null, gramsPerCup: null },
             originalLine: line.originalLine,
           });
@@ -349,6 +340,9 @@ export const recipeImport = {
         await queueSearchSync(ctx, db, [result.recipeId]);
         return result;
       } catch (error) {
+        if (error instanceof IngredientMeasurementValidationError) {
+          throw new ActionError({ code: "BAD_REQUEST", message: error.message });
+        }
         if (!(error instanceof RecipeCreationError)) throw error;
         throw new ActionError({
           code: "INTERNAL_SERVER_ERROR",

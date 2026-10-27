@@ -3,12 +3,15 @@ import type { Db } from "@/db";
 import { recipe, recipeIngredient, recipeInstruction } from "@/db";
 import type { CreateRecipeToolInput } from "@/features/mcp/mcp.schemas";
 import { chunkRows } from "@/db/chunked-insert";
+import { validateIngredientMeasurements } from "@/features/recipes/ingredient-measurements";
 
 export async function createMcpRecipe(
   db: Db,
   userId: string,
   input: CreateRecipeToolInput,
 ): Promise<{ recipeId: string }> {
+  validateIngredientMeasurements(input.ingredients);
+
   const recipeId = createId();
   const instructionRows = input.instructions.map((text, sortOrder) => ({
     recipeId,
@@ -18,10 +21,10 @@ export async function createMcpRecipe(
   const ingredientRows = input.ingredients.map((item, sortOrder) => ({
     recipeId,
     ingredientId: null,
-    quantity: item.quantity ?? null,
-    unit: item.unit ?? null,
+    quantity: item.quantity,
+    unit: item.unit,
     displayText: item.displayText.trim(),
-    rawText: item.rawText?.trim() || null,
+    rawText: item.rawText ?? null,
     sortOrder,
   }));
 

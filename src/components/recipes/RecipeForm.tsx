@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/Select";
 import { TagToggle } from "@/components/ui/TagToggle";
 import { IngredientMapper } from "@/components/recipes/IngredientMapper";
+import { requiredIngredientMeasurementsSchema } from "@/features/recipes/ingredient-measurements";
+import type { RecipeIngredientItemInput } from "@/features/recipes/recipe-ingredients.schemas";
 import { SortableRecipeList } from "./SortableRecipeList";
 import { useRecipeEditorRows } from "./useRecipeEditorRows";
 
@@ -81,16 +83,36 @@ export default function RecipeForm({
   const [cookTime, setCookTime] = useState(initial.cookTimeMinutes);
   const [totalTime, setTotalTime] = useState(initial.totalTimeMinutes);
   const [notes, setNotes] = useState(initial.notes);
+  const ingredientInitial = initial.ingredients.map((row) => ({
+    ...row,
+    persisted: mode === "edit",
+  }));
+  const ingredients = useRecipeEditorRows(
+    ingredientInitial,
+    () => ({ ...emptyIngredient(), persisted: false }),
+  );
   const instructions = useRecipeEditorRows(initial.instructions, () => "");
-  const ingredients = useRecipeEditorRows(initial.ingredients, emptyIngredient);
   const [tagIds, setTagIds] = useState<Set<string>>(new Set(initial.tagIds));
 
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [invalidFieldId, setInvalidFieldId] = useState<string | null>(null);
 
   function setIngredient(id: string, patch: Partial<RecipeIngredientDraft>) {
+    setError(null);
+    setInvalidFieldId(null);
     ingredients.update(id, (row) => ({ ...row, ...patch }));
+  }
+  function addIngredient() {
+    setError(null);
+    setInvalidFieldId(null);
+    return ingredients.add();
+  }
+  function removeIngredient(id: string) {
+    setError(null);
+    setInvalidFieldId(null);
+    ingredients.remove(id);
   }
 
   function toggleTag(id: string) {
@@ -105,31 +127,58 @@ export default function RecipeForm({
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     if (pending) return;
-    setPending(true);
     setError(null);
     setFieldErrors({});
+    setInvalidFieldId(null);
 
     // Build payload. Shape must match features/recipes/recipes.schemas.ts
     // extended with ingredientsStructured (see src/actions/recipes.ts).
     const cleanInstructions = instructions.rows
-      .map((row) => row.value.trim())
+      .map(({ value }) => value.trim())
       .filter(Boolean);
-    const cleanIngredients = ingredients.rows
-      .map((row) => row.value)
-      .filter(
-        (r) => r.displayText.trim() !== "" || r.quantityText.trim() !== "",
-      )
-      .map((r, idx) => {
-        const qty = parseQuantityText(r.quantityText);
-        return {
-          sortOrder: idx,
-          displayText: r.displayText.trim() || "—",
-          rawText: r.rawText ?? null,
-          quantity: qty ?? null,
-          unit: r.unit === "" ? null : r.unit,
-          ingredientId: r.ingredientId ?? "",
-        };
+    const cleanIngredients: RecipeIngredientItemInput[] = [];
+    for (const [idx, { id, value: row }] of ingredients.rows.entries()) {
+      const displayText = row.displayText.trim();
+      const quantityText = row.quantityText.trim();
+      if (!row.persisted && !displayText && !quantityText && !row.unit &&
+          !row.rawText?.trim() && !row.ingredientId && !row.ingredientName?.trim()) {
+        continue;
+      }
+
+      const label = displayText || row.rawText?.trim() || `ingredient ${idx + 1}`;
+      const measurements = requiredIngredientMeasurementsSchema.safeParse({
+        quantity: parseQuantityText(quantityText),
+        unit: row.unit,
       });
+      if (!measurements.success) {
+        const invalidQuantity = measurements.error.issues.some((issue) => issue.path[0] === "quantity");
+        const fieldId = `${id}-${invalidQuantity ? "quantity" : "unit"}`;
+        setError(invalidQuantity
+          ? quantityText === ""
+            ? `Quantity is required for "${label}".`
+            : `Quantity for "${label}" must be a valid number or fraction that is 0 or greater.`
+          : `Choose a unit for "${label}".`);
+        setInvalidFieldId(fieldId);
+        window.setTimeout(() => document.getElementById(fieldId)?.focus(), 0);
+        return;
+      }
+
+      if (!displayText) {
+        const fieldId = id;
+        setError(`Ingredient name is required for "${label}".`);
+        setInvalidFieldId(fieldId);
+        window.setTimeout(() => document.getElementById(fieldId)?.focus(), 0);
+        return;
+      }
+
+      cleanIngredients.push({
+        sortOrder: cleanIngredients.length,
+        displayText,
+        rawText: row.rawText,
+        ingredientId: row.ingredientId ?? "",
+        ...measurements.data,
+      });
+    }
 
     const payload = {
       title: title.trim(),
@@ -148,10 +197,10 @@ export default function RecipeForm({
 
     if (cleanInstructions.length === 0) {
       setError("At least one instruction is required.");
-      setPending(false);
       return;
     }
 
+    setPending(true);
     try {
       if (mode === "create") {
         const { data, error: err } = await actions.recipes.create(payload);
@@ -310,9 +359,9 @@ export default function RecipeForm({
           kind="ingredient"
           rows={ingredients.rows}
           disabled={pending}
-          onAdd={ingredients.add}
+          onAdd={addIngredient}
           onMove={ingredients.move}
-          onRemove={ingredients.remove}
+          onRemove={removeIngredient}
           getText={(row) =>
             [row.quantityText, row.unit.toLowerCase(), row.displayText]
               .filter(Boolean)
@@ -336,7 +385,10 @@ export default function RecipeForm({
                       setIngredient(id, { quantityText: e.target.value })
                     }
                     placeholder="e.g. 1/2"
-                    aria-label={`Ingredient ${idx + 1} quantity`}
+                    required
+                    aria-required="true"
+                    aria-invalid={invalidFieldId === `${id}-quantity`}
+                    aria-describedby={invalidFieldId === `${id}-quantity` ? "recipe-form-error" : undefined}
                     inputMode="decimal"
                     autoComplete="off"
                     className="h-11 text-base sm:text-sm"
@@ -353,18 +405,21 @@ export default function RecipeForm({
                     value={row.unit}
                     onValueChange={(value) =>
                       setIngredient(id, {
-                        unit: (value || "") as IngredientUnit | "",
+                        unit: (value === "unselected" ? "" : value) as IngredientUnit | "",
                       })
                     }
                   >
                     <SelectTrigger
                       id={`${id}-unit`}
-                      aria-label={`Ingredient ${idx + 1} unit`}
+                      aria-required="true"
+                      aria-invalid={invalidFieldId === `${id}-unit`}
+                      aria-describedby={invalidFieldId === `${id}-unit` ? "recipe-form-error" : undefined}
                       className="h-11 text-base sm:text-sm"
                     >
                       <SelectValue placeholder="Unit" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="unselected">Select unit</SelectItem>
                       {INGREDIENT_UNITS.map((unit) => (
                         <SelectItem key={unit} value={unit}>
                           {unit.toLowerCase()}
@@ -378,7 +433,7 @@ export default function RecipeForm({
                     htmlFor={id}
                     className="block text-xs font-medium text-muted-foreground"
                   >
-                    Ingredient text
+                    Ingredient name
                   </label>
                   <Input
                     id={id}
@@ -388,6 +443,8 @@ export default function RecipeForm({
                     }
                     placeholder="e.g. all-purpose flour"
                     aria-label={`Ingredient ${idx + 1} name`}
+                    aria-invalid={invalidFieldId === id}
+                    aria-describedby={invalidFieldId === id ? "recipe-form-error" : undefined}
                     className="h-11 text-base sm:text-sm"
                   />
                 </div>
@@ -482,6 +539,7 @@ export default function RecipeForm({
 
       {error && (
         <div
+          id="recipe-form-error"
           role="alert"
           className="rounded-input border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"
         >
