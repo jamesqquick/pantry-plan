@@ -393,6 +393,12 @@
     border-radius: var(--radius-input);
   }
 
+  .mobile-action-control-destructive {
+    border-color: color-mix(in oklab, var(--destructive) 30%, transparent);
+    background: color-mix(in oklab, var(--destructive) 5%, var(--card));
+    color: var(--destructive);
+  }
+
   .mobile-action-control:hover,
   .mobile-action-control:active {
     background: var(--accent);
