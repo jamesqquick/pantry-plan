@@ -385,6 +385,56 @@
    Button system — consistent shadow + press feedback
    ========================================================================== */
 
+@media (max-width: 39.99rem) {
+  .mobile-action-control {
+    border: 1px solid var(--outline-strong);
+    background: var(--card);
+  }
+
+  a.mobile-action-control {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    border-radius: 999px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    text-decoration: none;
+    color: var(--foreground);
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  button.mobile-action-control {
+    border-radius: var(--radius-input);
+  }
+
+  .mobile-action-control-destructive {
+    border-color: color-mix(in oklab, var(--destructive) 30%, transparent);
+    background: color-mix(in oklab, var(--destructive) 5%, var(--card));
+    color: var(--destructive);
+  }
+
+  .mobile-action-control:hover,
+  .mobile-action-control:active {
+    background: var(--accent);
+  }
+
+  .mobile-action-control-destructive:hover,
+  .mobile-action-control-destructive:active {
+    background: color-mix(in oklab, var(--destructive) 10%, transparent);
+    color: var(--destructive);
+  }
+
+  .mobile-action-control:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
 .btn-primary,
 .btn-secondary {
   display: inline-flex;

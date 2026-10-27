@@ -138,7 +138,7 @@ function SortableRecipeRow({
           title="Move up"
           disabled={disabled || dragging || index === 0}
           onClick={() => onMove(id, index - 1)}
-          className={controlClassName}
+          className={cn(controlClassName, "mobile-action-control")}
         >
           <ArrowUp className="size-4" aria-hidden="true" />
         </button>
@@ -148,7 +148,7 @@ function SortableRecipeRow({
           title="Move down"
           disabled={disabled || dragging || index === count - 1}
           onClick={() => onMove(id, index + 1)}
-          className={controlClassName}
+          className={cn(controlClassName, "mobile-action-control")}
         >
           <ArrowDown className="size-4" aria-hidden="true" />
         </button>
@@ -160,7 +160,7 @@ function SortableRecipeRow({
           onClick={() => onRemove(id)}
           className={cn(
             controlClassName,
-            "hover:bg-destructive/10 hover:text-destructive",
+            "mobile-action-control mobile-action-control-destructive hover:bg-destructive/10 hover:text-destructive",
           )}
         >
           <X className="size-4" aria-hidden="true" />
