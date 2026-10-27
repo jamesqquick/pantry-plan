@@ -38,6 +38,37 @@ async function callTool(db: Db, name: string, input: Record<string, unknown>) {
   }
 }
 
+async function listTools() {
+  const server = createServer(
+    undefined as never,
+    "user-1",
+    "https://quickpantry.test",
+    undefined,
+  );
+  const transport = new WebStandardStreamableHTTPServerTransport({ enableJsonResponse: true });
+  await server.connect(transport);
+  try {
+    const response = await transport.handleRequest(new Request("https://quickpantry.test/mcp", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        "mcp-protocol-version": "2025-11-25",
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+    }));
+    expect(response.status).toBe(200);
+    const message = await response.json() as {
+      result: { tools: Array<{ name: string; description: string; inputSchema: unknown }> };
+      error?: unknown;
+    };
+    expect(message.error).toBeUndefined();
+    return message.result.tools;
+  } finally {
+    await server.close();
+  }
+}
+
 async function setupDb() {
   const test = createTestDb();
   databases.push(test.sqlite);
@@ -72,7 +103,7 @@ describe("isRecipeAiSearchEnabled", () => {
 });
 
 describe("MCP tool registration", () => {
-  it("registers complete Zod schemas so strict object rules reach MCP", () => {
+  it("registers complete Zod schemas so strict object rules reach MCP", async () => {
     const server = createServer(
       undefined as never,
       "user-1",
@@ -93,6 +124,34 @@ describe("MCP tool registration", () => {
         },
       });
     }
+
+    const tools = await listTools();
+    for (const name of ["create_recipe", "edit_recipe"]) {
+      const tool = tools.find((listedTool) => listedTool.name === name);
+      expect(tool).toBeDefined();
+      expect(tool?.inputSchema).toMatchObject({
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          ingredients: {
+            items: {
+              additionalProperties: false,
+              required: expect.arrayContaining(["quantity", "unit", "displayText"]),
+              properties: {
+                quantity: { description: expect.stringMatching(/separately from displayText/i) },
+                unit: { description: expect.stringMatching(/separately from displayText/i) },
+                displayText: { description: expect.stringMatching(/quantity and unit/i) },
+              },
+            },
+          },
+        },
+      });
+    }
+
+    const createTool = tools.find((tool) => tool.name === "create_recipe");
+    expect(createTool).toBeDefined();
+    expect(createTool?.description).toMatch(/separate fields/i);
+    expect(createTool?.description).toMatch(/does not parse/i);
   });
 });
 

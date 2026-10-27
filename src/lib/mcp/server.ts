@@ -155,7 +155,7 @@ export function createServer(
     toolConfig("create_recipe", "recipes:write", {
       title: "Create recipe",
       description:
-        "Create a recipe in the authenticated user's Quick Pantry account. Every ingredient requires an explicit quantity and supported unit.",
+        "Create a recipe in the authenticated user's Quick Pantry account. Provide each ingredient's quantity, unit, and displayText as separate fields, for example { quantity: 2, unit: \"CUP\", displayText: \"flour\" }. Do not include measurements only in ingredient text; this tool does not parse them.",
       inputSchema: createRecipeToolSchema,
       outputSchema: createdRecipeOutputSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
