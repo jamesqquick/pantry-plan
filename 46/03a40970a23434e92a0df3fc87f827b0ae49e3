@@ -1,0 +1,33 @@
+src/components/ingredients/IngredientForm.tsx
+  s_df6350445eb50a::t_20055ebd46749c 314
+src/components/recipes/IngredientMapper.tsx
+  s_df6350445eb50a::t_5f7f351eb81f8a 229,237
+src/components/recipes/SortableRecipeList.tsx
+  s_df6350445eb50a::t_883cfad22942e6 141,151,163
+src/pages/ingredients/[id]/edit.astro
+  s_df6350445eb50a::t_d4b6c53ea96317 85
+src/pages/orders/[id]/edit.astro
+  s_df6350445eb50a::t_f07b89207ec639 52
+src/pages/recipes/[id]/edit.astro
+  s_df6350445eb50a::t_be28aa6dcc77c3 103
+src/pages/recipes/[id]/map-ingredients.astro
+  s_df6350445eb50a::t_0974dea9124edd 37
+src/styles/globals.css
+  s_df6350445eb50a::t_576c9b67fc101e 370-375,380,387-393,396-397,401-407
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "4603a40970a23434e92a0df3fc87f827b0ae49e3",
+  "prompts": {},
+  "sessions": {
+    "s_df6350445eb50a": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e81b2c87effecbuiIJhkXaBT5Z",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
