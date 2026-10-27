@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { RecipeDraftEditor, type RecipeDraft } from "./RecipeDraftEditor";
@@ -478,5 +478,42 @@ describe("RecipeDraftEditor", () => {
     );
     expect(screen.getByLabelText("Step 2")).toHaveProperty("value", "");
     expect(screen.queryByLabelText("Step 3")).toBeNull();
+  });
+
+  it("auto-grows step textareas without a line cap and disables manual resizing", () => {
+    renderEditor({ ...validDraft, instructions: [""] });
+
+    const textarea = screen.getByLabelText("Step 1") as HTMLTextAreaElement;
+    expect(textarea.className).toContain("resize-none");
+
+    let scrollHeight = 80;
+    Object.defineProperty(textarea, "scrollHeight", {
+      configurable: true,
+      get: () => scrollHeight,
+    });
+    const getComputedStyle = vi.spyOn(window, "getComputedStyle").mockImplementation(
+      () => ({
+        lineHeight: "20px",
+        paddingTop: "8px",
+        paddingBottom: "8px",
+        borderTopWidth: "1px",
+        borderBottomWidth: "1px",
+      }) as CSSStyleDeclaration,
+    );
+
+    try {
+      fireEvent.change(textarea, { target: { value: "A step\nwith two lines" } });
+      expect(textarea.style.height).toBe("82px");
+      expect(textarea.style.overflowY).toBe("hidden");
+
+      scrollHeight = 400;
+      fireEvent.change(textarea, {
+        target: { value: Array.from({ length: 11 }, (_, idx) => `Line ${idx + 1}`).join("\n") },
+      });
+      expect(textarea.style.height).toBe("402px");
+      expect(textarea.style.overflowY).toBe("hidden");
+    } finally {
+      getComputedStyle.mockRestore();
+    }
   });
 });

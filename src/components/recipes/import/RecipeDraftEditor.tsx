@@ -3,7 +3,7 @@
  * user review/modify before saving or continuing to ingredient mapping.
  */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { actions } from "astro:actions";
 
 import type { IngredientUnit } from "@/db/schema/enums";
@@ -52,6 +52,23 @@ type IngredientReviewRow = {
   status: IngredientReviewStatus;
   edited: boolean;
 };
+
+function resizeInstructionTextarea(textarea: HTMLTextAreaElement) {
+  const style = window.getComputedStyle(textarea);
+  const lineHeight = Number.parseFloat(style.lineHeight) || 20;
+  const verticalPadding =
+    (Number.parseFloat(style.paddingTop) || 0) +
+    (Number.parseFloat(style.paddingBottom) || 0);
+  const verticalBorder =
+    (Number.parseFloat(style.borderTopWidth) || 0) +
+    (Number.parseFloat(style.borderBottomWidth) || 0);
+  const minHeight = lineHeight * 2 + verticalPadding + verticalBorder;
+
+  textarea.style.height = "auto";
+  const contentHeight = textarea.scrollHeight + verticalBorder;
+  textarea.style.height = `${Math.max(contentHeight, minHeight)}px`;
+  textarea.style.overflowY = "hidden";
+}
 
 function createIngredientReviewRow(rawText: string, id: string): IngredientReviewRow {
   if (!rawText.trim()) {
@@ -109,6 +126,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
   const [instructions, setInstructions] = useState<string[]>(
     draft.instructions.length > 0 ? draft.instructions : [""],
   );
+  const instructionsSectionRef = useRef<HTMLElement | null>(null);
   const [tagIds, setTagIds] = useState<Set<string>>(new Set());
   const [savingDestination, setSavingDestination] = useState<
     "detail" | "map" | null
@@ -116,6 +134,12 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
   const [invalidFieldId, setInvalidFieldId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const saving = savingDestination !== null;
+
+  useEffect(() => {
+    instructionsSectionRef.current
+      ?.querySelectorAll("textarea")
+      .forEach(resizeInstructionTextarea);
+  }, [instructions]);
 
   function updateIngredient(id: string, patch: Partial<IngredientReviewRow>) {
     setError(null);
@@ -526,7 +550,11 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
       </section>
 
       {/* Instructions */}
-      <section aria-labelledby="draft-instructions-heading" className="space-y-3">
+      <section
+        ref={instructionsSectionRef}
+        aria-labelledby="draft-instructions-heading"
+        className="space-y-3"
+      >
         <h2 id="draft-instructions-heading" className="text-lg font-semibold">
           Instructions
         </h2>
@@ -571,8 +599,12 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                 <Textarea
                   id={stepId}
                   value={step}
-                  onChange={(e) => updateInstruction(idx, e.target.value)}
+                  onChange={(e) => {
+                    updateInstruction(idx, e.target.value);
+                    resizeInstructionTextarea(e.currentTarget);
+                  }}
                   rows={2}
+                  className="resize-none overflow-y-hidden leading-5"
                 />
               </article>
             );
