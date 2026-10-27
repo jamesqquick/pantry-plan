@@ -311,7 +311,7 @@ export default function IngredientForm(props: IngredientFormProps) {
           Prefilled from global ingredient.{" "}
           <button
             type="button"
-            className="mobile-action-button cursor-pointer text-primary-on-card underline underline-offset-2"
+            className="cursor-pointer text-primary-on-card underline underline-offset-2"
             onClick={() => set("baseIngredientId", "")}
           >
             Clear

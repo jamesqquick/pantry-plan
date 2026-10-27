@@ -226,7 +226,7 @@ export function IngredientMapper({
               <button
                 type="button"
                 onClick={handleClear}
-                className="mobile-action-button cursor-pointer rounded px-2 py-1 text-[10px] font-medium text-amber-700 transition-colors hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-900/20"
+                className="cursor-pointer rounded px-2 py-1 text-[10px] font-medium text-amber-700 transition-colors hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-900/20"
               >
                 Clear mapping
               </button>
@@ -234,7 +234,7 @@ export function IngredientMapper({
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="mobile-action-button ml-auto cursor-pointer rounded px-2 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted"
+              className="ml-auto cursor-pointer rounded px-2 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted"
             >
               Cancel
             </button>
