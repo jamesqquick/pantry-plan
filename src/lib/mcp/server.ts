@@ -17,6 +17,7 @@ import {
   weeklyMealPlanOutputSchema,
 } from "@/features/mcp/mcp.schemas";
 import { createTextOnlyRecipe } from "@/features/recipes/create-text-recipe";
+import { IngredientMeasurementValidationError } from "@/features/recipes/ingredient-measurements";
 import { parseRecipeFromUrl } from "@/lib/parse/parse-recipe";
 import { isSafeHttpUrl } from "@/lib/url";
 import { authenticateMcpRequest, mcpAuthChallenge } from "./auth";
@@ -154,7 +155,7 @@ export function createServer(
     toolConfig("create_recipe", "recipes:write", {
       title: "Create recipe",
       description:
-        "Create a recipe in the authenticated user's Quick Pantry account.",
+        "Create a recipe in the authenticated user's Quick Pantry account. Every ingredient requires an explicit quantity and supported unit.",
       inputSchema: createRecipeToolSchema,
       outputSchema: createdRecipeOutputSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
@@ -170,6 +171,9 @@ export function createServer(
         await queueIndexSync([result.recipeId]);
         return createRecipeResult(origin, result.recipeId, input.title);
       } catch (error) {
+        if (error instanceof IngredientMeasurementValidationError) {
+          return toolError(error.message);
+        }
         console.error(
           JSON.stringify({
             message: "MCP recipe creation failed",
@@ -221,7 +225,7 @@ export function createServer(
     toolConfig("edit_recipe", "recipes:write", {
       title: "Edit recipe",
       description:
-        "Partially edit a recipe in the authenticated user's Quick Pantry account. Omitted fields remain unchanged, null clears optional metadata, and supplied ingredients or instructions replace the complete ordered list.",
+        "Partially edit a recipe in the authenticated user's Quick Pantry account. Omitted fields remain unchanged, null clears optional metadata, and supplied ingredients or instructions replace the complete ordered list. Every ingredient requires an explicit quantity and supported unit, including stored ingredients when the list is omitted.",
       inputSchema: editRecipeToolSchema,
       outputSchema: recipeDetailsOutputSchema,
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
@@ -238,6 +242,9 @@ export function createServer(
         const result = await getMcpRecipe(db, userId, input.recipeId);
         return recipeDetailsResult(origin, result, "Updated recipe");
       } catch (error) {
+        if (error instanceof IngredientMeasurementValidationError) {
+          return toolError(error.message);
+        }
         console.error(
           JSON.stringify({
             message: "MCP recipe edit failed",
@@ -305,6 +312,9 @@ export function createServer(
           input.data.recipe.title,
         );
       } catch (error) {
+        if (error instanceof IngredientMeasurementValidationError) {
+          return toolError(error.message);
+        }
         console.error(
           JSON.stringify({
             message: "MCP recipe URL import failed",

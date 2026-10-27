@@ -90,8 +90,8 @@ const preview = {
       recipeIngredientUpdatedAt: 1_700_000_000_004,
       rawText: "salt to taste",
       displayText: "salt to taste",
-      quantity: null,
-      unit: null,
+      quantity: 1,
+      unit: "TSP" as const,
       currentIngredient: null,
       normalizedKey: "salt to taste",
       suggestedIngredient: null,
@@ -286,14 +286,137 @@ describe("IngredientMappingReview", () => {
             recipeIngredientId: "row-unmapped",
             recipeIngredientUpdatedAt: 1_700_000_000_004,
             displayText: "salt to taste",
-            quantity: null,
-            unit: null,
+            quantity: 1,
+            unit: "TSP",
             mapping: { kind: "unmapped" },
           },
         ],
       });
       expect(softNavigate).toHaveBeenCalledWith("/recipes/recipe-123");
     });
+  });
+
+  it.each(["mapped", "unmapped"])(
+    "requires a measurement for a legacy %s row and preserves salt to taste on correction",
+    async (mappingKind) => {
+      const user = userEvent.setup();
+      previewRecipe.mockResolvedValueOnce({
+        data: {
+          ...preview,
+          items: [{
+            ...preview.items[3],
+            quantity: null,
+            unit: null,
+            currentIngredient: mappingKind === "mapped" ? { id: "ingredient-salt", name: "Salt" } : null,
+          }],
+        },
+        error: undefined,
+      });
+      render(<IngredientMappingReview recipeId="recipe-123" recipeTitle="Weeknight pasta" />);
+      await screen.findByRole("heading", { name: "salt to taste" });
+      const row = getRow("salt to taste");
+      const quantity = row.getByLabelText("Quantity");
+      const unit = row.getByLabelText("Unit");
+      const apply = screen.getByRole("button", { name: "Apply mappings" });
+
+      expect(row.getByLabelText("Display text")).toHaveProperty("value", "salt to taste");
+      expect(quantity).toHaveProperty("value", "");
+      expect(unit).toHaveProperty("value", "");
+      expect(quantity).toHaveProperty("required", true);
+      expect(unit).toHaveProperty("required", true);
+      expect(quantity.getAttribute("aria-required")).toBe("true");
+      expect(unit.getAttribute("aria-required")).toBe("true");
+      expect(row.getByRole("option", { name: "Select unit" })).toHaveProperty("disabled", false);
+      await user.click(apply);
+
+      expect(screen.getByRole("alert").textContent).toBe('Quantity is required for "salt to taste".');
+      await waitFor(() => expect(document.activeElement).toBe(quantity));
+      expect(quantity.getAttribute("aria-invalid")).toBe("true");
+      expect(quantity.getAttribute("aria-describedby")).toBe(screen.getByRole("alert").id);
+      expect(applyRecipe).not.toHaveBeenCalled();
+      expect(softNavigate).not.toHaveBeenCalled();
+
+      await user.type(quantity, "1");
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(quantity.getAttribute("aria-invalid")).toBe("false");
+      await user.click(apply);
+
+      expect(screen.getByRole("alert").textContent).toBe('Choose a unit for "salt to taste".');
+      await waitFor(() => expect(document.activeElement).toBe(unit));
+      expect(unit.getAttribute("aria-invalid")).toBe("true");
+      expect(unit.getAttribute("aria-describedby")).toBe(screen.getByRole("alert").id);
+      expect(applyRecipe).not.toHaveBeenCalled();
+
+      await user.selectOptions(unit, "TSP");
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(unit.getAttribute("aria-invalid")).toBe("false");
+      await user.click(apply);
+
+      expect(applyRecipe).toHaveBeenCalledWith({
+        recipeId: "recipe-123",
+        items: [{
+          recipeIngredientId: "row-unmapped",
+          recipeIngredientUpdatedAt: 1_700_000_000_004,
+          displayText: "salt to taste",
+          quantity: 1,
+          unit: "TSP",
+          mapping: mappingKind === "mapped"
+            ? { kind: "existing", ingredientId: "ingredient-salt" }
+            : { kind: "unmapped" },
+        }],
+      });
+      expect(row.getByRole("heading", { name: "salt to taste" })).toBeTruthy();
+      expect(softNavigate).toHaveBeenCalledWith("/recipes/recipe-123");
+    },
+  );
+
+  it.each(["1/0", "-1", "not a number", "NaN", "Infinity"])(
+    "rejects quantity %s for an unmapped row and accepts a precise fraction after correction",
+    async (invalidQuantity) => {
+      const user = userEvent.setup();
+      render(<IngredientMappingReview recipeId="recipe-123" recipeTitle="Weeknight pasta" />);
+      await screen.findByRole("heading", { name: "salt to taste" });
+      const row = getRow("salt to taste");
+      const quantity = row.getByLabelText("Quantity");
+      await user.clear(quantity);
+      await user.type(quantity, invalidQuantity);
+      await user.click(screen.getByRole("button", { name: "Apply mappings" }));
+
+      expect(screen.getByRole("alert").textContent).toContain('Quantity for "salt to taste" must be a valid number or fraction that is 0 or greater.');
+      await waitFor(() => expect(document.activeElement).toBe(quantity));
+      expect(quantity.getAttribute("aria-invalid")).toBe("true");
+      expect(quantity.getAttribute("aria-describedby")).toBe(screen.getByRole("alert").id);
+      expect(quantity).toHaveProperty("value", invalidQuantity);
+      expect(applyRecipe).not.toHaveBeenCalled();
+
+      await user.clear(quantity);
+      await user.type(quantity, "1/64");
+      expect(screen.queryByRole("alert")).toBeNull();
+      await user.click(screen.getByRole("button", { name: "Apply mappings" }));
+      expect(applyRecipe.mock.calls[0][0].items[3]).toMatchObject({
+        displayText: "salt to taste", quantity: 1 / 64, unit: "TSP", mapping: { kind: "unmapped" },
+      });
+      expect(quantity).toHaveProperty("value", "1/64");
+    },
+  );
+
+  it("rejects an unsupported legacy unit and accepts an explicit zero after correction", async () => {
+    const user = userEvent.setup();
+    previewRecipe.mockResolvedValueOnce({
+      data: { ...preview, items: [{ ...preview.items[0], quantity: 0, unit: "BUCKET" }] },
+      error: undefined,
+    });
+    render(<IngredientMappingReview recipeId="recipe-123" recipeTitle="Weeknight pasta" />);
+    await screen.findByRole("heading", { name: "2 cups flour" });
+    const unit = screen.getByLabelText("Unit");
+    await user.click(screen.getByRole("button", { name: "Apply mappings" }));
+
+    expect(screen.getByRole("alert").textContent).toBe('Choose a unit for "2 cups flour".');
+    await waitFor(() => expect(document.activeElement).toBe(unit));
+    expect(applyRecipe).not.toHaveBeenCalled();
+    await user.selectOptions(unit, "CUP");
+    await user.click(screen.getByRole("button", { name: "Apply mappings" }));
+    expect(applyRecipe.mock.calls[0][0].items[0]).toMatchObject({ quantity: 0, unit: "CUP" });
   });
 
   it("searches the catalog with listbox semantics and applies a keyboard selection", async () => {
@@ -544,6 +667,7 @@ describe("IngredientMappingReview", () => {
     expect(quantity.getAttribute("aria-invalid")).toBe("true");
 
     await user.clear(quantity);
+    await user.type(quantity, "2");
     const create = getRow("1 bunch scallions");
     const createName = create.getByRole("combobox", { name: "Ingredient" });
     await user.clear(createName);

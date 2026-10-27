@@ -11,6 +11,7 @@ import { chunkRows } from "@/db/chunked-insert";
 import type { SaveImportedRecipeTextOnlyInput } from "@/features/import/import.schemas";
 import { createId } from "@paralleldrive/cuid2";
 import { parseScalableIngredientLine } from "@/lib/ingredients/parse-ingredient-line-structured";
+import { validateIngredientMeasurements } from "./ingredient-measurements";
 
 export class RecipeCreationError extends Error {
   constructor() {
@@ -40,7 +41,6 @@ export async function createTextOnlyRecipe(
   const { recipe: recipeData, ingredients } = input;
   const recipeId = createId();
 
-  const validTagIds = await filterOwnedTagIds(db, userId, recipeData.tagIds);
   const instructionRows = recipeData.instructions.map((text, sortOrder) => ({
     recipeId,
     sortOrder,
@@ -55,7 +55,7 @@ export async function createTextOnlyRecipe(
         quantity: amount.kind === "scalable" ? amount.quantity : null,
         unit: amount.kind === "scalable" ? amount.unit : null,
         displayText: amount.displayText,
-        rawText: line.trim(),
+        rawText: line,
         sortOrder,
       };
     }
@@ -70,6 +70,9 @@ export async function createTextOnlyRecipe(
       sortOrder,
     };
   });
+  validateIngredientMeasurements(ingredientRows);
+
+  const validTagIds = await filterOwnedTagIds(db, userId, recipeData.tagIds);
   const tagRows = validTagIds.map((tagId) => ({ recipeId, tagId }));
 
   const batchQueries = [

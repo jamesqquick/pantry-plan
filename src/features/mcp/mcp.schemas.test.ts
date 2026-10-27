@@ -5,6 +5,7 @@ import {
   editRecipeToolSchema,
   getRecipeToolSchema,
   importRecipeFromUrlToolSchema,
+  recipeDetailsOutputSchema,
   searchRecipesToolSchema,
 } from "./mcp.schemas";
 
@@ -52,6 +53,63 @@ describe("MCP tool schemas", () => {
       true,
     );
     expect(getRecipeToolSchema.safeParse({ id: "recipe-1" }).success).toBe(false);
+  });
+
+  it.each([
+    {},
+    { quantity: 1 },
+    { unit: "TSP" },
+    { quantity: null, unit: "TSP" },
+    { quantity: 1, unit: null },
+    { quantity: null, unit: null },
+    { quantity: "1", unit: "TSP" },
+    { quantity: Number.NaN, unit: "TSP" },
+    { quantity: Number.POSITIVE_INFINITY, unit: "TSP" },
+    { quantity: Number.NEGATIVE_INFINITY, unit: "TSP" },
+    { quantity: -0.01, unit: "TSP" },
+    { quantity: 1, unit: "ML" },
+  ])("rejects invalid create and edit measurements: %o", (amount) => {
+    const ingredients = [{ displayText: "salt to taste", ...amount }];
+    expect(createRecipeToolSchema.safeParse({
+      title: "Soup",
+      ingredients,
+      instructions: ["Season."],
+    }).success).toBe(false);
+    expect(editRecipeToolSchema.safeParse({
+      recipeId: "recipe-1",
+      ingredients,
+    }).success).toBe(false);
+  });
+
+  it("accepts measured descriptions with zero, fractions, and explicit counts", () => {
+    const ingredients = [
+      { quantity: 1, unit: "TSP", displayText: "salt to taste", rawText: "Salt to taste" },
+      { quantity: 1 / 3, unit: "CUP", displayText: "stock" },
+      { quantity: 3, unit: "COUNT", displayText: "eggs" },
+      { quantity: 0, unit: "PINCH", displayText: "pepper" },
+    ];
+    expect(createRecipeToolSchema.parse({
+      title: "Soup",
+      ingredients,
+      instructions: ["Cook."],
+    }).ingredients).toEqual(ingredients);
+  });
+
+  it("keeps legacy recipe output measurements nullable", () => {
+    expect(recipeDetailsOutputSchema.safeParse({
+      id: "recipe-1",
+      title: "Legacy soup",
+      sourceUrl: null,
+      imageUrl: null,
+      servings: null,
+      prepTimeMinutes: null,
+      cookTimeMinutes: null,
+      totalTimeMinutes: null,
+      notes: null,
+      recipeUrl: "https://quickpantry.test/recipes/recipe-1",
+      ingredients: [{ quantity: null, unit: null, displayText: "salt to taste" }],
+      instructions: ["Season."],
+    }).success).toBe(true);
   });
 
   it("supports partial edits and explicit clearing", () => {

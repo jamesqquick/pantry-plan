@@ -1,7 +1,5 @@
 import { z } from "zod";
-import { INGREDIENT_UNITS } from "@/db/schema/enums";
-
-const ingredientUnitSchema = z.enum(INGREDIENT_UNITS).optional();
+import { requiredIngredientMeasurementsSchema } from "./ingredient-measurements";
 
 const MAX_INGREDIENT_LINE_DISPLAY = 500;
 const MAX_INGREDIENT_LINE_RAW = 1_000;
@@ -11,13 +9,7 @@ export const recipeIngredientItemSchema = z.object({
   id: z.string().max(100).optional(),
   /** When empty/null, line is stored as unmapped (excluded from cost/totals). */
   ingredientId: z.string().min(1).max(100).optional().or(z.literal("")),
-  quantity: z
-    .number()
-    .min(0, "Quantity must be 0 or greater")
-    .finite("Quantity must be finite")
-    .optional()
-    .nullable(),
-  unit: ingredientUnitSchema.nullable(),
+  ...requiredIngredientMeasurementsSchema.shape,
   /** Ingredient line without quantity/unit; editable. */
   displayText: z
     .string()

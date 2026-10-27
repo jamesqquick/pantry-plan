@@ -3,6 +3,7 @@ import type { Db } from "@/db";
 import { recipe, recipeIngredient, recipeInstruction } from "@/db";
 import type { EditRecipeToolInput } from "@/features/mcp/mcp.schemas";
 import { chunkRows } from "@/db/chunked-insert";
+import { validateIngredientMeasurements } from "@/features/recipes/ingredient-measurements";
 import { RecipeNotFoundError } from "./recipe-errors";
 
 export async function editMcpRecipe(
@@ -16,6 +17,19 @@ export async function editMcpRecipe(
     .where(and(eq(recipe.id, input.recipeId), eq(recipe.userId, userId)))
     .limit(1);
   if (existingRows.length === 0) throw new RecipeNotFoundError();
+
+  const effectiveIngredients =
+    input.ingredients ??
+    (await db
+      .select({
+        quantity: recipeIngredient.quantity,
+        unit: recipeIngredient.unit,
+        displayText: recipeIngredient.displayText,
+      })
+      .from(recipeIngredient)
+      .where(eq(recipeIngredient.recipeId, input.recipeId))
+      .orderBy(recipeIngredient.sortOrder));
+  validateIngredientMeasurements(effectiveIngredients);
 
   const patch: Partial<typeof recipe.$inferInsert> = { updatedAt: new Date() };
   if (input.title !== undefined) patch.title = input.title;
@@ -65,10 +79,10 @@ export async function editMcpRecipe(
         input.ingredients.map((item, sortOrder) => ({
           recipeId: input.recipeId,
           ingredientId: null,
-          quantity: item.quantity ?? null,
-          unit: item.unit ?? null,
+          quantity: item.quantity,
+          unit: item.unit,
           displayText: item.displayText.trim(),
-          rawText: item.rawText?.trim() || null,
+          rawText: item.rawText ?? null,
           sortOrder,
         })),
         8,

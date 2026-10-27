@@ -178,7 +178,7 @@ describe("Quick Pantry OAuth", () => {
     });
     const saved = await createMcpRecipe(db, owner.id, {
       title: "Private tomato soup",
-      ingredients: [{ displayText: "tomatoes" }],
+      ingredients: [{ quantity: 2, unit: "COUNT", displayText: "tomatoes" }],
       instructions: ["Simmer the tomatoes."],
     });
     const { response, body } = await mcp(tokens.access_token, "tools/call", { name: "get_recipe", arguments: { recipeId: saved.recipeId } });
@@ -365,7 +365,7 @@ describe("Quick Pantry OAuth", () => {
 
   it("guards every tool before reading, fetching, or changing data without its scope", async () => {
     const { db, connect, mcp, owner } = await setup();
-    const saved = await createMcpRecipe(db, owner.id, { title: "Keep this recipe", ingredients: [{ displayText: "tomatoes" }], instructions: ["Simmer."] });
+    const saved = await createMcpRecipe(db, owner.id, { title: "Keep this recipe", ingredients: [{ quantity: 2, unit: "COUNT", displayText: "tomatoes" }], instructions: ["Simmer."] });
     await db.insert(plannedMeal).values({ userId: owner.id, recipeId: saved.recipeId, date: new Date("2026-09-06T00:00:00Z"), mealSlot: "DINNER" });
     const beforeMeals = await db.query.plannedMeal.findMany();
     const beforeRecipes = await db.query.recipe.findMany();
@@ -374,7 +374,7 @@ describe("Quick Pantry OAuth", () => {
     const calls = [
       ["get_recipe", "recipes:read", { recipeId: saved.recipeId }],
       ["search_recipes", "recipes:read", { query: "Keep" }],
-      ["create_recipe", "recipes:write", { title: "Unapproved", ingredients: [{ displayText: "beans" }], instructions: ["Cook."] }],
+      ["create_recipe", "recipes:write", { title: "Unapproved", ingredients: [{ quantity: 1, unit: "CUP", displayText: "beans" }], instructions: ["Cook."] }],
       ["edit_recipe", "recipes:write", { recipeId: saved.recipeId, title: "Unapproved" }],
       ["import_recipe_from_url", "recipes:write", { url: "https://example.com/recipe" }],
       ["create_weekly_meal_plan", "meal-plans:write", { weekStart: "2026-09-06", meals: [] }],
@@ -397,7 +397,7 @@ describe("Quick Pantry OAuth", () => {
     const other = await signUp("other@example.com");
     const ownerTokens = await connect(owner);
     const otherTokens = await connect(other);
-    const saved = await createMcpRecipe(db, other.id, { title: "Other account secret recipe", ingredients: [{ displayText: "Private ingredient" }], instructions: ["Private instruction."] });
+    const saved = await createMcpRecipe(db, other.id, { title: "Other account secret recipe", ingredients: [{ quantity: 1, unit: "CUP", displayText: "Private ingredient" }], instructions: ["Private instruction."] });
     const search = await mcp(ownerTokens.access_token, "tools/call", { name: "search_recipes", arguments: { query: "secret" } });
     expect(search.body).toMatchObject({ result: { structuredContent: { count: 0, recipes: [] } } });
     for (const [name, input] of [
@@ -466,7 +466,7 @@ describe("Quick Pantry OAuth", () => {
     await connect(owner);
     const key = await createMcpApiKey(db, owner.id, "Existing client");
     await disconnectChatgpt(db, owner.id);
-    const created = await mcp(key.token, "tools/call", { name: "create_recipe", arguments: { title: "Legacy client recipe", ingredients: [{ displayText: "beans" }], instructions: ["Cook the beans."] } });
+    const created = await mcp(key.token, "tools/call", { name: "create_recipe", arguments: { title: "Legacy client recipe", ingredients: [{ quantity: 1, unit: "CUP", displayText: "beans" }], instructions: ["Cook the beans."] } });
     expect(created.response.status).toBe(200);
     expect(created.body).toMatchObject({ result: { structuredContent: { title: "Legacy client recipe" } } });
     expect(await db.query.recipe.findFirst({ where: eq(recipe.userId, owner.id) })).toMatchObject({ title: "Legacy client recipe" });

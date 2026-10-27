@@ -9,6 +9,10 @@ import {
 } from "@/features/recipes/recipes.schemas";
 import { setRecipeIngredientsSchema } from "@/features/recipes/recipe-ingredients.schemas";
 import {
+  IngredientMeasurementValidationError,
+  validateIngredientMeasurements,
+} from "@/features/recipes/ingredient-measurements";
+import {
   recipe,
   recipeIngredient,
   recipeInstruction,
@@ -110,10 +114,10 @@ export const recipes = {
           item.ingredientId && item.ingredientId !== ""
             ? item.ingredientId
             : null,
-        quantity: item.quantity ?? null,
-        unit: item.unit ?? null,
+        quantity: item.quantity,
+        unit: item.unit,
         displayText: item.displayText.trim() || "—",
-        rawText: item.rawText?.trim() || null,
+        rawText: item.rawText ?? null,
         sortOrder: item.sortOrder,
       }));
       for (const chunk of chunkRows(ingredientRows, 8)) {
@@ -152,6 +156,24 @@ export const recipes = {
           code: "NOT_FOUND",
           message: "Recipe not found.",
         });
+      }
+
+      const effectiveIngredients =
+        input.ingredientsStructured ??
+        (await db
+          .select({
+            quantity: recipeIngredient.quantity,
+            unit: recipeIngredient.unit,
+            displayText: recipeIngredient.displayText,
+          })
+          .from(recipeIngredient)
+          .where(eq(recipeIngredient.recipeId, input.id))
+          .orderBy(recipeIngredient.sortOrder));
+      try {
+        validateIngredientMeasurements(effectiveIngredients);
+      } catch (error) {
+        if (!(error instanceof IngredientMeasurementValidationError)) throw error;
+        throw new ActionError({ code: "BAD_REQUEST", message: error.message });
       }
 
       // Build partial update for core fields — only set what was provided.
@@ -196,10 +218,10 @@ export const recipes = {
             item.ingredientId && item.ingredientId !== ""
               ? item.ingredientId
               : null,
-          quantity: item.quantity ?? null,
-          unit: item.unit ?? null,
+          quantity: item.quantity,
+          unit: item.unit,
           displayText: item.displayText.trim() || "—",
-          rawText: item.rawText?.trim() || null,
+          rawText: item.rawText ?? null,
           sortOrder: item.sortOrder,
         }));
         for (const chunk of chunkRows(ingredientRows, 8)) {
@@ -276,6 +298,18 @@ export const recipes = {
       }
       const source = sourceRows[0]!;
 
+      const rings = await db
+        .select()
+        .from(recipeIngredient)
+        .where(eq(recipeIngredient.recipeId, input.recipeId))
+        .orderBy(recipeIngredient.sortOrder);
+      try {
+        validateIngredientMeasurements(rings);
+      } catch (error) {
+        if (!(error instanceof IngredientMeasurementValidationError)) throw error;
+        throw new ActionError({ code: "BAD_REQUEST", message: error.message });
+      }
+
       const [copy] = await db
         .insert(recipe)
         .values({
@@ -297,15 +331,11 @@ export const recipes = {
         });
       }
 
-      const [insts, rings, rtags] = await Promise.all([
+      const [insts, rtags] = await Promise.all([
         db
           .select()
           .from(recipeInstruction)
           .where(eq(recipeInstruction.recipeId, input.recipeId)),
-        db
-          .select()
-          .from(recipeIngredient)
-          .where(eq(recipeIngredient.recipeId, input.recipeId)),
         db
           .select({ tagId: recipeTag.tagId })
           .from(recipeTag)

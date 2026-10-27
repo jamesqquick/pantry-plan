@@ -43,10 +43,10 @@ export const recipeIngredients = {
               item.ingredientId && item.ingredientId !== ""
                 ? item.ingredientId
                 : null,
-            quantity: item.quantity ?? null,
-            unit: item.unit ?? null,
+            quantity: item.quantity,
+            unit: item.unit,
             displayText: item.displayText?.trim() || "—",
-            rawText: item.rawText?.trim() || null,
+            rawText: item.rawText ?? null,
             sortOrder: item.sortOrder,
           }))
         );
