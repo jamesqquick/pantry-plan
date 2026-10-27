@@ -1,0 +1,41 @@
+src/actions/import.ts
+  s_b1a1532eeb7434::t_cacd5c6650de91 35,81-82,203-204,343-345
+src/actions/ingredient-mapping.ts
+  s_b1a1532eeb7434::t_6ee7dee197fcac 548-549,553-554,566-567
+src/actions/recipe-ingredients.ts
+  s_b1a1532eeb7434::t_c9d361c84d9b9e 46-47,49
+src/lib/mcp/create-recipe.test.ts
+  s_46547f3cb3c28b::t_dd01c9e0a96487 1-2,4-6,9-15,109-110,122-179
+src/lib/mcp/edit-recipe.test.ts
+  s_46547f3cb3c28b::t_131f711ca9319e 1-2,4-7,21,56-78,108,138-139,157-239
+src/lib/mcp/server.test.ts
+  s_46547f3cb3c28b::t_c8c2d4ae16c0a3 1-4,6,8-46,50-51,68-69,89-212
+src/lib/mcp/server.ts
+  s_46547f3cb3c28b::t_516ee5a865ec05 20,158,174-176,228,245-247,315-317
+src/lib/oauth.test.ts
+  s_46547f3cb3c28b::t_418fa5a617b633 181,368,377,400,469
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "26c912e542ee80b342817b2bf037811772fedf24",
+  "prompts": {},
+  "sessions": {
+    "s_46547f3cb3c28b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ea43dd008ffeBZNGvon6h9Ym3f",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    },
+    "s_b1a1532eeb7434": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_eaec31953ffeJif6dmJkG5aJHH",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
