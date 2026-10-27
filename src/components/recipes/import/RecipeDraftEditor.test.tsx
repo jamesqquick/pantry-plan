@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { RecipeDraftEditor, type RecipeDraft } from "./RecipeDraftEditor";
@@ -436,5 +436,47 @@ describe("RecipeDraftEditor", () => {
     ).toBeTruthy();
     expect(saveTextOnly).not.toHaveBeenCalled();
     expect(softNavigate).not.toHaveBeenCalled();
+  });
+
+  it("renders instruction steps as matching cards and updates their labels when removed", async () => {
+    const user = userEvent.setup();
+    renderEditor();
+
+    const ingredientsHeading = screen.getByRole("heading", {
+      name: "Ingredients",
+      level: 2,
+    });
+    const instructionsHeading = screen.getByRole("heading", {
+      name: "Instructions",
+      level: 2,
+    });
+    expect(instructionsHeading.className).toBe(ingredientsHeading.className);
+
+    const instructions = screen.getByRole("region", { name: "Instructions" });
+    const firstStep = screen.getByLabelText("Step 1");
+    const firstCard = firstStep.closest("article");
+    expect(firstCard?.className).toBe(
+      "space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5",
+    );
+
+    const stepHeader = firstCard?.firstElementChild;
+    const removeFirstStep = within(firstCard as HTMLElement).getByRole("button", {
+      name: "Remove step 1",
+    });
+    expect(stepHeader?.className).toBe("flex items-start justify-between gap-3");
+    expect(stepHeader?.firstElementChild?.textContent).toBe("Step 1");
+    expect(stepHeader?.lastElementChild).toBe(removeFirstStep);
+    expect(instructions.querySelectorAll("article")).toHaveLength(2);
+
+    await user.click(screen.getByRole("button", { name: "Add step" }));
+    expect(screen.getByLabelText("Step 3")).toHaveProperty("value", "");
+
+    await user.click(removeFirstStep);
+    expect(screen.getByLabelText("Step 1")).toHaveProperty(
+      "value",
+      "Cook until tender.",
+    );
+    expect(screen.getByLabelText("Step 2")).toHaveProperty("value", "");
+    expect(screen.queryByLabelText("Step 3")).toBeNull();
   });
 });
