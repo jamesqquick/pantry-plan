@@ -23,6 +23,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/Tooltip";
 import { softNavigate } from "@/lib/navigate";
+import { SortableRecipeList } from "../SortableRecipeList";
+import { useRecipeEditorRows } from "../useRecipeEditorRows";
 
 export type RecipeDraft = {
   title: string;
@@ -46,12 +48,12 @@ interface Props {
 type IngredientReviewStatus = "parsed" | "unquantified" | "needs-review" | "empty";
 
 type IngredientReviewRow = {
-  id: string;
   rawText: string | null;
   displayText: string;
   quantityText: string;
   unit: IngredientUnit | "";
   status: IngredientReviewStatus;
+  edited: boolean;
 };
 
 function resizeInstructionTextarea(textarea: HTMLTextAreaElement) {
@@ -71,30 +73,30 @@ function resizeInstructionTextarea(textarea: HTMLTextAreaElement) {
   textarea.style.overflowY = "hidden";
 }
 
-function createIngredientReviewRow(rawText: string, id: string): IngredientReviewRow {
+function createIngredientReviewRow(rawText: string): IngredientReviewRow {
   if (!rawText.trim()) {
-    return { id, rawText: null, displayText: "", quantityText: "", unit: "", status: "empty" };
+    return { rawText: null, displayText: "", quantityText: "", unit: "", status: "empty", edited: false };
   }
 
   const parsed = parseScalableIngredientLine(rawText);
   if (parsed.kind === "scalable") {
     return {
-      id,
       rawText,
       displayText: parsed.displayText,
       quantityText: formatQuantityForInput(parsed.quantity),
       unit: parsed.unit,
       status: "parsed",
+      edited: false,
     };
   }
 
   return {
-    id,
     rawText,
     displayText: parsed.displayText,
     quantityText: "",
     unit: "",
     status: parsed.kind,
+    edited: false,
   };
 }
 
@@ -115,17 +117,15 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
     draft.totalTimeMinutes?.toString() ?? "",
   );
   const [notes, setNotes] = useState(draft.notes);
-  const [ingredients, setIngredients] = useState<IngredientReviewRow[]>(() => {
-    const lines = draft.ingredients.filter((line) => line.trim() !== "");
-    return lines.length > 0
-      ? lines.map((line, index) => createIngredientReviewRow(line, `ingredient-${index}`))
-      : [createIngredientReviewRow("", "ingredient-0")];
-  });
-  const nextIngredientId = useRef(ingredients.length);
-  const [instructions, setInstructions] = useState<string[]>(
-    draft.instructions.length > 0 ? draft.instructions : [""],
+  const initialIngredients = draft.ingredients
+    .filter((line) => line.trim() !== "")
+    .map((line) => createIngredientReviewRow(line));
+  const ingredients = useRecipeEditorRows(
+    initialIngredients,
+    () => createIngredientReviewRow(""),
   );
   const instructionsSectionRef = useRef<HTMLElement | null>(null);
+  const instructions = useRecipeEditorRows(draft.instructions, () => "");
   const [tagIds, setTagIds] = useState<Set<string>>(new Set());
   const [savingDestination, setSavingDestination] = useState<
     "detail" | "map" | null
@@ -138,29 +138,23 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
     instructionsSectionRef.current
       ?.querySelectorAll("textarea")
       .forEach(resizeInstructionTextarea);
-  }, [instructions]);
+  }, [instructions.rows]);
 
   function updateIngredient(id: string, patch: Partial<IngredientReviewRow>) {
     setError(null);
     setInvalidFieldId(null);
-    setIngredients((prev) => {
-      return prev.map((row) => row.id === id ? { ...row, ...patch } : row);
-    });
+    ingredients.update(id, (row) => ({ ...row, ...patch, edited: true }));
   }
-
-  function removeIngredient(id: string) {
-    setError(null);
-    setInvalidFieldId(null);
-    setIngredients((prev) => prev.filter((row) => row.id !== id));
-  }
-
   function addIngredient() {
     setError(null);
     setInvalidFieldId(null);
-    const id = `ingredient-${nextIngredientId.current++}`;
-    setIngredients((prev) => [...prev, createIngredientReviewRow("", id)]);
+    return ingredients.add();
   }
-
+  function removeIngredient(id: string) {
+    setError(null);
+    setInvalidFieldId(null);
+    ingredients.remove(id);
+  }
   function parseIntOr(val: string): number | undefined {
     const n = parseInt(val.trim(), 10);
     return Number.isFinite(n) && n >= 0 ? n : undefined;
@@ -180,8 +174,8 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
       prepTimeMinutes: parseIntOr(prepTime),
       cookTimeMinutes: parseIntOr(cookTime),
       totalTimeMinutes: parseIntOr(totalTime),
-      instructions: instructions
-        .map((s) => s.trim())
+      instructions: instructions.rows
+        .map((row) => row.value.trim())
         .filter(Boolean),
       notes: notes.trim() || undefined,
       tagIds: Array.from(tagIds),
@@ -197,7 +191,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
     }
 
     const cleanIngredients: SaveImportedRecipeTextOnlyInput["ingredients"] = [];
-    for (const row of ingredients) {
+    for (const { id, value: row } of ingredients.rows) {
       const quantityText = row.quantityText.trim();
       if (!row.rawText?.trim() && !row.displayText.trim() && !quantityText && !row.unit) {
         continue;
@@ -206,7 +200,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
       const label = row.rawText?.trim() || row.displayText.trim() || "this ingredient";
       const displayText = row.displayText.trim();
       if (!displayText) {
-        const fieldId = `draft-${row.id}-text`;
+        const fieldId = id;
         setError(`Ingredient text is required for "${label}".`);
         setInvalidFieldId(fieldId);
         window.setTimeout(() => document.getElementById(fieldId)?.focus(), 0);
@@ -219,7 +213,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
       });
       if (!measurements.success) {
         const invalidQuantity = measurements.error.issues.some((issue) => issue.path[0] === "quantity");
-        const fieldId = `draft-${row.id}-${invalidQuantity ? "quantity" : "unit"}`;
+        const fieldId = `${id}-${invalidQuantity ? "quantity" : "unit"}`;
         setError(invalidQuantity
           ? quantityText === ""
             ? `Quantity is required for "${label}".`
@@ -272,22 +266,6 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
     softNavigate(
       destination === "map" ? `${recipePath}/map-ingredients` : recipePath,
     );
-  }
-
-  function updateInstruction(idx: number, value: string) {
-    setInstructions((prev) => {
-      const next = [...prev];
-      next[idx] = value;
-      return next;
-    });
-  }
-
-  function removeInstruction(idx: number) {
-    setInstructions((prev) => prev.filter((_, i) => i !== idx));
-  }
-
-  function addInstruction() {
-    setInstructions((prev) => [...prev, ""]);
   }
 
   function toggleTag(id: string) {
@@ -404,12 +382,20 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
           </p>
         </div>
 
-        <div className="space-y-3">
-          {ingredients.map((row, idx) => {
-            const textId = `draft-${row.id}-text`;
-            const quantityId = `draft-${row.id}-quantity`;
-            const unitId = `draft-${row.id}-unit`;
-            const statusId = `draft-${row.id}-status`;
+        <SortableRecipeList
+          kind="ingredient"
+          rows={ingredients.rows}
+          disabled={saving}
+          onAdd={addIngredient}
+          onMove={ingredients.move}
+          onRemove={removeIngredient}
+          getText={(row) => row.rawText?.trim() || row.displayText || "New ingredient"}
+        >
+          {({ id, value: row }, idx) => {
+            const textId = id;
+            const quantityId = `${id}-quantity`;
+            const unitId = `${id}-unit`;
+            const statusId = `${id}-status`;
             const hasIngredientContent = Boolean(
               row.rawText?.trim() || row.displayText.trim() || row.quantityText.trim() || row.unit,
             );
@@ -424,51 +410,23 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
               measurementIssues.some((issue) => issue.path[0] === "quantity");
             const unitInvalid = invalidFieldId === unitId ||
               measurementIssues.some((issue) => issue.path[0] === "unit");
-            const statusMessage = row.status === "unquantified"
+            const statusMessage = row.status === "unquantified" && !measurements.success
               ? "No quantity was detected automatically. Enter a quantity and choose a unit before saving."
               : row.status === "needs-review"
                 ? "Couldn't automatically parse ingredient."
-                : null;
+                : row.edited && measurements.success
+                  ? "Your edits will be saved as entered."
+                  : null;
 
             return (
-              <article
-                key={row.id}
-                className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Original line
-                    </p>
-                    <p className="mt-1 break-words font-medium italic text-foreground">
-                      {row.rawText?.trim() || row.displayText || "New ingredient"}
-                    </p>
-                  </div>
-                  {ingredients.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeIngredient(row.id)}
-                      disabled={saving}
-                      className="min-h-11 min-w-11 shrink-0 cursor-pointer rounded-input px-3 py-2 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-red-900/20"
-                      title="Remove ingredient"
-                      aria-label={`Remove ingredient ${idx + 1}`}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4"
-                        aria-hidden="true"
-                      >
-                        <path d="M18 6 6 18" />
-                        <path d="m6 6 12 12" />
-                      </svg>
-                    </button>
-                  )}
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Original line
+                  </p>
+                  <p className="mt-1 break-words font-medium italic text-foreground">
+                    {row.rawText?.trim() || row.displayText || "New ingredient"}
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-[8rem_9rem_minmax(0,1fr)]">
@@ -489,7 +447,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                       aria-invalid={quantityInvalid}
                       aria-describedby={invalidFieldId === quantityId ? "recipe-import-error" : statusMessage ? statusId : undefined}
                       disabled={saving}
-                      onChange={(event) => updateIngredient(row.id, { quantityText: event.target.value })}
+                      onChange={(event) => updateIngredient(id, { quantityText: event.target.value })}
                     />
                   </div>
                   <div>
@@ -506,7 +464,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                       aria-describedby={invalidFieldId === unitId ? "recipe-import-error" : statusMessage ? statusId : undefined}
                       disabled={saving}
                       className="flex min-h-11 w-full rounded-input border border-input bg-card px-3 py-1.5 font-ui text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 aria-invalid:border-destructive aria-invalid:ring-destructive/30 disabled:cursor-not-allowed disabled:opacity-50"
-                      onChange={(event) => updateIngredient(row.id, { unit: event.target.value as IngredientUnit | "" })}
+                      onChange={(event) => updateIngredient(id, { unit: event.target.value as IngredientUnit | "" })}
                     >
                       <option value="">Select unit</option>
                       {INGREDIENT_UNITS.map((unit) => (
@@ -529,7 +487,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                       aria-invalid={invalidFieldId === textId}
                       aria-describedby={invalidFieldId === textId ? "recipe-import-error" : statusMessage ? statusId : undefined}
                       disabled={saving}
-                      onChange={(event) => updateIngredient(row.id, { displayText: event.target.value })}
+                      onChange={(event) => updateIngredient(id, { displayText: event.target.value })}
                     />
                   </div>
                 </div>
@@ -545,21 +503,10 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                     {statusMessage}
                   </p>
                 )}
-              </article>
+              </div>
             );
-          })}
-        </div>
-
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={addIngredient}
-          disabled={saving}
-          className="mt-2"
-        >
-          Add ingredient
-        </Button>
+          }}
+        </SortableRecipeList>
       </section>
 
       {/* Instructions */}
@@ -568,70 +515,33 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
         aria-labelledby="draft-instructions-heading"
         className="space-y-3"
       >
-        <h2 id="draft-instructions-heading" className="text-lg font-semibold">
-          Instructions
-        </h2>
-        <div className="space-y-3">
-          {instructions.map((step, idx) => {
-            const stepId = `draft-instruction-${idx}`;
-
-            return (
-              <article
-                key={idx}
-                className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <label htmlFor={stepId} className="text-sm font-medium">
-                    Step {idx + 1}
-                  </label>
-                  {instructions.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeInstruction(idx)}
-                      className="min-h-11 min-w-11 shrink-0 cursor-pointer rounded-input px-3 py-2 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
-                      title="Remove step"
-                      aria-label={`Remove step ${idx + 1}`}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4"
-                        aria-hidden="true"
-                      >
-                        <path d="M18 6 6 18" />
-                        <path d="m6 6 12 12" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-                <Textarea
-                  id={stepId}
-                  value={step}
-                  onChange={(e) => {
-                    updateInstruction(idx, e.target.value);
-                    resizeInstructionTextarea(e.currentTarget);
-                  }}
-                  rows={2}
-                  className="resize-none overflow-y-hidden leading-5"
-                />
-              </article>
-            );
-          })}
-        </div>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={addInstruction}
-          className="mt-2"
+        <h2 id="draft-instructions-heading" className="text-lg font-semibold">Instructions</h2>
+        <SortableRecipeList
+          kind="step"
+          rows={instructions.rows}
+          disabled={saving}
+          onAdd={instructions.add}
+          onMove={instructions.move}
+          onRemove={instructions.remove}
+          getText={(text) => text}
         >
-          Add step
-        </Button>
+          {({ id, value }, idx) => (
+            <>
+              <label htmlFor={id} className="sr-only">Step {idx + 1}</label>
+              <Textarea
+                id={id}
+                value={value}
+                onChange={(e) => {
+                  instructions.update(id, e.target.value);
+                  resizeInstructionTextarea(e.currentTarget);
+                }}
+                placeholder={`Describe step ${idx + 1}`}
+                rows={2}
+                className="resize-none overflow-y-hidden leading-5"
+              />
+            </>
+          )}
+        </SortableRecipeList>
       </section>
 
       {/* Notes */}

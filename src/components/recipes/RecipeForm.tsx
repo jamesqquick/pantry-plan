@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { actions } from "astro:actions";
 import { INGREDIENT_UNITS, type IngredientUnit } from "@/db/schema/enums";
 import { parseQuantityText } from "@/lib/quantity/quantity";
@@ -16,6 +16,8 @@ import { TagToggle } from "@/components/ui/TagToggle";
 import { IngredientMapper } from "@/components/recipes/IngredientMapper";
 import { requiredIngredientMeasurementsSchema } from "@/features/recipes/ingredient-measurements";
 import type { RecipeIngredientItemInput } from "@/features/recipes/recipe-ingredients.schemas";
+import { SortableRecipeList } from "./SortableRecipeList";
+import { useRecipeEditorRows } from "./useRecipeEditorRows";
 
 export type RecipeFormMode = "create" | "edit";
 
@@ -26,11 +28,6 @@ export type RecipeIngredientDraft = {
   rawText: string | null;
   ingredientId: string | null;
   ingredientName?: string | null;
-};
-
-type RecipeIngredientRow = RecipeIngredientDraft & {
-  id: number;
-  persisted: boolean;
 };
 
 export interface RecipeFormInitial {
@@ -86,55 +83,36 @@ export default function RecipeForm({
   const [cookTime, setCookTime] = useState(initial.cookTimeMinutes);
   const [totalTime, setTotalTime] = useState(initial.totalTimeMinutes);
   const [notes, setNotes] = useState(initial.notes);
-  const [instructions, setInstructions] = useState<string[]>(
-    initial.instructions.length > 0 ? initial.instructions : [""]
+  const ingredientInitial = initial.ingredients.map((row) => ({
+    ...row,
+    persisted: mode === "edit",
+  }));
+  const ingredients = useRecipeEditorRows(
+    ingredientInitial,
+    () => ({ ...emptyIngredient(), persisted: false }),
   );
-  const [ingredients, setIngredients] = useState<RecipeIngredientRow[]>(() =>
-    initial.ingredients.length > 0
-      ? initial.ingredients.map((row, id) => ({ ...row, id, persisted: mode === "edit" }))
-      : [{ ...emptyIngredient(), id: 0, persisted: false }]
-  );
-  const nextIngredientId = useRef(ingredients.length);
-  const [tagIds, setTagIds] = useState<Set<string>>(
-    new Set(initial.tagIds)
-  );
+  const instructions = useRecipeEditorRows(initial.instructions, () => "");
+  const [tagIds, setTagIds] = useState<Set<string>>(new Set(initial.tagIds));
 
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [invalidFieldId, setInvalidFieldId] = useState<string | null>(null);
 
-  function setInstruction(idx: number, value: string) {
-    setInstructions((prev) => prev.map((s, i) => (i === idx ? value : s)));
-  }
-  function addInstruction() {
-    setInstructions((prev) => [...prev, ""]);
-  }
-  function removeInstruction(idx: number) {
-    setInstructions((prev) =>
-      prev.length === 1 ? prev : prev.filter((_, i) => i !== idx)
-    );
-  }
-
-  function setIngredient(idx: number, patch: Partial<RecipeIngredientDraft>) {
+  function setIngredient(id: string, patch: Partial<RecipeIngredientDraft>) {
     setError(null);
     setInvalidFieldId(null);
-    setIngredients((prev) =>
-      prev.map((row, i) => (i === idx ? { ...row, ...patch } : row))
-    );
+    ingredients.update(id, (row) => ({ ...row, ...patch }));
   }
   function addIngredient() {
     setError(null);
     setInvalidFieldId(null);
-    const id = nextIngredientId.current++;
-    setIngredients((prev) => [...prev, { ...emptyIngredient(), id, persisted: false }]);
+    return ingredients.add();
   }
-  function removeIngredient(idx: number) {
+  function removeIngredient(id: string) {
     setError(null);
     setInvalidFieldId(null);
-    setIngredients((prev) =>
-      prev.length === 1 ? prev : prev.filter((_, i) => i !== idx)
-    );
+    ingredients.remove(id);
   }
 
   function toggleTag(id: string) {
@@ -149,16 +127,17 @@ export default function RecipeForm({
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     if (pending) return;
-
     setError(null);
     setFieldErrors({});
     setInvalidFieldId(null);
 
     // Build payload. Shape must match features/recipes/recipes.schemas.ts
     // extended with ingredientsStructured (see src/actions/recipes.ts).
-    const cleanInstructions = instructions.map((s) => s.trim()).filter(Boolean);
+    const cleanInstructions = instructions.rows
+      .map(({ value }) => value.trim())
+      .filter(Boolean);
     const cleanIngredients: RecipeIngredientItemInput[] = [];
-    for (const [idx, row] of ingredients.entries()) {
+    for (const [idx, { id, value: row }] of ingredients.rows.entries()) {
       const displayText = row.displayText.trim();
       const quantityText = row.quantityText.trim();
       if (!row.persisted && !displayText && !quantityText && !row.unit &&
@@ -173,7 +152,7 @@ export default function RecipeForm({
       });
       if (!measurements.success) {
         const invalidQuantity = measurements.error.issues.some((issue) => issue.path[0] === "quantity");
-        const fieldId = `recipe-ingredient-${row.id}-${invalidQuantity ? "quantity" : "unit"}`;
+        const fieldId = `${id}-${invalidQuantity ? "quantity" : "unit"}`;
         setError(invalidQuantity
           ? quantityText === ""
             ? `Quantity is required for "${label}".`
@@ -185,7 +164,7 @@ export default function RecipeForm({
       }
 
       if (!displayText) {
-        const fieldId = `recipe-ingredient-${row.id}-text`;
+        const fieldId = id;
         setError(`Ingredient name is required for "${label}".`);
         setInvalidFieldId(fieldId);
         window.setTimeout(() => document.getElementById(fieldId)?.focus(), 0);
@@ -222,40 +201,45 @@ export default function RecipeForm({
     }
 
     setPending(true);
-    if (mode === "create") {
-      const { data, error: err } = await actions.recipes.create(payload);
-      if (err) {
-        setError(err.message || "Could not create recipe");
-        if ("fields" in err && err.fields) {
-          setFieldErrors(err.fields as Record<string, string[]>);
+    try {
+      if (mode === "create") {
+        const { data, error: err } = await actions.recipes.create(payload);
+        if (err) {
+          setError(err.message || "Could not create recipe");
+          if ("fields" in err && err.fields) {
+            setFieldErrors(err.fields as Record<string, string[]>);
+          }
+          setPending(false);
+          return;
         }
-        setPending(false);
-        return;
-      }
-      if (data) {
-        window.location.href = `/recipes/${data.id}`;
-      }
-    } else {
-      if (!initial.id) {
-        setError("Missing recipe id");
-        setPending(false);
-        return;
-      }
-      const { data, error: err } = await actions.recipes.update({
-        ...payload,
-        id: initial.id,
-      });
-      if (err) {
-        setError(err.message || "Could not update recipe");
-        if ("fields" in err && err.fields) {
-          setFieldErrors(err.fields as Record<string, string[]>);
+        if (data) {
+          window.location.href = `/recipes/${data.id}`;
         }
-        setPending(false);
-        return;
+      } else {
+        if (!initial.id) {
+          setError("Missing recipe id");
+          setPending(false);
+          return;
+        }
+        const { data, error: err } = await actions.recipes.update({
+          ...payload,
+          id: initial.id,
+        });
+        if (err) {
+          setError(err.message || "Could not update recipe");
+          if ("fields" in err && err.fields) {
+            setFieldErrors(err.fields as Record<string, string[]>);
+          }
+          setPending(false);
+          return;
+        }
+        if (data) {
+          window.location.href = `/recipes/${data.id}`;
+        }
       }
-      if (data) {
-        window.location.href = `/recipes/${data.id}`;
-      }
+    } catch {
+      setError("Could not save recipe. Please try again.");
+      setPending(false);
     }
   }
 
@@ -276,13 +260,18 @@ export default function RecipeForm({
             aria-invalid={!!fieldErrors.title}
           />
           {fieldErrors.title?.[0] && (
-            <p className="mt-1 text-xs text-destructive">{fieldErrors.title[0]}</p>
+            <p className="mt-1 text-xs text-destructive">
+              {fieldErrors.title[0]}
+            </p>
           )}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="sourceUrl" className="mb-1 block text-sm font-medium">
+            <label
+              htmlFor="sourceUrl"
+              className="mb-1 block text-sm font-medium"
+            >
               Source URL
               <span className="ml-1 text-muted-foreground">(optional)</span>
             </label>
@@ -297,7 +286,10 @@ export default function RecipeForm({
             />
           </div>
           <div>
-            <label htmlFor="imageUrl" className="mb-1 block text-sm font-medium">
+            <label
+              htmlFor="imageUrl"
+              className="mb-1 block text-sm font-medium"
+            >
               Image URL
               <span className="ml-1 text-muted-foreground">(optional)</span>
             </label>
@@ -315,13 +307,36 @@ export default function RecipeForm({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           {[
-            { id: "servings", label: "Servings", value: servings, setter: setServings },
-            { id: "prepTime", label: "Prep (min)", value: prepTime, setter: setPrepTime },
-            { id: "cookTime", label: "Cook (min)", value: cookTime, setter: setCookTime },
-            { id: "totalTime", label: "Total (min)", value: totalTime, setter: setTotalTime },
+            {
+              id: "servings",
+              label: "Servings",
+              value: servings,
+              setter: setServings,
+            },
+            {
+              id: "prepTime",
+              label: "Prep (min)",
+              value: prepTime,
+              setter: setPrepTime,
+            },
+            {
+              id: "cookTime",
+              label: "Cook (min)",
+              value: cookTime,
+              setter: setCookTime,
+            },
+            {
+              id: "totalTime",
+              label: "Total (min)",
+              value: totalTime,
+              setter: setTotalTime,
+            },
           ].map((field) => (
             <div key={field.id}>
-              <label htmlFor={field.id} className="mb-1 block text-sm font-medium">
+              <label
+                htmlFor={field.id}
+                className="mb-1 block text-sm font-medium"
+              >
                 {field.label}
               </label>
               <Input
@@ -339,169 +354,152 @@ export default function RecipeForm({
       </section>
 
       <section id="recipe-ingredients" className="scroll-mt-24 space-y-3">
-        <div className="flex items-baseline justify-between">
-          <h2 className="font-display text-xl text-foreground">Ingredients</h2>
-          <button
-            type="button"
-            onClick={addIngredient}
-            className="min-h-11 cursor-pointer rounded-input px-3 py-2 text-xs font-semibold text-primary-on-card transition-colors hover:bg-primary/10"
-          >
-            + Add ingredient
-          </button>
-        </div>
-        <ul className="space-y-2">
-          {ingredients.map((row, idx) => (
-            <li
-              key={row.id}
-              className="rounded-input border border-border bg-card p-2"
-            >
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <Input
-                  id={`recipe-ingredient-${row.id}-quantity`}
-                  value={row.quantityText}
-                  onChange={(e) => setIngredient(idx, { quantityText: e.target.value })}
-                  placeholder="Qty"
-                  aria-label="Quantity"
-                  required
-                  aria-required="true"
-                  aria-invalid={invalidFieldId === `recipe-ingredient-${row.id}-quantity`}
-                  aria-describedby={invalidFieldId === `recipe-ingredient-${row.id}-quantity` ? "recipe-form-error" : undefined}
-                  inputMode="decimal"
-                  autoComplete="off"
-                  className="sm:w-16 sm:shrink-0"
-                />
-                <Select
-                  required
-                  value={row.unit}
-                  onValueChange={(value) =>
-                    setIngredient(idx, {
-                      unit: (value === "unselected" ? "" : value) as IngredientUnit | "",
-                    })
-                  }
-                >
-                  <SelectTrigger
-                    id={`recipe-ingredient-${row.id}-unit`}
-                    aria-label="Unit"
+        <h2 className="font-display text-xl text-foreground">Ingredients</h2>
+        <SortableRecipeList
+          kind="ingredient"
+          rows={ingredients.rows}
+          disabled={pending}
+          onAdd={addIngredient}
+          onMove={ingredients.move}
+          onRemove={removeIngredient}
+          getText={(row) =>
+            [row.quantityText, row.unit.toLowerCase(), row.displayText]
+              .filter(Boolean)
+              .join(" ")
+          }
+        >
+          {({ id, value: row }, idx) => (
+            <>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-[5rem_5rem_minmax(0,1fr)]">
+                <div className="min-w-0 space-y-1">
+                  <label
+                    htmlFor={`${id}-quantity`}
+                    className="block text-xs font-medium text-muted-foreground"
+                  >
+                    Quantity
+                  </label>
+                  <Input
+                    id={`${id}-quantity`}
+                    value={row.quantityText}
+                    onChange={(e) =>
+                      setIngredient(id, { quantityText: e.target.value })
+                    }
+                    placeholder="e.g. 1/2"
+                    required
                     aria-required="true"
-                    aria-invalid={invalidFieldId === `recipe-ingredient-${row.id}-unit`}
-                    aria-describedby={invalidFieldId === `recipe-ingredient-${row.id}-unit` ? "recipe-form-error" : undefined}
-                    className="sm:w-24 sm:shrink-0"
+                    aria-invalid={invalidFieldId === `${id}-quantity`}
+                    aria-describedby={invalidFieldId === `${id}-quantity` ? "recipe-form-error" : undefined}
+                    inputMode="decimal"
+                    autoComplete="off"
+                    className="h-11 text-base sm:text-sm"
+                  />
+                </div>
+                <div className="min-w-0 space-y-1">
+                  <label
+                    htmlFor={`${id}-unit`}
+                    className="block text-xs font-medium text-muted-foreground"
                   >
-                    <SelectValue placeholder="Unit" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unselected">Select unit</SelectItem>
-                    {INGREDIENT_UNITS.map((u) => (
-                      <SelectItem key={u} value={u}>
-                        {u.toLowerCase()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  id={`recipe-ingredient-${row.id}-text`}
-                  value={row.displayText}
-                  onChange={(e) => setIngredient(idx, { displayText: e.target.value })}
-                  placeholder="Ingredient (e.g. all-purpose flour)"
-                  aria-label="Ingredient name"
-                  aria-invalid={invalidFieldId === `recipe-ingredient-${row.id}-text`}
-                  aria-describedby={invalidFieldId === `recipe-ingredient-${row.id}-text` ? "recipe-form-error" : undefined}
-                  className="min-w-0 sm:flex-1"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeIngredient(idx)}
-                  aria-label="Remove ingredient"
-                  className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-1 rounded-input px-3 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:h-11 sm:w-11 sm:shrink-0"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-3.5 w-3.5"
-                    aria-hidden="true"
+                    Unit
+                  </label>
+                  <Select
+                    value={row.unit}
+                    onValueChange={(value) =>
+                      setIngredient(id, {
+                        unit: (value === "unselected" ? "" : value) as IngredientUnit | "",
+                      })
+                    }
                   >
-                    <path d="M18 6 6 18" />
-                    <path d="m6 6 12 12" />
-                  </svg>
-                  <span className="sm:hidden">Remove ingredient</span>
-                </button>
+                    <SelectTrigger
+                      id={`${id}-unit`}
+                      aria-required="true"
+                      aria-invalid={invalidFieldId === `${id}-unit`}
+                      aria-describedby={invalidFieldId === `${id}-unit` ? "recipe-form-error" : undefined}
+                      className="h-11 text-base sm:text-sm"
+                    >
+                      <SelectValue placeholder="Unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unselected">Select unit</SelectItem>
+                      {INGREDIENT_UNITS.map((unit) => (
+                        <SelectItem key={unit} value={unit}>
+                          {unit.toLowerCase()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-2 min-w-0 space-y-1 sm:col-span-1">
+                  <label
+                    htmlFor={id}
+                    className="block text-xs font-medium text-muted-foreground"
+                  >
+                    Ingredient name
+                  </label>
+                  <Input
+                    id={id}
+                    value={row.displayText}
+                    onChange={(e) =>
+                      setIngredient(id, { displayText: e.target.value })
+                    }
+                    placeholder="e.g. all-purpose flour"
+                    aria-label={`Ingredient ${idx + 1} name`}
+                    aria-invalid={invalidFieldId === id}
+                    aria-describedby={invalidFieldId === id ? "recipe-form-error" : undefined}
+                    className="h-11 text-base sm:text-sm"
+                  />
+                </div>
               </div>
-              <div className="mt-1">
+              <div className="mt-3">
                 <IngredientMapper
                   ingredientId={row.ingredientId}
                   ingredientName={row.ingredientName}
-                  onMap={(id, name) =>
-                    setIngredient(idx, { ingredientId: id, ingredientName: name })
+                  onMap={(ingredientId, name) =>
+                    setIngredient(id, { ingredientId, ingredientName: name })
                   }
                   onClear={() =>
-                    setIngredient(idx, { ingredientId: null, ingredientName: null })
+                    setIngredient(id, {
+                      ingredientId: null,
+                      ingredientName: null,
+                    })
                   }
                 />
               </div>
-            </li>
-          ))}
-        </ul>
+            </>
+          )}
+        </SortableRecipeList>
       </section>
 
       <section className="space-y-3">
-        <div className="flex items-baseline justify-between">
-          <h2 className="font-display text-xl text-foreground">Instructions</h2>
-          <button
-            type="button"
-            onClick={addInstruction}
-            className="min-h-11 cursor-pointer rounded-input px-3 py-2 text-xs font-semibold text-primary-on-card transition-colors hover:bg-primary/10"
-          >
-            + Add step
-          </button>
-        </div>
-        <ol className="space-y-2">
-          {instructions.map((text, idx) => (
-            <li
-              key={idx}
-              className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-2"
-            >
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground sm:mt-2">
-                {idx + 1}
-              </span>
+        <h2 className="font-display text-xl text-foreground">Instructions</h2>
+        <SortableRecipeList
+          kind="step"
+          rows={instructions.rows}
+          disabled={pending}
+          onAdd={instructions.add}
+          onMove={instructions.move}
+          onRemove={instructions.remove}
+          getText={(text) => text}
+        >
+          {({ id, value }, idx) => (
+            <>
+              <label htmlFor={id} className="sr-only">
+                Step {idx + 1}
+              </label>
               <Textarea
-                value={text}
-                onChange={(e) => setInstruction(idx, e.target.value)}
-                rows={2}
-                placeholder={`Step ${idx + 1}`}
-                className="min-h-[2.5rem] min-w-0 sm:flex-1"
+                id={id}
+                value={value}
+                onChange={(e) => instructions.update(id, e.target.value)}
+                rows={3}
+                placeholder={`Describe step ${idx + 1}`}
+                className="min-h-24 resize-y text-base [field-sizing:content] sm:text-sm"
               />
-              <button
-                type="button"
-                onClick={() => removeInstruction(idx)}
-                aria-label="Remove step"
-                className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-1 rounded-input px-3 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:mt-1 sm:h-11 sm:w-11 sm:shrink-0"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-3.5 w-3.5"
-                  aria-hidden="true"
-                >
-                  <path d="M18 6 6 18" />
-                  <path d="m6 6 12 12" />
-                </svg>
-                <span className="sm:hidden">Remove step</span>
-              </button>
-            </li>
-          ))}
-        </ol>
+            </>
+          )}
+        </SortableRecipeList>
         {fieldErrors.instructions?.[0] && (
-          <p className="text-xs text-destructive">{fieldErrors.instructions[0]}</p>
+          <p className="text-xs text-destructive">
+            {fieldErrors.instructions[0]}
+          </p>
         )}
       </section>
 
@@ -525,7 +523,9 @@ export default function RecipeForm({
       <section className="space-y-2">
         <label htmlFor="notes" className="block text-sm font-medium">
           Notes
-          <span className="ml-1 text-muted-foreground">(markdown supported)</span>
+          <span className="ml-1 text-muted-foreground">
+            (markdown supported)
+          </span>
         </label>
         <Textarea
           id="notes"
@@ -538,7 +538,11 @@ export default function RecipeForm({
       </section>
 
       {error && (
-        <div id="recipe-form-error" role="alert" className="rounded-input border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div
+          id="recipe-form-error"
+          role="alert"
+          className="rounded-input border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        >
           {error}
         </div>
       )}
@@ -546,11 +550,19 @@ export default function RecipeForm({
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
         <Button
           variant="secondary"
-          href={mode === "edit" && initial.id ? `/recipes/${initial.id}` : "/recipes"}
+          href={
+            mode === "edit" && initial.id
+              ? `/recipes/${initial.id}`
+              : "/recipes"
+          }
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={pending} className="w-full px-5 sm:w-auto">
+        <Button
+          type="submit"
+          disabled={pending}
+          className="w-full px-5 sm:w-auto"
+        >
           {pending
             ? mode === "create"
               ? "Creating…"

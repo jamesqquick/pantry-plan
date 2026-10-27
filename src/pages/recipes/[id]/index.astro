@@ -176,7 +176,7 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
           )}
           </div>
         </div>
-        <div slot="actions" class="flex items-center gap-2">
+        <div slot="actions" class="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start">
           <RecipeCookMode
             client:load
             recipeId={r.id}

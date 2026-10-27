@@ -80,7 +80,7 @@ describe("RecipeDraftEditor", () => {
   it("orders imported ingredient inputs as quantity, unit, then ingredient text", () => {
     renderEditor();
     const firstIngredient = screen.getByRole("region", { name: "Ingredients" })
-      .querySelector("article");
+      .querySelector("li");
 
     expect(
       Array.from(firstIngredient?.querySelectorAll("input, select") ?? []).map(
@@ -200,9 +200,7 @@ describe("RecipeDraftEditor", () => {
     const user = userEvent.setup();
     renderEditor({ ...validDraft, ingredients: ["2-3 cloves garlic"] });
 
-    expect(screen.getByRole("status").textContent).toBe(
-      "Couldn't automatically parse ingredient.",
-    );
+    expect(screen.getByText("Couldn't automatically parse ingredient.")).toBeTruthy();
     expect(screen.getByLabelText("Ingredient text for ingredient 1")).toHaveProperty(
       "value",
       "2-3 cloves garlic",
@@ -216,9 +214,7 @@ describe("RecipeDraftEditor", () => {
     await user.type(screen.getByLabelText("Ingredient text for ingredient 1"), "cloves garlic");
     await user.type(screen.getByLabelText("Quantity for ingredient 1"), "2");
     await user.selectOptions(screen.getByLabelText("Unit for ingredient 1"), "COUNT");
-    expect(screen.getByRole("status").textContent).toBe(
-      "Couldn't automatically parse ingredient.",
-    );
+    expect(screen.getByText("Couldn't automatically parse ingredient.")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Save recipe" }));
 
     await waitFor(() => {
@@ -450,6 +446,36 @@ describe("RecipeDraftEditor", () => {
     });
   });
 
+  it.each([
+    ["Save recipe", "/recipes/recipe-123"],
+    ["Save and map", "/recipes/recipe-123/map-ingredients"],
+  ])("preserves the reordered draft when using %s", async (button, destination) => {
+    const user = userEvent.setup();
+    renderEditor();
+    const eggs = screen.getByRole("textbox", { name: "Ingredient text for ingredient 2" });
+
+    await user.click(screen.getByRole("button", { name: "Move ingredient 2 up" }));
+    await user.click(screen.getByRole("button", { name: "Move step 2 up" }));
+
+    expect(screen.getByRole("textbox", { name: "Ingredient text for ingredient 1" })).toBe(eggs);
+    expect(screen.getByRole("textbox", { name: "Step 1" })).toHaveProperty("value", "Cook until tender.");
+    await user.click(screen.getByRole("button", { name: button }));
+
+    await waitFor(() => {
+      expect(saveTextOnly).toHaveBeenCalledWith({
+        recipe: expect.objectContaining({
+          title: validDraft.title,
+          instructions: ["Cook until tender.", "Mix the dough."],
+        }),
+        ingredients: [
+          { rawText: "3 eggs", displayText: "eggs", quantity: 3, unit: "COUNT" },
+          { rawText: " 2 cups flour ", displayText: "flour", quantity: 2, unit: "CUP" },
+        ],
+      });
+      expect(softNavigate).toHaveBeenCalledWith(destination);
+    });
+  });
+
   it("allows only one save request while a save is pending", async () => {
     const user = userEvent.setup();
     let resolveSave: ((result: unknown) => void) | undefined;
@@ -469,10 +495,13 @@ describe("RecipeDraftEditor", () => {
     expect(saveRecipe).toHaveProperty("disabled", true);
     expect(saveAndMap).toHaveProperty("disabled", true);
     expect(cancel).toHaveProperty("disabled", true);
-    expect(screen.getByRole("button", { name: "Add ingredient" })).toHaveProperty(
-      "disabled",
-      true,
-    );
+    for (const name of ["Ingredients", "Instructions"]) {
+      for (const button of within(screen.getByRole("list", { name })).getAllByRole("button")) {
+        expect(button).toHaveProperty("disabled", true);
+      }
+    }
+    expect(screen.getByRole("button", { name: "Add ingredient" })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: "Add step" })).toHaveProperty("disabled", true);
 
     await user.click(saveRecipe);
     await user.click(saveAndMap);
@@ -617,19 +646,14 @@ describe("RecipeDraftEditor", () => {
 
     const instructions = screen.getByRole("region", { name: "Instructions" });
     const firstStep = screen.getByLabelText("Step 1");
-    const firstCard = firstStep.closest("article");
-    expect(firstCard?.className).toBe(
-      "space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5",
-    );
+    const firstCard = firstStep.closest("li");
+    expect(firstCard?.className).toContain("rounded-xl border border-border bg-card");
 
-    const stepHeader = firstCard?.firstElementChild;
     const removeFirstStep = within(firstCard as HTMLElement).getByRole("button", {
       name: "Remove step 1",
     });
-    expect(stepHeader?.className).toBe("flex items-start justify-between gap-3");
-    expect(stepHeader?.firstElementChild?.textContent).toBe("Step 1");
-    expect(stepHeader?.lastElementChild).toBe(removeFirstStep);
-    expect(instructions.querySelectorAll("article")).toHaveLength(2);
+    expect(firstCard?.querySelector("textarea")).toBe(firstStep);
+    expect(instructions.querySelectorAll("li")).toHaveLength(2);
 
     await user.click(screen.getByRole("button", { name: "Add step" }));
     expect(screen.getByLabelText("Step 3")).toHaveProperty("value", "");
