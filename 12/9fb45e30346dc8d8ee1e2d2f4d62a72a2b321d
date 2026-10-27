@@ -1,0 +1,39 @@
+package.json
+  s_f6ae12a186405a::t_84068ed9823b0a 29-31
+pnpm-lock.yaml
+  s_f6ae12a186405a::t_8bc0352bc5909c 20-28,739-762,1955-1957,5551-5594,6412-6413
+src/components/recipes/RecipeForm.tsx
+  s_46547f3cb3c28b::t_e9b7543d0e3eb0 1,19-20,86-92,94-95,102,105,110,112,115,136-138,140,155,167,204-213,215-237,240-242,263-265,271-274,289-292,310-333,336-339,357-388,390-400,402-434,436-450,452,456-457,460-463,467-469,473-487,489-494,496-498,500-502,526-528,541-545,553-557,561-565
+src/components/recipes/SortableRecipeList.test.tsx
+  s_f6ae12a186405a::t_563dd6ab9f6164 1-321
+src/components/recipes/SortableRecipeList.tsx
+  s_f6ae12a186405a::t_7962363c2cf093 1-286
+src/components/recipes/useRecipeEditorRows.ts
+  s_f6ae12a186405a::t_db9e99b3ca165d 1-55
+src/pages/recipes/[id]/index.astro
+  s_f6ae12a186405a::t_fa5715c1cf9afd 179
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "129fb45e30346dc8d8ee1e2d2f4d62a72a2b321d",
+  "prompts": {},
+  "sessions": {
+    "s_46547f3cb3c28b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ea43dd008ffeBZNGvon6h9Ym3f",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    },
+    "s_f6ae12a186405a": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ea45a87fbffe1T0elLL1gPWoF9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
