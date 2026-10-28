@@ -90,7 +90,7 @@ function CategoryCombobox({
             </li>
           ))}
           {filtered.length === 0 && (
-            <li className="px-3 py-2 text-sm text-muted-foreground">No matching categories</li>
+            <li className="px-3 py-2 text-body text-muted-foreground">No matching categories</li>
           )}
         </ul>
       )}
@@ -134,7 +134,7 @@ function BaseIngredientPicker({
 
   return (
     <div className="relative">
-      <label className="mb-1 block text-xs font-medium text-muted-foreground">
+      <label className="mb-1 block text-meta font-medium text-muted-foreground">
         Start from a global ingredient (optional)
       </label>
       <Input
@@ -159,7 +159,7 @@ function BaseIngredientPicker({
         </ul>
       )}
       {loading && query.length >= 2 && (
-        <p className="mt-1 text-xs text-muted-foreground">Searching…</p>
+        <p className="mt-1 text-meta text-muted-foreground">Searching…</p>
       )}
     </div>
   );
@@ -297,7 +297,7 @@ export default function IngredientForm(props: IngredientFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
       {error && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-body text-destructive">
           {error}
         </div>
       )}
@@ -307,7 +307,7 @@ export default function IngredientForm(props: IngredientFormProps) {
         <BaseIngredientPicker onSelect={handleBasePrefill} />
       )}
       {values.baseIngredientId && !isEdit && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-meta text-muted-foreground">
           Prefilled from global ingredient.{" "}
           <button
             type="button"

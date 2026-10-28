@@ -38,7 +38,7 @@ export function ConnectedAccounts({ hasPassword, hasGoogle }: Props) {
     <section className="rounded-lg border border-border bg-card p-6 space-y-4">
       <div className="space-y-1">
         <h2 className="text-lg font-semibold text-card-foreground">Sign-in methods</h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           Connect Google after signing in with your existing password account.
         </p>
       </div>
@@ -46,11 +46,11 @@ export function ConnectedAccounts({ hasPassword, hasGoogle }: Props) {
       <div className="space-y-2 text-sm">
         <div className="flex items-center justify-between rounded-input border border-border px-3 py-2">
           <span>Email and password</span>
-          <span className="text-xs text-muted-foreground">{hasPassword ? "Connected" : "Not connected"}</span>
+          <span className="text-meta text-muted-foreground">{hasPassword ? "Connected" : "Not connected"}</span>
         </div>
         <div className="flex items-center justify-between rounded-input border border-border px-3 py-2">
           <span>Google</span>
-          <span className="text-xs text-muted-foreground">{hasGoogle ? "Connected" : "Not connected"}</span>
+          <span className="text-meta text-muted-foreground">{hasGoogle ? "Connected" : "Not connected"}</span>
         </div>
       </div>
 
@@ -60,7 +60,7 @@ export function ConnectedAccounts({ hasPassword, hasGoogle }: Props) {
         </Button>
       )}
 
-      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      {error && <p role="alert" className="text-body text-destructive">{error}</p>}
     </section>
   );
 }

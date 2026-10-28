@@ -170,7 +170,7 @@ export function RecipeCookMode({
                 {title}
               </h1>
             </DialogPrimitive.Title>
-            <p className="mt-1 font-ui text-sm text-muted-foreground">
+            <p className="mt-1 font-ui text-body text-muted-foreground">
               {scale === 1 ? "Original batch" : `${scale}× batch`}
             </p>
           </div>
@@ -188,7 +188,7 @@ export function RecipeCookMode({
       </header>
 
       <main className="mx-auto max-w-6xl space-y-8 py-6 pb-[calc(2rem+env(safe-area-inset-bottom))] pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] sm:py-8 sm:pl-[max(2rem,env(safe-area-inset-left))] sm:pr-[max(2rem,env(safe-area-inset-right))]">
-        <div className="space-y-4 border-b border-divider pb-6 font-ui text-sm">
+        <div className="space-y-4 border-b border-divider pb-6 font-ui text-body">
           <RecipeScaleControl value={scale} onChange={changeScale} disabled={scalableCount === 0} />
           <p role="status" aria-live="polite" aria-atomic="true" className="text-muted-foreground">
             {scaledServings != null
@@ -209,7 +209,7 @@ export function RecipeCookMode({
           )}
           {meta.length > 0 && (
             <div className="space-y-2 pt-1">
-              <p className="text-xs text-muted-foreground">
+              <p className="text-meta text-muted-foreground">
                 {scale === 1 ? "Recipe timing" : "Original recipe timing"}
               </p>
               <div className="flex flex-wrap gap-x-6 gap-y-3">
@@ -259,7 +259,7 @@ export function RecipeCookMode({
                         >
                           {ingredient.text}
                           {needsReview && (
-                            <span id={`cook-review-${ingredient.id}`} className="mt-1 block text-xs font-normal text-muted-foreground">
+                            <span id={`cook-review-${ingredient.id}`} className="mt-1 block text-meta font-normal text-muted-foreground">
                               <span className="font-semibold text-foreground">Check amount</span>
                               {" · Original amount shown for 1×"}
                             </span>
@@ -278,7 +278,7 @@ export function RecipeCookMode({
               Instructions
             </h2>
             {scale !== 1 && (
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              <p className="mt-3 text-body leading-relaxed text-muted-foreground">
                 Steps and timing are for the original batch. Use the adjusted ingredient amounts above; cooking times may vary.
               </p>
             )}

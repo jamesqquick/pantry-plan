@@ -58,7 +58,7 @@ const serializedApiKeys = apiKeys.map((key) => ({
     <ConnectedAccounts client:load hasPassword={hasPassword} hasGoogle={hasGoogle} />
 
     {authError && (
-      <p role="alert" class="text-sm text-destructive">
+      <p role="alert" class="text-body text-destructive">
         Google could not be connected. Please try again.
       </p>
     )}

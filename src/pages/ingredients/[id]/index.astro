@@ -156,7 +156,7 @@ if (ing.gramsPerCup != null) {
             </span>
           </div>
           {baseName && (
-            <p class="text-sm text-muted-foreground">
+            <p class="text-body text-muted-foreground">
               Based on{" "}
               <a
                 href={`/ingredients/${ing.baseIngredientId}`}
@@ -199,10 +199,10 @@ if (ing.gramsPerCup != null) {
         <dl class="grid gap-x-8 gap-y-3 sm:grid-cols-2">
           {details.map((d) => (
             <div>
-              <dt class="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <dt class="text-meta font-medium uppercase tracking-wider text-muted-foreground">
                 {d.label}
               </dt>
-              <dd class="mt-0.5 text-sm text-card-foreground">{d.value}</dd>
+              <dd class="mt-0.5 text-body text-card-foreground">{d.value}</dd>
             </div>
           ))}
         </dl>
@@ -214,7 +214,7 @@ if (ing.gramsPerCup != null) {
       <section class="rounded-lg border border-border bg-card p-6">
         <h2 class="font-display text-xl text-card-foreground">Notes</h2>
         <div
-          class="prose prose-sm mt-3 max-w-none text-card-foreground dark:prose-invert"
+          class="prose mt-3 max-w-none text-card-foreground dark:prose-invert sm:prose-sm"
           set:html={notesHtml}
         />
       </section>
@@ -231,7 +231,7 @@ if (ing.gramsPerCup != null) {
         )}
       </h2>
       {recipesUsing.length === 0 ? (
-        <p class="mt-3 text-sm text-muted-foreground">
+        <p class="mt-3 text-body text-muted-foreground">
           None of your recipes use this ingredient yet.
         </p>
       ) : (
@@ -269,7 +269,7 @@ if (ing.gramsPerCup != null) {
                       </svg>
                     </div>
                   )}
-                  <p class="truncate text-sm font-medium text-card-foreground group-hover:text-primary-on-card">
+                  <p class="truncate text-body font-medium text-card-foreground group-hover:text-primary-on-card">
                     {r.title}
                   </p>
                 </div>

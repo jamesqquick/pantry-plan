@@ -27,7 +27,7 @@ export function MealTypeLegend() {
         {LEGEND_ITEMS.map(({ slot, label, swatchClassName }) => (
           <li
             key={slot}
-            className="flex items-center gap-2 text-sm text-muted-foreground"
+            className="flex items-center gap-2 text-body text-muted-foreground"
           >
             <span
               className={`size-3 shrink-0 rounded-full ${swatchClassName}`}

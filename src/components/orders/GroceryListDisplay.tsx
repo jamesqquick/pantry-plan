@@ -69,7 +69,7 @@ export function GroceryListDisplay({
 
   if (grocery.totals.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         No ingredients to aggregate. Make sure your recipes have mapped ingredients with quantities.
       </p>
     );
@@ -166,15 +166,15 @@ export function GroceryListDisplay({
               className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-1 px-4 py-3"
             >
               <div className="min-w-0">
-                <p className="whitespace-normal text-sm font-medium text-card-foreground [overflow-wrap:anywhere]">
+                <p className="whitespace-normal text-body font-medium text-card-foreground [overflow-wrap:anywhere]">
                   {row.name}
                 </p>
-                <p className="whitespace-normal text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                <p className="whitespace-normal text-meta text-muted-foreground [overflow-wrap:anywhere]">
                   {qtyText}
                 </p>
               </div>
               {showCost && row.estimatedCostCents != null && (
-                <span className="max-w-[40%] min-w-0 text-right text-xs tabular-nums text-muted-foreground [overflow-wrap:anywhere]">
+                <span className="max-w-[40%] min-w-0 text-right text-meta tabular-nums text-muted-foreground [overflow-wrap:anywhere]">
                   {formatDollars(row.estimatedCostCents)}
                 </span>
               )}

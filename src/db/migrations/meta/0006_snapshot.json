@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "89619f0f-70cb-41fb-bf6b-496377efc4af",
+  "id": "6e284615-111a-4d64-a754-f93a5f15ec58",
   "prevId": "565ccd32-3d7a-47b9-8f1a-3261172114d4",
   "tables": {
     "account": {
@@ -1283,6 +1283,57 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "customerName": {
+          "name": "customerName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "customerContact": {
+          "name": "customerContact",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "dueDate": {
+          "name": "dueDate",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "dueTime": {
+          "name": "dueTime",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "fulfillmentMethod": {
+          "name": "fulfillmentMethod",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'PICKUP'"
+        },
+        "deliveryAddress": {
+          "name": "deliveryAddress",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'DRAFT'"
         },
         "createdAt": {
           "name": "createdAt",

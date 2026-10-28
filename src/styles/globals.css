@@ -20,6 +20,10 @@
   --font-ui: var(--font-body);
   --font-editorial: var(--font-display);
   --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
+  --font-size-body: 1rem;
+  --line-height-body: 1.5rem;
+  --font-size-meta: 0.875rem;
+  --line-height-meta: 1.25rem;
 
   /* Brand primitives — theme-independent */
   --butter: oklch(92% 0.11 91);
@@ -112,6 +116,15 @@
   --tile-olive-bg: oklch(90% 0.05 115);
   --tile-olive-fg: oklch(66% 0.09 115);
   --tile-olive-dot: oklch(85% 0.06 115);
+}
+
+@media (min-width: 40rem) {
+  :root {
+    --font-size-body: 0.875rem;
+    --line-height-body: 1.25rem;
+    --font-size-meta: 0.75rem;
+    --line-height-meta: 1rem;
+  }
 }
 
 .dark {
@@ -252,6 +265,12 @@
   --font-serif: var(--font-display), Georgia, serif;
   --font-ui: var(--font-body), system-ui, sans-serif;
   --font-editorial: var(--font-display), Georgia, serif;
+  /* Readable copy and supporting text scale up on phones; desktop sizes match
+     Tailwind's existing text-sm and text-xs defaults. */
+  --text-body: var(--font-size-body);
+  --text-body--line-height: var(--line-height-body);
+  --text-meta: var(--font-size-meta);
+  --text-meta--line-height: var(--line-height-meta);
   --radius-xs: 0.125rem;
   --radius-sm: 0.25rem;
   --radius-md: 0.375rem;
@@ -365,6 +384,56 @@
 /* ==========================================================================
    Button system — consistent shadow + press feedback
    ========================================================================== */
+
+@media (max-width: 39.99rem) {
+  .mobile-action-control {
+    border: 1px solid var(--outline-strong);
+    background: var(--card);
+  }
+
+  a.mobile-action-control {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    border-radius: 999px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    text-decoration: none;
+    color: var(--foreground);
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  button.mobile-action-control {
+    border-radius: var(--radius-input);
+  }
+
+  .mobile-action-control-destructive {
+    border-color: color-mix(in oklab, var(--destructive) 30%, transparent);
+    background: color-mix(in oklab, var(--destructive) 5%, var(--card));
+    color: var(--destructive);
+  }
+
+  .mobile-action-control:hover,
+  .mobile-action-control:active {
+    background: var(--accent);
+  }
+
+  .mobile-action-control-destructive:hover,
+  .mobile-action-control-destructive:active {
+    background: color-mix(in oklab, var(--destructive) 10%, transparent);
+    color: var(--destructive);
+  }
+
+  .mobile-action-control:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
 
 .btn-primary,
 .btn-secondary {

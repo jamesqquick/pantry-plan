@@ -100,7 +100,7 @@ export default function RecipeList({ recipes, allTags }: RecipeListProps) {
         <h2 className="font-display text-xl text-card-foreground">
           Your recipe box is empty
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-body text-muted-foreground">
           Create your first recipe to start planning meals.
         </p>
         <Button href="/recipes/new" className="mt-6">
@@ -224,7 +224,7 @@ export default function RecipeList({ recipes, allTags }: RecipeListProps) {
                         ))}
                         {r.tags.length > 2 && (
                           <span
-                            className="rounded-full bg-tag px-2.5 py-1 text-[0.72rem] font-semibold leading-none text-tag-foreground"
+                            className="rounded-full bg-tag px-2.5 py-1 text-xs font-semibold leading-none text-tag-foreground sm:text-[0.72rem]"
                             aria-label={`${r.tags.length - 2} more tags`}
                           >
                             +{r.tags.length - 2}

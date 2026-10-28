@@ -145,7 +145,7 @@ export default function RecipeActions({
         )}
       </div>
       {error && !deleteDialogOpen && (
-        <p role="alert" className="text-xs text-destructive">
+        <p role="alert" className="text-meta text-destructive">
           {error}
         </p>
       )}

@@ -49,7 +49,7 @@ const [existingItems, recipes] = await Promise.all([
       <nav slot="eyebrow" class="text-sm" aria-label="Breadcrumb">
         <a
           href={`/orders/${id}`}
-          class="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+          class="mobile-action-control inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
         >
           {/* Lucide ChevronLeft */}
           <svg
@@ -82,6 +82,13 @@ const [existingItems, recipes] = await Promise.all([
       recipeOptions={recipes}
       initialName={o.name ?? ""}
       initialNotes={o.notes ?? ""}
+      initialCustomerName={o.customerName ?? ""}
+      initialCustomerContact={o.customerContact ?? ""}
+      initialDueDate={o.dueDate ?? ""}
+      initialDueTime={o.dueTime ?? ""}
+      initialFulfillmentMethod={o.fulfillmentMethod}
+      initialDeliveryAddress={o.deliveryAddress ?? ""}
+      initialStatus={o.status}
       initialItems={existingItems}
     />
   </div>

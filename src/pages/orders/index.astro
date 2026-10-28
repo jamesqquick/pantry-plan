@@ -4,6 +4,8 @@ import { count, desc, eq } from "drizzle-orm";
 import AppLayout from "@/layouts/AppLayout.astro";
 import PageHeader from "@/components/ui/PageHeader.astro";
 import { createDb, order, orderItem } from "@/db";
+import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
+import { formatDueDate, formatDueTime } from "@/components/orders/formatDue";
 
 export const prerender = false;
 
@@ -15,8 +17,11 @@ const orders = await db
   .select({
     id: order.id,
     name: order.name,
-    notes: order.notes,
-    updatedAt: order.updatedAt,
+    customerName: order.customerName,
+    dueDate: order.dueDate,
+    dueTime: order.dueTime,
+    fulfillmentMethod: order.fulfillmentMethod,
+    status: order.status,
     itemCount: count(orderItem.id),
   })
   .from(order)
@@ -25,13 +30,6 @@ const orders = await db
   .groupBy(order.id)
   .orderBy(desc(order.updatedAt));
 
-function formatDate(d: Date): string {
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 ---
 
 <AppLayout title="Orders — Quick Pantry">
@@ -41,7 +39,7 @@ function formatDate(d: Date): string {
         <h1 class="font-display text-5xl leading-[0.95] tracking-[-0.04em] text-foreground sm:text-6xl">Orders</h1>
         <p class="text-base text-muted-foreground">
           {orders.length === 0
-            ? "No orders yet — create one to build a grocery list."
+            ? "No orders yet. Create one to capture a customer's request and plan your batches."
             : `${orders.length} ${orders.length === 1 ? "order" : "orders"} in your kitchen.`}
         </p>
       </div>
@@ -88,27 +86,41 @@ function formatDate(d: Date): string {
         <h2 class="font-display text-xl text-card-foreground">
           No orders yet
         </h2>
-        <p class="mt-1 text-sm text-muted-foreground">
-          Select recipes, set batch sizes, and generate a grocery list with cost estimates.
+        <p class="mt-1 text-body text-muted-foreground">
+          Record the customer request, choose recipes, and set batch sizes to build an order grocery list.
         </p>
       </div>
     ) : (
-      <ul class="divide-y divide-border rounded-lg border border-border bg-card">
+      <ul class="space-y-3">
         {orders.map((o) => (
           <li>
             <a
               href={`/orders/${o.id}`}
-              class="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-primary/5 cursor-pointer"
+              class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-lg border border-border bg-card px-4 py-4 transition-colors hover:border-input hover:bg-primary/5 sm:grid-cols-[minmax(0,1.6fr)_minmax(140px,1fr)_minmax(80px,0.6fr)_auto_16px] sm:gap-5"
             >
-              <div class="min-w-0">
-                <p class="truncate font-medium text-card-foreground">
+              <div class="col-start-1 row-start-1 min-w-0 sm:col-start-1 sm:row-start-1">
+                <p class="break-words font-medium text-card-foreground">
                   {o.name || "Untitled order"}
                 </p>
-                <p class="mt-0.5 text-xs text-muted-foreground">
-                  {o.itemCount} {o.itemCount === 1 ? "recipe" : "recipes"} · Updated {formatDate(o.updatedAt)}
+                <p class="mt-1 break-words text-meta text-muted-foreground">
+                  {o.customerName || "Customer not added"} · {o.itemCount} {o.itemCount === 1 ? "recipe" : "recipes"}
                 </p>
               </div>
-              {/* Lucide ChevronRight */}
+              <div class="col-start-1 row-start-2 text-sm text-muted-foreground sm:col-start-2 sm:row-start-1">
+                <span class="font-medium text-foreground sm:hidden">Due </span>
+                {formatDueDate(o.dueDate) ?? "No due date"}
+                {formatDueTime(o.dueTime) && (
+                  <span class="block text-xs sm:mt-1">{formatDueTime(o.dueTime)}</span>
+                )}
+              </div>
+              <div class="col-start-2 row-start-2 text-right text-sm text-muted-foreground sm:col-start-3 sm:row-start-1 sm:text-left">
+                <span class="sr-only sm:not-sr-only sm:mr-1">Fulfillment:</span>
+                {o.fulfillmentMethod === "DELIVERY" ? "Delivery" : "Pickup"}
+              </div>
+              <OrderStatusBadge
+                status={o.status}
+                className="col-start-2 row-start-1 justify-self-end sm:col-start-4 sm:row-start-1"
+              />
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -117,7 +129,7 @@ function formatDate(d: Date): string {
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                class="h-4 w-4 shrink-0 text-muted-foreground"
+                class="hidden h-4 w-4 shrink-0 text-muted-foreground sm:col-start-5 sm:row-start-1 sm:block"
                 aria-hidden="true"
               >
                 <path d="m9 18 6-6-6-6"></path>

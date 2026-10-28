@@ -283,7 +283,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
         <div
           id="recipe-import-error"
           role="alert"
-          className="rounded-input bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300"
+          className="rounded-input bg-red-50 p-3 text-body text-red-700 dark:bg-red-900/20 dark:text-red-300"
         >
           {error}
         </div>
@@ -377,7 +377,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
           <h2 id="draft-ingredients-heading" className="text-lg font-semibold">
             Ingredients
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-body text-muted-foreground">
             Review how each line was split into an amount, unit, and ingredient before saving.
           </p>
         </div>
@@ -421,7 +421,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
             return (
               <div className="space-y-4">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <p className="text-meta font-medium uppercase tracking-wide text-muted-foreground">
                     Original line
                   </p>
                   <p className="mt-1 break-words font-medium italic text-foreground">
@@ -463,7 +463,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                       aria-invalid={unitInvalid}
                       aria-describedby={invalidFieldId === unitId ? "recipe-import-error" : statusMessage ? statusId : undefined}
                       disabled={saving}
-                      className="flex min-h-11 w-full rounded-input border border-input bg-card px-3 py-1.5 font-ui text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 aria-invalid:border-destructive aria-invalid:ring-destructive/30 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex min-h-11 w-full rounded-input border border-input bg-card px-3 py-1.5 font-ui text-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 aria-invalid:border-destructive aria-invalid:ring-destructive/30 disabled:cursor-not-allowed disabled:opacity-50"
                       onChange={(event) => updateIngredient(id, { unit: event.target.value as IngredientUnit | "" })}
                     >
                       <option value="">Select unit</option>
@@ -497,8 +497,8 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                     id={statusId}
                     role={row.status === "needs-review" ? "status" : undefined}
                     className={row.status === "needs-review"
-                      ? "rounded-input border border-warning/30 bg-warning/10 p-3 text-sm leading-relaxed text-foreground"
-                      : "text-xs leading-relaxed text-muted-foreground"}
+                      ? "rounded-input border border-warning/30 bg-warning/10 p-3 text-body leading-relaxed text-foreground"
+                      : "text-meta leading-relaxed text-muted-foreground"}
                   >
                     {statusMessage}
                   </p>

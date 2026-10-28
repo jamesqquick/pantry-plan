@@ -82,7 +82,7 @@ if (ing.baseIngredientId) {
       <nav slot="eyebrow" class="text-sm" aria-label="Breadcrumb">
         <a
           href={`/ingredients/${id}`}
-          class="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+          class="mobile-action-control inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
         >
           {/* Lucide ChevronLeft */}
           <svg
@@ -118,7 +118,7 @@ if (ing.baseIngredientId) {
           </span>
         </div>
         {baseName && (
-          <p class="text-sm text-muted-foreground">
+          <p class="text-body text-muted-foreground">
             Based on{" "}
             <a
               href={`/ingredients/${ing.baseIngredientId}`}

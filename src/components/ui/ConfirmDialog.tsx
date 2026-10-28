@@ -48,12 +48,12 @@ export function ConfirmDialog({
         }}
       >
         <DialogTitle>{title}</DialogTitle>
-        <DialogDescription className="mt-3 pr-6 text-sm leading-6">
+        <DialogDescription className="mt-3 pr-6 text-body leading-6">
           {description}
         </DialogDescription>
 
         {error && (
-          <p role="alert" className="mt-4 text-sm text-destructive">
+          <p role="alert" className="mt-4 text-body text-destructive">
             {error}
           </p>
         )}

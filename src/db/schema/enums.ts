@@ -35,6 +35,26 @@ export const COST_BASIS_UNITS = [
 ] as const;
 export type CostBasisUnit = (typeof COST_BASIS_UNITS)[number];
 
+export const ORDER_STATUSES = [
+  "DRAFT",
+  "CONFIRMED",
+  "READY",
+  "COMPLETED",
+  "CANCELLED",
+] as const;
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  DRAFT: "Draft",
+  CONFIRMED: "Confirmed",
+  READY: "Ready",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
+};
+
+export const ORDER_FULFILLMENT_METHODS = ["PICKUP", "DELIVERY"] as const;
+export type OrderFulfillmentMethod = (typeof ORDER_FULFILLMENT_METHODS)[number];
+
 export const INGREDIENT_DISPLAY_UNITS = [
   "AUTO",
   "GRAM",

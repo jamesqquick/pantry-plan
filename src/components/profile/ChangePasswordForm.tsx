@@ -110,7 +110,7 @@ export function ChangePasswordForm() {
             required
             minLength={8}
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-meta text-muted-foreground">
             Must be at least 8 characters.
           </p>
         </div>
@@ -144,7 +144,7 @@ export function ChangePasswordForm() {
 
       {/* Inline error */}
       {error && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-body text-destructive">
           {error}
         </p>
       )}
@@ -153,7 +153,7 @@ export function ChangePasswordForm() {
       {success && (
         <div
           role="status"
-          className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-lg border border-green-600/30 bg-green-600 px-4 py-3 text-sm font-medium text-white shadow-lg animate-toast-in"
+          className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-lg border border-green-600/30 bg-green-600 px-4 py-3 text-body font-medium text-white shadow-lg animate-toast-in"
         >
           Password changed successfully
         </div>
