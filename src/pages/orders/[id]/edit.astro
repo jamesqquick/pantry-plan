@@ -82,6 +82,13 @@ const [existingItems, recipes] = await Promise.all([
       recipeOptions={recipes}
       initialName={o.name ?? ""}
       initialNotes={o.notes ?? ""}
+      initialCustomerName={o.customerName ?? ""}
+      initialCustomerContact={o.customerContact ?? ""}
+      initialDueDate={o.dueDate ?? ""}
+      initialDueTime={o.dueTime ?? ""}
+      initialFulfillmentMethod={o.fulfillmentMethod}
+      initialDeliveryAddress={o.deliveryAddress ?? ""}
+      initialStatus={o.status}
       initialItems={existingItems}
     />
   </div>

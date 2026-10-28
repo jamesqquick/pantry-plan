@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useId, useRef, useState } from "react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import {
@@ -28,14 +28,17 @@ export function OrderItemsEditor({
   items,
   onChange,
 }: OrderItemsEditorProps) {
-  const [searchQueries, setSearchQueries] = useState<Record<number, string>>({});
+  const nextRowKey = useRef(items.length);
+  const [rowKeys, setRowKeys] = useState(() => items.map((_, index) => index));
 
   function addRow() {
+    setRowKeys((keys) => [...keys, nextRowKey.current++]);
     onChange([...items, { recipeId: "", batches: 1 }]);
   }
 
   function removeRow(index: number) {
     if (items.length <= 1) return;
+    setRowKeys((keys) => keys.filter((_, i) => i !== index));
     onChange(items.filter((_, i) => i !== index));
   }
 
@@ -45,36 +48,12 @@ export function OrderItemsEditor({
     onChange(next);
   }
 
-  // IDs already used in other rows.
-  const getUsedIds = useCallback(
-    (currentIndex: number) => {
-      const used = new Set<string>();
-      items.forEach((row, i) => {
-        if (i !== currentIndex && row.recipeId) used.add(row.recipeId);
-      });
-      return used;
-    },
-    [items],
-  );
-
-  // Filter recipes based on search + exclude already-used.
-  const getFilteredOptions = useCallback(
-    (index: number) => {
-      const used = getUsedIds(index);
-      const q = (searchQueries[index] ?? "").toLowerCase();
-      return recipeOptions.filter(
-        (r) => !used.has(r.id) && (!q || r.title.toLowerCase().includes(q)),
-      );
-    },
-    [recipeOptions, getUsedIds, searchQueries],
-  );
-
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <label className="text-sm font-medium text-foreground">
+        <h2 className="text-sm font-medium text-foreground">
           Recipes & batches
-        </label>
+        </h2>
         <Button type="button" variant="secondary" size="sm" onClick={addRow} className="min-h-11">
           {/* Lucide Plus */}
           <svg
@@ -105,23 +84,21 @@ export function OrderItemsEditor({
             const selectedRecipe = recipeOptions.find((r) => r.id === row.recipeId);
             return (
               <div
-                key={index}
+                key={rowKeys[index]}
                 className="flex flex-col gap-2 sm:flex-row sm:items-center"
               >
                 {/* Recipe picker */}
                 <div className="relative min-w-0 flex-1">
                   <RecipePickerInput
+                    label={`Recipe ${index + 1}`}
                     value={row.recipeId}
                     displayName={selectedRecipe?.title ?? ""}
-                    options={getFilteredOptions(index)}
-                    searchQuery={searchQueries[index] ?? ""}
-                    onSearchChange={(q) =>
-                      setSearchQueries((prev) => ({ ...prev, [index]: q }))
-                    }
-                    onSelect={(id) => {
-                      updateRow(index, { recipeId: id });
-                      setSearchQueries((prev) => ({ ...prev, [index]: "" }));
-                    }}
+                    options={recipeOptions.filter(
+                      (r) =>
+                        r.id === row.recipeId ||
+                        !items.some((item, i) => i !== index && item.recipeId === r.id),
+                    )}
+                    onSelect={(id) => updateRow(index, { recipeId: id })}
                   />
                 </div>
 
@@ -131,7 +108,10 @@ export function OrderItemsEditor({
                     value={String(row.batches)}
                     onValueChange={(v) => updateRow(index, { batches: Number(v) })}
                   >
-                    <SelectTrigger className="w-20 shrink-0">
+                    <SelectTrigger
+                      aria-label={`Batches for ${selectedRecipe?.title ?? `recipe ${index + 1}`}`}
+                      className="w-20 shrink-0"
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -149,7 +129,7 @@ export function OrderItemsEditor({
                     size="sm"
                     onClick={() => removeRow(index)}
                     disabled={items.length <= 1}
-                    aria-label="Remove recipe"
+                    aria-label={`Remove recipe ${index + 1}`}
                     className="min-h-11 min-w-11 sm:min-h-0 sm:min-w-0"
                   >
                     {/* Lucide X */}
@@ -181,58 +161,110 @@ export function OrderItemsEditor({
 
 // ── Inline recipe picker with search dropdown ───────────────────────
 function RecipePickerInput({
+  label,
   value,
   displayName,
   options,
-  searchQuery,
-  onSearchChange,
   onSelect,
 }: {
+  label: string;
   value: string;
   displayName: string;
   options: RecipeOption[];
-  searchQuery: string;
-  onSearchChange: (q: string) => void;
   onSelect: (id: string) => void;
 }) {
+  const id = useId();
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const matches = options
+    .filter((r) => r.title.toLowerCase().includes(query.trim().toLowerCase()))
+    .slice(0, 15);
+
+  function selectRecipe(id: string) {
+    onSelect(id);
+    setQuery("");
+    setOpen(false);
+  }
 
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+      }}
+    >
+      <label htmlFor={id} className="sr-only">{label}</label>
       <Input
+        id={id}
         type="text"
-        value={open ? searchQuery : displayName}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={open}
+        aria-controls={open ? `${id}-options` : undefined}
+        aria-activedescendant={open && activeIndex >= 0 && matches.length > 0
+          ? `${id}-option-${Math.min(activeIndex, matches.length - 1)}`
+          : undefined}
+        value={open ? query : displayName}
         placeholder="Search recipes…"
         onFocus={() => {
           setOpen(true);
-          onSearchChange(displayName);
+          setQuery("");
+          setActiveIndex(-1);
         }}
-        onBlur={() => {
-          // Delay so click on dropdown item registers.
-          setTimeout(() => setOpen(false), 200);
+        onChange={(event) => {
+          setOpen(true);
+          setQuery(event.target.value);
+          setActiveIndex(-1);
+          if (value) onSelect("");
         }}
-        onChange={(e) => onSearchChange(e.target.value)}
+        onKeyDown={(event) => {
+          if (event.nativeEvent.isComposing) return;
+          if (!open && event.key.length === 1 && !event.altKey && !event.ctrlKey && !event.metaKey) {
+            event.preventDefault();
+            setQuery(event.key);
+            setActiveIndex(-1);
+            setOpen(true);
+            if (value) onSelect("");
+          } else if (event.key === "Escape") {
+            setOpen(false);
+            event.currentTarget.blur();
+          } else if (event.key === "ArrowDown" && matches.length > 0) {
+            event.preventDefault();
+            setOpen(true);
+            setActiveIndex((index) => Math.min(index + 1, matches.length - 1));
+          } else if (event.key === "ArrowUp" && matches.length > 0) {
+            event.preventDefault();
+            setOpen(true);
+            setActiveIndex((index) => index < 0 ? matches.length - 1 : Math.max(index - 1, 0));
+          } else if (event.key === "Enter" && open && matches.length > 0) {
+            event.preventDefault();
+            selectRecipe(matches[Math.max(0, Math.min(activeIndex, matches.length - 1))]!.id);
+          }
+        }}
         autoComplete="off"
       />
-      {open && options.length > 0 && (
-        <ul className="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-border bg-card shadow-lg">
-          {options.slice(0, 15).map((r) => (
-            <li key={r.id}>
-              <button
-                type="button"
-                className={`min-h-11 w-full cursor-pointer px-3 py-2 text-left text-sm hover:bg-primary/10 ${
-                  r.id === value ? "font-semibold text-primary-on-card" : "text-card-foreground"
-                }`}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  onSelect(r.id);
-                  setOpen(false);
-                }}
-              >
-                {r.title}
-              </button>
+      {open && (
+        <ul
+          id={`${id}-options`}
+          role="listbox"
+          aria-label={label}
+          className="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-border bg-card shadow-lg"
+        >
+          {matches.map((r, index) => (
+            <li
+              key={r.id}
+              id={`${id}-option-${index}`}
+              role="option"
+              aria-selected={r.id === value}
+              className={`min-h-11 cursor-pointer px-3 py-2 text-body hover:bg-primary/10 ${index === activeIndex ? "bg-primary/10" : ""} ${r.id === value ? "font-semibold text-primary-on-card" : "text-card-foreground"}`}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => selectRecipe(r.id)}
+            >
+              {r.title}
             </li>
           ))}
+          {matches.length === 0 && <li role="presentation" className="px-3 py-2 text-body text-muted-foreground">No matching recipes</li>}
         </ul>
       )}
     </div>
