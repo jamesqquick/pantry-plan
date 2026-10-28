@@ -8,6 +8,7 @@ import {
 import { cuidPk, createdAt, updatedAt } from "./_shared";
 import { user } from "./users";
 import { recipe } from "./recipes";
+import type { OrderFulfillmentMethod, OrderStatus } from "./enums";
 
 export const order = sqliteTable(
   "Order",
@@ -18,6 +19,16 @@ export const order = sqliteTable(
       .references(() => user.id, { onDelete: "cascade" }),
     name: text("name"),
     notes: text("notes"),
+    customerName: text("customerName"),
+    customerContact: text("customerContact"),
+    dueDate: text("dueDate"),
+    dueTime: text("dueTime"),
+    fulfillmentMethod: text("fulfillmentMethod")
+      .notNull()
+      .default("PICKUP")
+      .$type<OrderFulfillmentMethod>(),
+    deliveryAddress: text("deliveryAddress"),
+    status: text("status").notNull().default("DRAFT").$type<OrderStatus>(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

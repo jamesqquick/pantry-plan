@@ -1,8 +1,10 @@
 import { ActionError, defineAction } from "astro:actions";
+import { createId } from "@paralleldrive/cuid2";
 import { and, eq, inArray } from "drizzle-orm";
 import {
   orderCreateSchema,
   orderUpdateSchema,
+  orderStatusUpdateSchema,
   orderIdSchema,
 } from "@/features/orders/orders.schemas";
 import { order, orderItem, recipe } from "@/db";
@@ -44,30 +46,29 @@ export const orders = {
         input.items.map((i) => i.recipeId)
       );
 
-      const [row] = await db
-        .insert(order)
-        .values({
+      const id = createId();
+      await db.batch([
+        db.insert(order).values({
+          id,
           userId: user.id,
-          name: input.name?.trim() || null,
+          name: input.name,
           notes: input.notes?.trim() || null,
-        })
-        .returning({ id: order.id });
-      if (!row) {
-        throw new ActionError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create order",
-        });
-      }
-
-      await db.insert(orderItem).values(
-        input.items.map((item) => ({
-          orderId: row.id,
+          customerName: input.customerName ?? null,
+          customerContact: input.customerContact ?? null,
+          dueDate: input.dueDate ?? null,
+          dueTime: input.dueTime ?? null,
+          fulfillmentMethod: input.fulfillmentMethod,
+          deliveryAddress: input.deliveryAddress ?? null,
+          status: input.status,
+        }),
+        db.insert(orderItem).values(input.items.map((item) => ({
+          orderId: id,
           recipeId: item.recipeId,
           batches: item.batches,
-        }))
-      );
+        }))),
+      ]);
 
-      return { id: row.id };
+      return { id };
     },
   }),
 
@@ -96,24 +97,58 @@ export const orders = {
         input.items.map((i) => i.recipeId)
       );
 
-      await db
-        .update(order)
-        .set({
-          name: input.name?.trim() || null,
-          notes: input.notes?.trim() || null,
-        })
-        .where(eq(order.id, input.id));
+      const patch: Partial<typeof order.$inferInsert> = {
+        name: input.name,
+        notes: input.notes?.trim() || null,
+      };
+      if (input.customerName !== undefined) patch.customerName = input.customerName;
+      if (input.customerContact !== undefined) patch.customerContact = input.customerContact;
+      if (input.dueDate !== undefined) patch.dueDate = input.dueDate;
+      if (input.dueTime !== undefined) patch.dueTime = input.dueTime;
+      if (input.fulfillmentMethod !== undefined) {
+        patch.fulfillmentMethod = input.fulfillmentMethod;
+      }
+      if (input.deliveryAddress !== undefined) {
+        patch.deliveryAddress = input.deliveryAddress;
+      }
+      if (input.status !== undefined) patch.status = input.status;
 
-      await db.delete(orderItem).where(eq(orderItem.orderId, input.id));
-      await db.insert(orderItem).values(
-        input.items.map((item) => ({
+      await db.batch([
+        db.update(order).set(patch).where(eq(order.id, input.id)),
+        db.delete(orderItem).where(eq(orderItem.orderId, input.id)),
+        db.insert(orderItem).values(input.items.map((item) => ({
           orderId: input.id,
           recipeId: item.recipeId,
           batches: item.batches,
-        }))
-      );
+        }))),
+      ]);
 
       return { id: input.id };
+    },
+  }),
+
+  /** Update only an order's status from its detail page. */
+  updateStatus: defineAction({
+    input: orderStatusUpdateSchema,
+    handler: async (input, ctx) => {
+      const user = requireUser(ctx);
+      const db = getDb();
+
+      const existing = await db
+        .select({ id: order.id })
+        .from(order)
+        .where(and(eq(order.id, input.id), eq(order.userId, user.id)))
+        .limit(1);
+      if (existing.length === 0) {
+        throw new ActionError({
+          code: "NOT_FOUND",
+          message: "Order not found.",
+        });
+      }
+
+      await db.update(order).set({ status: input.status }).where(eq(order.id, input.id));
+
+      return { id: input.id, status: input.status };
     },
   }),
 

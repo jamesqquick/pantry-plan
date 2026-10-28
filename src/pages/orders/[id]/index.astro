@@ -5,6 +5,8 @@ import AppLayout from "@/layouts/AppLayout.astro";
 import PageHeader from "@/components/ui/PageHeader.astro";
 import { GroceryListDisplay } from "@/components/orders/GroceryListDisplay";
 import { DeleteOrderButton } from "@/components/orders/DeleteOrderButton";
+import { OrderStatusSelect } from "@/components/orders/OrderStatusSelect";
+import { formatDueDate, formatDueTime } from "@/components/orders/formatDue";
 import { renderMarkdownToHtml } from "@/features/markdown/render-markdown";
 import { buildGroceryList, type GroceryListResult } from "@/lib/grocery/aggregate";
 import {
@@ -51,6 +53,7 @@ const items = await db
 
 // Load recipe ingredients with their ingredient data for grocery aggregation.
 const recipeIds = [...new Set(items.map((i) => i.recipeId))];
+type GroceryRecipe = Parameters<typeof buildGroceryList>[0]["recipes"][number];
 let groceryResult: GroceryListResult = {
   totals: [],
   issues: { unmapped: [], missingQuantityOrUnit: [], cannotConvert: [], missingCost: [] },
@@ -81,26 +84,7 @@ if (recipeIds.length > 0) {
     .orderBy(asc(recipeIngredient.sortOrder));
 
   // Group by recipe.
-  const recipesForGrocery = new Map<string, {
-    id: string;
-    title: string;
-    ingredients: Array<{
-      id: string;
-      ingredientId: string | null;
-      ingredient?: {
-        id: string;
-        name: string;
-        costBasisUnit: string;
-        estimatedCentsPerBasisUnit: number | null;
-        gramsPerCup: number | null;
-        cupsPerEach: number | null;
-        preferredDisplayUnit: string | null;
-      } | null;
-      quantity: number | null;
-      unit: string | null;
-      displayText: string;
-    }>;
-  }>();
+  const recipesForGrocery = new Map<string, GroceryRecipe>();
 
   for (const item of items) {
     if (!recipesForGrocery.has(item.recipeId)) {
@@ -137,7 +121,7 @@ if (recipeIds.length > 0) {
 
   groceryResult = buildGroceryList({
     orderItems: items.map((i) => ({ recipeId: i.recipeId, batches: i.batches })),
-    recipes: [...recipesForGrocery.values()] as any,
+    recipes: [...recipesForGrocery.values()],
   });
 }
 
@@ -155,6 +139,9 @@ const issueCount =
 function batchLabel(v: number): string {
   return v === 0.5 ? "½" : String(v);
 }
+
+const dueDateLabel = formatDueDate(o.dueDate);
+const dueTimeLabel = formatDueTime(o.dueTime);
 ---
 
 <AppLayout title={`${o.name || "Order"} — Quick Pantry`}>
@@ -182,7 +169,7 @@ function batchLabel(v: number): string {
           All orders
         </a>
       </nav>
-      <h1 slot="content" class="font-display text-3xl leading-tight text-foreground sm:text-4xl">
+      <h1 slot="content" class="break-words font-display text-3xl leading-tight text-foreground sm:text-4xl">
           {o.name || "Untitled order"}
       </h1>
       <a
@@ -207,6 +194,52 @@ function batchLabel(v: number): string {
           Edit
       </a>
     </PageHeader>
+
+    <section class="grid gap-6 border-b border-border pb-7 md:grid-cols-[minmax(0,1fr)_16rem] md:items-start">
+      <div class="grid gap-6 sm:grid-cols-2">
+        <section aria-labelledby="order-customer-heading">
+          <h2 id="order-customer-heading" class="font-display text-xl text-foreground">
+            Customer
+          </h2>
+          {o.customerName ? (
+            <p class="mt-2 text-sm font-medium text-foreground">{o.customerName}</p>
+          ) : (
+            <p class="mt-2 text-sm text-muted-foreground">Customer not added</p>
+          )}
+          {o.customerContact && (
+            <p class="mt-1 break-all text-sm text-muted-foreground">{o.customerContact}</p>
+          )}
+        </section>
+
+        <section aria-labelledby="order-fulfillment-heading">
+          <h2 id="order-fulfillment-heading" class="font-display text-xl text-foreground">
+            Fulfillment
+          </h2>
+          <p class="mt-2 text-sm font-medium text-foreground">
+            {o.fulfillmentMethod === "DELIVERY" ? "Delivery" : "Pickup"}
+          </p>
+          {(dueDateLabel || dueTimeLabel) ? (
+            <p class="mt-1 text-sm text-muted-foreground">
+              {dueDateLabel ?? "Date not set"}{dueTimeLabel && ` at ${dueTimeLabel}`}
+            </p>
+          ) : (
+            <p class="mt-1 text-sm text-muted-foreground">Due date not set</p>
+          )}
+          {o.fulfillmentMethod === "DELIVERY" && (
+            <p class="mt-1 whitespace-pre-wrap break-words text-sm text-muted-foreground">
+              {o.deliveryAddress || "Address not added"}
+            </p>
+          )}
+        </section>
+      </div>
+      <aside class="rounded-lg border border-border bg-card p-4">
+        <OrderStatusSelect
+          client:load
+          orderId={o.id}
+          initialStatus={o.status}
+        />
+      </aside>
+    </section>
 
     {/* Notes */}
     {notesHtml && (
