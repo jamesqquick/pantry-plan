@@ -1,0 +1,55 @@
+src/db/migrations/0006_awesome_daredevil.sql
+  s_097b735e2a3bea::t_c00d15c02ec377 1-30
+src/db/migrations/meta/0006_snapshot.json
+  s_097b735e2a3bea::t_78896deee349ab 1-2818
+src/db/migrations/meta/_journal.json
+  s_097b735e2a3bea::t_d86ec3f942cc14 46-52
+src/features/recipes/ingredient-measurements.ts
+  s_6306fb38bd5244::t_7fdf0b7cf70856 13-16,24-25,31-33
+src/lib/ingredients/recipe-mapping.test.ts
+  s_9603d7d2f6f264::t_c4bad790f17bf9 129-144,186-187
+src/lib/mcp/edit-recipe.test.ts
+  s_6306fb38bd5244::t_475ef14f8948f7 62,184-185,188,190-191,196,198,200-201
+src/lib/mcp/server.test.ts
+  s_089d04490dce79::t_d42bd1706fb83e 158,160,162-163,165-168,170
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "51db025190a8bc9f6124c4dfcb62dabe7ce03815",
+  "prompts": {},
+  "sessions": {
+    "s_089d04490dce79": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_eb0bfb0c1ffetgWwKCiqlUNCJI",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    },
+    "s_097b735e2a3bea": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e81c3813affeoYFzGIqjqIumA3",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    },
+    "s_6306fb38bd5244": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e81b1b0d1ffeWCFRowEObzibff",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    },
+    "s_9603d7d2f6f264": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ea411ed28ffeTMG2Vtju1bafDY",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
