@@ -108,9 +108,10 @@ describe("RecipeCookMode", () => {
     expect((screen.getByRole("checkbox", { name: "2 cups flour" }) as HTMLInputElement).checked).toBe(false);
   });
 
-  it("scales text-only ingredients and identifies only amounts that need review", async () => {
+  it("does not parse text-only ingredients while scaling and flags them for review", async () => {
     const user = userEvent.setup();
     render(<RecipeCookMode {...recipe} ingredients={[
+      { id: "flour", quantity: 1, unit: "CUP", displayText: "flour" },
       { id: "milk", quantity: null, unit: null, displayText: "1½ cups milk" },
       { id: "garlic", quantity: null, unit: null, displayText: "2-3 cloves garlic" },
       { id: "salt", quantity: null, unit: null, displayText: "Salt to taste" },
@@ -118,11 +119,12 @@ describe("RecipeCookMode", () => {
     await user.click(screen.getByRole("button", { name: "Cook mode" }));
     expect(screen.queryByText("Check amount")).toBeNull();
     await user.click(screen.getByRole("radio", { name: "2×" }));
-    screen.getByRole("checkbox", { name: "3 cups milk" });
+    screen.getByRole("checkbox", { name: "2 cups flour" });
+    screen.getByRole("checkbox", { name: "1½ cups milk" });
     screen.getByRole("checkbox", { name: "2-3 cloves garlic" });
     screen.getByRole("checkbox", { name: "Salt to taste" });
-    expect(screen.getAllByText("Check amount")).toHaveLength(1);
-    screen.getByText("1 ingredient amount adjusted. 1 needs checking.");
+    expect(screen.getAllByText("Check amount")).toHaveLength(3);
+    screen.getByText("1 ingredient amount adjusted. 3 need checking.");
     expect(screen.getByRole("link", { name: "Review quantities" }).getAttribute("href"))
       .toBe("/recipes/pasta/edit#recipe-ingredients");
   });

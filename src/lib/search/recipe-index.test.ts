@@ -232,8 +232,8 @@ describe("syncRecipes", () => {
       costBasisUnit: "G",
     });
     await db.insert(recipeIngredient).values([
-      { recipeId: "r1", ingredientId: "ing1", displayText: "cans tomatoes", rawText: "2 cans tomatoes", sortOrder: 0 },
-      { recipeId: "r1", displayText: "basil", sortOrder: 1 },
+      { recipeId: "r1", ingredientId: "ing1", quantity: 2, unit: "COUNT", displayText: "cans tomatoes", rawText: "2 cans tomatoes", sortOrder: 0 },
+      { recipeId: "r1", quantity: 1, unit: "COUNT", displayText: "basil", sortOrder: 1 },
     ]);
     await db.insert(recipeInstruction).values([
       { recipeId: "r1", sortOrder: 1, text: "Simmer" },
@@ -376,8 +376,8 @@ describe("dirty-marking lookups", () => {
       costBasisUnit: "G",
     });
     await db.insert(recipeIngredient).values([
-      { recipeId: "r1", ingredientId: "ing1", displayText: "garlic", sortOrder: 0 },
-      { recipeId: "r1", ingredientId: "ing1", displayText: "more garlic", sortOrder: 1 },
+      { recipeId: "r1", ingredientId: "ing1", quantity: 1, unit: "COUNT", displayText: "garlic", sortOrder: 0 },
+      { recipeId: "r1", ingredientId: "ing1", quantity: 1, unit: "COUNT", displayText: "more garlic", sortOrder: 1 },
     ]);
     await db.insert(tag).values({ id: "t1", userId: "u1", name: "quick" });
     await db.insert(recipeTag).values({ recipeId: "r2", tagId: "t1" });

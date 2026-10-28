@@ -127,7 +127,22 @@ describe("RecipeDraftEditor", () => {
     );
   });
 
-  it("highlights every missing imported measurement immediately and clears each highlight as it is completed", async () => {
+  it("parses the first amount and keeps later measurements in ingredient text", () => {
+    renderEditor({
+      ...validDraft,
+      ingredients: ["2 cups semisweet chocolate chips ((12 oz))"],
+    });
+
+    expect(screen.getByLabelText("Quantity for ingredient 1")).toHaveProperty("value", "2");
+    expect(screen.getByLabelText("Unit for ingredient 1")).toHaveProperty("value", "CUP");
+    expect(screen.getByLabelText("Ingredient text for ingredient 1")).toHaveProperty(
+      "value",
+      "semisweet chocolate chips ((12 oz))",
+    );
+    expect(screen.queryByText("Couldn't automatically parse ingredient.")).toBeNull();
+  });
+
+  it("highlights missing measurements while retaining trailing measurement text", async () => {
     const user = userEvent.setup();
     renderEditor({
       ...validDraft,
@@ -138,14 +153,20 @@ describe("RecipeDraftEditor", () => {
     const parsedUnit = screen.getByLabelText("Unit for ingredient 1");
     const saltQuantity = screen.getByLabelText("Quantity for ingredient 2");
     const saltUnit = screen.getByLabelText("Unit for ingredient 2");
-    const ambiguousQuantity = screen.getByLabelText("Quantity for ingredient 3");
-    const ambiguousUnit = screen.getByLabelText("Unit for ingredient 3");
+    const annotatedQuantity = screen.getByLabelText("Quantity for ingredient 3");
+    const annotatedUnit = screen.getByLabelText("Unit for ingredient 3");
+    const annotatedText = screen.getByLabelText("Ingredient text for ingredient 3");
 
     expect(parsedQuantity.getAttribute("aria-invalid")).toBe("false");
     expect(parsedUnit.getAttribute("aria-invalid")).toBe("false");
-    for (const field of [saltQuantity, saltUnit, ambiguousQuantity, ambiguousUnit]) {
+    for (const field of [saltQuantity, saltUnit]) {
       expect(field.getAttribute("aria-invalid")).toBe("true");
     }
+    expect(annotatedQuantity).toHaveProperty("value", "1");
+    expect(annotatedUnit).toHaveProperty("value", "CUP");
+    expect(annotatedText).toHaveProperty("value", "flour (120 g)");
+    expect(annotatedQuantity.getAttribute("aria-invalid")).toBe("false");
+    expect(annotatedUnit.getAttribute("aria-invalid")).toBe("false");
     expect(saltUnit.className).toContain("aria-invalid:border-destructive");
     expect(screen.queryByRole("alert")).toBeNull();
 
@@ -156,8 +177,6 @@ describe("RecipeDraftEditor", () => {
     await user.selectOptions(saltUnit, "TSP");
     expect(saltQuantity.getAttribute("aria-invalid")).toBe("false");
     expect(saltUnit.getAttribute("aria-invalid")).toBe("false");
-    expect(ambiguousQuantity.getAttribute("aria-invalid")).toBe("true");
-    expect(ambiguousUnit.getAttribute("aria-invalid")).toBe("true");
   });
 
   it("leaves the blank ingredient placeholder unhighlighted", () => {
@@ -290,10 +309,10 @@ describe("RecipeDraftEditor", () => {
 
   it("requires a measurement for an unresolved line and preserves its reviewed text", async () => {
     const user = userEvent.setup();
-    renderEditor({ ...validDraft, ingredients: ["1 cup flour (120 g)"] });
+    renderEditor({ ...validDraft, ingredients: ["2-3 cloves garlic"] });
 
     await user.click(screen.getByRole("button", { name: "Save recipe" }));
-    expect(screen.getByRole("alert").textContent).toBe('Quantity is required for "1 cup flour (120 g)".');
+    expect(screen.getByRole("alert").textContent).toBe('Quantity is required for "2-3 cloves garlic".');
     expect(saveTextOnly).not.toHaveBeenCalled();
     await user.type(screen.getByLabelText("Quantity for ingredient 1"), "1");
     await user.selectOptions(screen.getByLabelText("Unit for ingredient 1"), "CUP");
@@ -304,8 +323,8 @@ describe("RecipeDraftEditor", () => {
         expect.objectContaining({
           ingredients: [
             {
-              rawText: "1 cup flour (120 g)",
-              displayText: "1 cup flour (120 g)",
+              rawText: "2-3 cloves garlic",
+              displayText: "2-3 cloves garlic",
               quantity: 1,
               unit: "CUP",
             },

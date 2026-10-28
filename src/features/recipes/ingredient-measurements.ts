@@ -10,6 +10,10 @@ export const requiredIngredientMeasurementsSchema = z.object({
   }),
 });
 
+type RequiredIngredientMeasurements = z.infer<
+  typeof requiredIngredientMeasurementsSchema
+>;
+
 export class IngredientMeasurementValidationError extends Error {
   constructor(public readonly ingredientErrors: readonly string[]) {
     super(`Ingredient measurements need correction. ${ingredientErrors.join(" ")}`);
@@ -17,14 +21,16 @@ export class IngredientMeasurementValidationError extends Error {
   }
 }
 
-export function validateIngredientMeasurements(
-  ingredients: readonly {
+export function validateIngredientMeasurements<
+  T extends readonly {
     quantity?: unknown;
     unit?: unknown;
     displayText?: string | null;
     rawText?: string | null;
   }[],
-): void {
+>(
+  ingredients: T,
+): asserts ingredients is T & readonly (T[number] & RequiredIngredientMeasurements)[] {
   const ingredientErrors = ingredients.flatMap((ingredient, index) => {
     const result = requiredIngredientMeasurementsSchema.safeParse(ingredient);
     if (result.success) return [];

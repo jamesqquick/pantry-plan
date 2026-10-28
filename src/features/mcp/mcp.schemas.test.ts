@@ -95,8 +95,8 @@ describe("MCP tool schemas", () => {
     }).ingredients).toEqual(ingredients);
   });
 
-  it("keeps legacy recipe output measurements nullable", () => {
-    expect(recipeDetailsOutputSchema.safeParse({
+  it("requires measurements in recipe output", () => {
+    const recipeOutput = {
       id: "recipe-1",
       title: "Legacy soup",
       sourceUrl: null,
@@ -107,9 +107,18 @@ describe("MCP tool schemas", () => {
       totalTimeMinutes: null,
       notes: null,
       recipeUrl: "https://quickpantry.test/recipes/recipe-1",
-      ingredients: [{ quantity: null, unit: null, displayText: "salt to taste" }],
+      ingredients: [{ quantity: 1, unit: "TSP", displayText: "salt to taste" }],
       instructions: ["Season."],
-    }).success).toBe(true);
+    };
+    expect(recipeDetailsOutputSchema.safeParse(recipeOutput).success).toBe(true);
+    expect(recipeDetailsOutputSchema.safeParse({
+      ...recipeOutput,
+      ingredients: [{ quantity: null, unit: null, displayText: "salt to taste" }],
+    }).success).toBe(false);
+    expect(recipeDetailsOutputSchema.safeParse({
+      ...recipeOutput,
+      ingredients: [{ displayText: "salt to taste" }],
+    }).success).toBe(false);
   });
 
   it("supports partial edits and explicit clearing", () => {

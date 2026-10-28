@@ -59,7 +59,7 @@ afterEach(() => {
   for (const sqlite of databases.splice(0)) sqlite.close();
 });
 
-async function createStoredRecipe(amount: { quantity: number | null; unit: IngredientUnit | null }) {
+async function createStoredRecipe(amount: { quantity: number; unit: IngredientUnit }) {
   const test = createTestDb();
   databases.push(test.sqlite);
   test.sqlite.exec(`INSERT INTO user (id, name, email, createdAt, updatedAt)
@@ -156,38 +156,6 @@ describe("editMcpRecipe", () => {
   });
 
   it.each([
-    { quantity: null, unit: "TSP" as const },
-    { quantity: 1, unit: null },
-    { quantity: null, unit: null },
-  ])("blocks every partial edit write for incomplete stored measurements: %o", async (amount) => {
-    const { db } = await createStoredRecipe(amount);
-    const before = {
-      recipes: await db.select().from(recipe),
-      ingredients: await db.select().from(recipeIngredient),
-      instructions: await db.select().from(recipeInstruction),
-    };
-    const batch = vi.spyOn(db, "batch");
-    const update = vi.spyOn(db, "update");
-    const remove = vi.spyOn(db, "delete");
-
-    const result = editMcpRecipe(db, "cook", {
-      recipeId: "recipe-1",
-      title: "Changed",
-      notes: "Changed note",
-      instructions: ["Changed instruction"],
-    });
-    await expect(result).rejects.toBeInstanceOf(IngredientMeasurementValidationError);
-    await expect(result).rejects.toThrow(/Ingredient 1 "salt to taste"/);
-
-    expect(batch).not.toHaveBeenCalled();
-    expect(update).not.toHaveBeenCalled();
-    expect(remove).not.toHaveBeenCalled();
-    expect(await db.select().from(recipe)).toEqual(before.recipes);
-    expect(await db.select().from(recipeIngredient)).toEqual(before.ingredients);
-    expect(await db.select().from(recipeInstruction)).toEqual(before.instructions);
-  });
-
-  it.each([
     {},
     { quantity: 1 },
     { unit: "TSP" },
@@ -213,24 +181,24 @@ describe("editMcpRecipe", () => {
     expect(await db.select().from(recipeInstruction)).toMatchObject([{ text: "Season." }]);
   });
 
-  it("repairs incomplete legacy ingredients and permits later partial edits", async () => {
-    const { db } = await createStoredRecipe({ quantity: null, unit: null });
+  it("updates measurements and permits later partial edits", async () => {
+    const { db } = await createStoredRecipe({ quantity: 1, unit: "TSP" });
     await editMcpRecipe(db, "cook", {
       recipeId: "recipe-1",
-      title: "Measured soup",
+      title: "Updated soup",
       ingredients: [{
-        quantity: 1 / 3,
-        unit: "TSP",
+        quantity: 2,
+        unit: "TBSP",
         displayText: "salt to taste",
         rawText: "  Salt to taste  ",
       }],
     });
-    await editMcpRecipe(db, "cook", { recipeId: "recipe-1", notes: "Repaired." });
+    await editMcpRecipe(db, "cook", { recipeId: "recipe-1", notes: "Updated." });
 
-    expect(await db.select().from(recipe)).toMatchObject([{ title: "Measured soup", notes: "Repaired." }]);
+    expect(await db.select().from(recipe)).toMatchObject([{ title: "Updated soup", notes: "Updated." }]);
     expect(await db.select().from(recipeIngredient)).toMatchObject([{
-      quantity: 1 / 3,
-      unit: "TSP",
+      quantity: 2,
+      unit: "TBSP",
       displayText: "salt to taste",
       rawText: "  Salt to taste  ",
       ingredientId: null,

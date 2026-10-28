@@ -118,8 +118,8 @@ export const recipeDetailsOutputSchema = z.object({
   ...recipeSummaryFields,
   notes: z.string().nullable(),
   ingredients: z.array(z.object({
-    quantity: z.number().nullable().optional(),
-    unit: z.enum(INGREDIENT_UNITS).nullable().optional(),
+    quantity: z.number(),
+    unit: z.enum(INGREDIENT_UNITS),
     displayText: z.string(),
     rawText: z.string().nullable().optional(),
   }).strict()),
