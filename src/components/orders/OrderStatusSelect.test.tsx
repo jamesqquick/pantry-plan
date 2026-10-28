@@ -32,10 +32,12 @@ describe("OrderStatusSelect", () => {
       id: "order-123",
       status: "READY",
     }));
-    expect(await screen.findByText("Status set to Ready.")).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "Order status" })).toHaveProperty("value", "READY");
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.queryByText("Status set to Ready.")).toBeNull();
   });
 
-  it("keeps the saved status and shows an error when the update fails", async () => {
+  it("restores the previous status when the update returns an error", async () => {
     vi.mocked(actions.orders.updateStatus).mockResolvedValue({
       data: undefined,
       error: { message: "Order not found." },
@@ -45,23 +47,24 @@ describe("OrderStatusSelect", () => {
 
     await user.selectOptions(screen.getByRole("combobox", { name: "Order status" }), "CANCELLED");
 
-    expect(await screen.findByText("Order not found.")).toBeTruthy();
-    expect(screen.getByRole("combobox", { name: "Order status" })).toHaveProperty("value", "DRAFT");
-    expect(screen.getByRole("alert").textContent).toBe("Order not found.");
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Order status" })).toHaveProperty("value", "DRAFT"));
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByText("Order not found.")).toBeNull();
   });
 
-  it("restores the saved status and enables a retry when the request throws", async () => {
+  it("restores the previous status and enables a retry when the request throws", async () => {
     vi.mocked(actions.orders.updateStatus).mockRejectedValueOnce(new TypeError("Network offline"))
       .mockResolvedValueOnce({ data: { id: "order-123", status: "READY" }, error: undefined });
     const user = userEvent.setup();
     render(<OrderStatusSelect orderId="order-123" initialStatus="CONFIRMED" />);
 
     await user.selectOptions(screen.getByRole("combobox", { name: "Order status" }), "READY");
-    expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Couldn't update the order status. Check your connection and try again.");
-    expect(screen.getByRole("combobox", { name: "Order status" })).toHaveProperty("value", "CONFIRMED");
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Order status" })).toHaveProperty("value", "CONFIRMED"));
+    expect(screen.queryByRole("alert")).toBeNull();
 
     await user.selectOptions(screen.getByRole("combobox", { name: "Order status" }), "READY");
-    expect(await screen.findByRole("status")).toHaveProperty("textContent", "Status set to Ready.");
+    await waitFor(() => expect(actions.orders.updateStatus).toHaveBeenCalledTimes(2));
     expect(screen.getByRole("combobox", { name: "Order status" })).toHaveProperty("value", "READY");
+    expect(screen.queryByRole("status")).toBeNull();
   });
 });

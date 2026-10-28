@@ -195,50 +195,54 @@ const dueTimeLabel = formatDueTime(o.dueTime);
       </a>
     </PageHeader>
 
-    <section class="grid gap-6 border-b border-border pb-7 md:grid-cols-[minmax(0,1fr)_16rem] md:items-start">
-      <div class="grid gap-6 sm:grid-cols-2">
-        <section aria-labelledby="order-customer-heading">
-          <h2 id="order-customer-heading" class="font-display text-xl text-foreground">
-            Customer
-          </h2>
-          {o.customerName ? (
-            <p class="mt-2 text-sm font-medium text-foreground">{o.customerName}</p>
-          ) : (
-            <p class="mt-2 text-sm text-muted-foreground">Customer not added</p>
-          )}
-          {o.customerContact && (
-            <p class="mt-1 break-all text-sm text-muted-foreground">{o.customerContact}</p>
-          )}
-        </section>
+    <section class="grid gap-6 border-b border-border pb-7 md:grid-cols-3 md:items-start">
+      <section aria-labelledby="order-customer-heading">
+        <h2 id="order-customer-heading" class="font-display text-xl text-foreground">
+          Customer
+        </h2>
+        {o.customerName ? (
+          <p class="mt-2 text-sm font-medium text-foreground">{o.customerName}</p>
+        ) : (
+          <p class="mt-2 text-sm text-muted-foreground">Customer not added</p>
+        )}
+        {o.customerContact && (
+          <p class="mt-1 break-all text-sm text-muted-foreground">{o.customerContact}</p>
+        )}
+      </section>
 
-        <section aria-labelledby="order-fulfillment-heading">
-          <h2 id="order-fulfillment-heading" class="font-display text-xl text-foreground">
-            Fulfillment
-          </h2>
-          <p class="mt-2 text-sm font-medium text-foreground">
-            {o.fulfillmentMethod === "DELIVERY" ? "Delivery" : "Pickup"}
+      <section aria-labelledby="order-fulfillment-heading">
+        <h2 id="order-fulfillment-heading" class="font-display text-xl text-foreground">
+          Fulfillment
+        </h2>
+        <p class="mt-2 text-sm font-medium text-foreground">
+          {o.fulfillmentMethod === "DELIVERY" ? "Delivery" : "Pickup"}
+        </p>
+        {(dueDateLabel || dueTimeLabel) ? (
+          <p class="mt-1 text-sm text-muted-foreground">
+            {dueDateLabel ?? "Date not set"}{dueTimeLabel && ` at ${dueTimeLabel}`}
           </p>
-          {(dueDateLabel || dueTimeLabel) ? (
-            <p class="mt-1 text-sm text-muted-foreground">
-              {dueDateLabel ?? "Date not set"}{dueTimeLabel && ` at ${dueTimeLabel}`}
-            </p>
-          ) : (
-            <p class="mt-1 text-sm text-muted-foreground">Due date not set</p>
-          )}
-          {o.fulfillmentMethod === "DELIVERY" && (
-            <p class="mt-1 whitespace-pre-wrap break-words text-sm text-muted-foreground">
-              {o.deliveryAddress || "Address not added"}
-            </p>
-          )}
-        </section>
-      </div>
-      <aside class="rounded-lg border border-border bg-card p-4">
-        <OrderStatusSelect
-          client:load
-          orderId={o.id}
-          initialStatus={o.status}
-        />
-      </aside>
+        ) : (
+          <p class="mt-1 text-sm text-muted-foreground">Due date not set</p>
+        )}
+        {o.fulfillmentMethod === "DELIVERY" && (
+          <p class="mt-1 whitespace-pre-wrap break-words text-sm text-muted-foreground">
+            {o.deliveryAddress || "Address not added"}
+          </p>
+        )}
+      </section>
+
+      <section aria-labelledby="order-status-heading">
+        <h2 id="order-status-heading" class="font-display text-xl text-foreground">
+          Order Status
+        </h2>
+        <div class="mt-2">
+          <OrderStatusSelect
+            client:load
+            orderId={o.id}
+            initialStatus={o.status}
+          />
+        </div>
+      </section>
     </section>
 
     {/* Notes */}
