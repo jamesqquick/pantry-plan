@@ -47,6 +47,14 @@ function defaultOrderName(): string {
   });
 }
 
+function defaultDueDate(): string {
+  const date = new Date();
+  date.setDate(date.getDate() + 7);
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
 export default function OrderForm(props: OrderFormProps) {
   const isEdit = props.mode === "edit";
   const [name, setName] = useState(isEdit ? props.initialName : defaultOrderName());
@@ -54,8 +62,8 @@ export default function OrderForm(props: OrderFormProps) {
   const [details, setDetails] = useState<OrderDetailsFormValues>({
     customerName: isEdit ? props.initialCustomerName : "",
     customerContact: isEdit ? props.initialCustomerContact : "",
-    dueDate: isEdit ? props.initialDueDate : "",
-    dueTime: isEdit ? props.initialDueTime : "",
+    dueDate: isEdit ? props.initialDueDate : defaultDueDate(),
+    dueTime: isEdit ? props.initialDueTime : "09:00",
     fulfillmentMethod: isEdit ? props.initialFulfillmentMethod : "PICKUP",
     deliveryAddress: isEdit ? props.initialDeliveryAddress : "",
     status: isEdit ? props.initialStatus : "DRAFT",
