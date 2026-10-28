@@ -1,0 +1,47 @@
+src/components/orders/OrderDetailsFields.tsx
+  s_8a5db34f15437f::t_4f98aa06c4ea11 1-198
+src/components/orders/OrderStatusBadge.tsx
+  s_8a5db34f15437f::t_6e6cffbf04e5b6 1-30
+src/db/migrations/0006_uneven_ogun.sql
+  s_8a5db34f15437f::t_b4700721aca54e 1-7
+src/db/migrations/meta/0006_snapshot.json
+  s_8a5db34f15437f::t_0aad2be58b8a03 1-2869
+src/db/migrations/meta/_journal.json
+  s_8a5db34f15437f::t_833766c6f60f64 46-52
+src/db/schema/enums.ts
+  s_8a5db34f15437f::t_a8011d3edca7d7 38-57
+src/db/schema/orders.ts
+  s_8a5db34f15437f::t_06cadd55e570f5 11,22-31
+src/features/orders/orders.schemas.test.ts
+  s_8a5db34f15437f::t_5a20a6945614fd 1-94
+src/features/orders/orders.schemas.ts
+  s_8a5db34f15437f::t_2d8c2ae710d463 2-5,13-53,76-77,79-81,93-94,96-98,105-109,114
+src/pages/orders/[id]/edit.astro
+  s_8a5db34f15437f::t_b08676ba2dcb1f 85-91
+src/pages/orders/new.astro
+  s_0c8c30c0b1f6b7::t_16a256954ce608 51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "c5e59bb628714720f6a7295c3357c9a9dec0cc57",
+  "prompts": {},
+  "sessions": {
+    "s_0c8c30c0b1f6b7": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e80d8608effeuLPjYbK3xFT5Xy",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    },
+    "s_8a5db34f15437f": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_eb025f541ffeHJNG87TEiQqHe7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
