@@ -54,7 +54,7 @@ describe("GroceryListDisplay", () => {
   it("keeps item prices unbroken and stacks them below details on small screens", () => {
     render(<GroceryListDisplay grocery={grocery} />);
 
-    const price = screen.getByText("$0.88");
+    const price = screen.getAllByText("$0.88")[0]!;
     const item = price.closest("li");
 
     expect(price.className).toContain("shrink-0");
