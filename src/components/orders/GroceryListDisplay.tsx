@@ -163,7 +163,7 @@ export function GroceryListDisplay({
           return (
             <li
               key={row.ingredientId}
-              className="grid grid-cols-1 items-start gap-x-4 gap-y-1 px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto]"
+              className="grid grid-cols-1 items-start gap-x-4 gap-y-1 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto]"
             >
               <div className="min-w-0">
                 <p className="whitespace-normal text-body font-medium text-card-foreground [overflow-wrap:anywhere]">
@@ -174,7 +174,7 @@ export function GroceryListDisplay({
                 </p>
               </div>
               {showCost && row.estimatedCostCents != null && (
-                <span className="shrink-0 whitespace-nowrap text-left text-meta tabular-nums text-muted-foreground md:text-right">
+                <span className="shrink-0 whitespace-nowrap text-left text-meta tabular-nums text-muted-foreground sm:text-right">
                   {formatDollars(row.estimatedCostCents)}
                 </span>
               )}

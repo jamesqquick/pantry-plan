@@ -37,6 +37,6 @@ describe("GroceryListDisplay", () => {
     expect(price.className).toContain("shrink-0");
     expect(price.className).toContain("whitespace-nowrap");
     expect(item?.className).toContain("grid-cols-1");
-    expect(item?.className).toContain("md:grid-cols-[minmax(0,1fr)_auto]");
+    expect(item?.className).toContain("sm:grid-cols-[minmax(0,1fr)_auto]");
   });
 });
