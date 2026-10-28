@@ -15,10 +15,23 @@ vi.mock("astro:actions", () => ({
   },
 }));
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 beforeEach(() => vi.clearAllMocks());
 
 describe("OrderForm", () => {
+  it("defaults new orders to seven days from today at 9:00 AM", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 28, 12, 0));
+
+    render(<OrderForm mode="create" recipeOptions={[]} />);
+
+    expect(screen.getByLabelText("Due date")).toHaveProperty("value", "2026-11-04");
+    expect(screen.getByLabelText(/Time/)).toHaveProperty("value", "09:00");
+  });
+
   it("submits customer and fulfillment details with the existing recipe batches", async () => {
     vi.mocked(actions.orders.create).mockResolvedValue({
       data: undefined,
@@ -31,7 +44,9 @@ describe("OrderForm", () => {
     await user.type(screen.getByRole("textbox", { name: /^Name/ }), "Sarah's birthday cookies");
     await user.type(screen.getByLabelText("Customer name"), "Sarah Morgan");
     await user.type(screen.getByLabelText("Phone or email"), "sarah@example.com");
+    await user.clear(screen.getByLabelText("Due date"));
     await user.type(screen.getByLabelText("Due date"), "2026-10-24");
+    await user.clear(screen.getByLabelText(/Time/));
     await user.type(screen.getByLabelText(/Time/), "14:00");
     await user.click(screen.getByRole("radio", { name: /Delivery/ }));
     await user.type(screen.getByLabelText(/Delivery address/), "123 Sample Street");
