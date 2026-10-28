@@ -1,0 +1,19 @@
+docs/superpowers/specs/2026-10-28-grocery-price-breakpoint-design.md
+  s_24eba72f248913::t_c2522fb7fbe0cf 1-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "954b83299c3de76819ed15e913d82ccd7e1ccf43",
+  "prompts": {},
+  "sessions": {
+    "s_24eba72f248913": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e7c810294ffejkoFq4E7UcJwgK",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
