@@ -1,0 +1,19 @@
+src/components/orders/OrderForm.test.tsx
+  s_f3a5f7cd9f9e70::t_beab142841d46c 18-21,25-34,47,49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "89047cbd38bb84d451d2590948d2feb9813d2f2e",
+  "prompts": {},
+  "sessions": {
+    "s_f3a5f7cd9f9e70": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e7d14998cffePSJng5poGDdADl",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
