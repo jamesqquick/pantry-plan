@@ -214,40 +214,19 @@ describe("MCP measurement errors", () => {
     expect(await db.select().from(recipeInstruction)).toEqual(before.instructions);
   });
 
-  it.each([
-    { quantity: null, unit: "TSP" as const },
-    { quantity: 1, unit: null },
-    { quantity: null, unit: null },
-  ])("keeps incomplete legacy recipes readable and requires repair before partial edits: %o", async (amount) => {
+  it("returns required measurements for saved recipes", async () => {
     const { db } = await setupDb();
-    await db.insert(recipe).values({ id: "legacy", userId: "cook", title: "Legacy soup" });
-    await db.insert(recipeIngredient).values({ recipeId: "legacy", ...amount, displayText: "salt to taste", rawText: "  Salt to taste  ", sortOrder: 0 });
-    await db.insert(recipeInstruction).values({ recipeId: "legacy", text: "Season.", sortOrder: 0 });
-    const before = await db.select().from(recipe);
+    const saved = await createMcpRecipe(db, "cook", {
+      title: "Measured soup",
+      ingredients: [{ quantity: 1, unit: "TSP", displayText: "salt to taste" }],
+      instructions: ["Season."],
+    });
 
-    const read = await callTool(db, "get_recipe", { recipeId: "legacy" });
+    const read = await callTool(db, "get_recipe", { recipeId: saved.recipeId });
     expect(read.isError).toBeUndefined();
-    expect(read.structuredContent).toMatchObject({ ingredients: [{ ...amount, displayText: "salt to taste" }] });
-
-    const edited = await callTool(db, "edit_recipe", { recipeId: "legacy", title: "Changed", instructions: ["Changed instruction"] });
-    expect(edited).toMatchObject({
-      isError: true,
-      content: [{ type: "text", text: expect.stringMatching(/Ingredient 1 "salt to taste"/) }],
-    });
-    if (amount.quantity === null) expect(JSON.stringify(edited.content)).toContain("Quantity");
-    if (amount.unit === null) expect(JSON.stringify(edited.content)).toContain("Unit");
-    expect(await db.select().from(recipe)).toEqual(before);
-    expect(await db.select().from(recipeInstruction)).toMatchObject([{ text: "Season." }]);
-
-    const repaired = await callTool(db, "edit_recipe", {
-      recipeId: "legacy",
+    expect(read.structuredContent).toMatchObject({
       title: "Measured soup",
-      ingredients: [{ quantity: 1 / 3, unit: "TSP", displayText: "salt to taste", rawText: "  Salt to taste  " }],
-    });
-    expect(repaired.isError).toBeUndefined();
-    expect(repaired.structuredContent).toMatchObject({
-      title: "Measured soup",
-      ingredients: [{ quantity: 1 / 3, unit: "TSP", displayText: "salt to taste", rawText: "  Salt to taste  " }],
+      ingredients: [{ quantity: 1, unit: "TSP", displayText: "salt to taste" }],
     });
   });
 

@@ -1,8 +1,4 @@
 import {
-  hasAdditionalIngredientAmount,
-  parseScalableIngredientLine,
-} from "@/lib/ingredients/parse-ingredient-line-structured";
-import {
   formatIngredientLine,
   type IngredientLineFields,
 } from "@/lib/ingredients/format-ingredient-line";
@@ -18,7 +14,7 @@ export interface RecipeIngredientForScaling extends IngredientLineFields {
 export interface ScaledRecipeIngredient {
   id: string;
   text: string;
-  status: "scalable" | "unquantified" | "needs-review";
+  status: "scalable" | "needs-review";
 }
 
 export function scaleRecipeIngredient(
@@ -26,28 +22,24 @@ export function scaleRecipeIngredient(
   scale: RecipeScale,
 ): ScaledRecipeIngredient {
   const originalText = formatIngredientLine(ingredient);
-  const amount = ingredient.quantity == null
-    ? parseScalableIngredientLine(ingredient.displayText)
-    : {
-        kind: Number.isFinite(ingredient.quantity) && ingredient.quantity >= 0 &&
-          !hasAdditionalIngredientAmount(ingredient.displayText, ingredient.unit)
-          ? "scalable" as const
-          : "needs-review" as const,
-        quantity: ingredient.quantity,
-        unit: ingredient.unit,
-        displayText: ingredient.displayText,
-      };
-
-  if (amount.kind !== "scalable") {
-    return { id: ingredient.id, text: originalText, status: amount.kind };
+  if (
+    ingredient.quantity == null ||
+    ingredient.unit == null ||
+    !Number.isFinite(ingredient.quantity) ||
+    ingredient.quantity < 0
+  ) {
+    return { id: ingredient.id, text: originalText, status: "needs-review" };
   }
-  const quantity = amount.quantity * scale;
+
+  const quantity = ingredient.quantity * scale;
   if (!Number.isFinite(quantity)) {
     return { id: ingredient.id, text: originalText, status: "needs-review" };
   }
   return {
     id: ingredient.id,
-    text: scale === 1 ? originalText : formatIngredientLine({ ...amount, quantity }),
+    text: scale === 1
+      ? originalText
+      : formatIngredientLine({ ...ingredient, quantity }),
     status: "scalable",
   };
 }

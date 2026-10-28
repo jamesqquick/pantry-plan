@@ -9,6 +9,7 @@ import { ActionError, defineAction } from "astro:actions";
 import { and, eq, isNull, or } from "drizzle-orm";
 import { env } from "cloudflare:workers";
 import { recipeIdOnlySchema } from "@/features/recipes/recipe-ingredients.schemas";
+import { validateIngredientMeasurements } from "@/features/recipes/ingredient-measurements";
 import { suggestMappingsSchema } from "@/features/import/import.schemas";
 import {
   recipe,
@@ -17,11 +18,8 @@ import {
   ingredientAlias,
 } from "@/db";
 import { normalizeIngredientName } from "@/lib/ingredients/normalize";
-import { UNIT_FROM_LABEL } from "@/lib/ingredients/units";
-import {
-  parseIngredientLineStructured,
-  getDisplayTextFromIngredientLine,
-} from "@/lib/ingredients/parse-ingredient-line-structured";
+import { formatIngredientLine } from "@/lib/ingredients/format-ingredient-line";
+import { parseScalableIngredientLine } from "@/lib/ingredients/parse-ingredient-line-structured";
 import type { SuggestionItem } from "@/lib/ingredients/compute-suggestions";
 import { suggestIngredientMappings } from "@/lib/ingredients/suggest-ingredient-mappings";
 import { autoConvert } from "@/lib/measurements/auto-convert";
@@ -30,8 +28,8 @@ import { getDb, queueSearchSync, requireUser } from "./_shared";
 export type EnhancedRecipeIngredientResult = {
   ingredientId: string | null;
   ingredientName: string;
-  quantity: number | null;
-  unit: string | null;
+  quantity: number;
+  unit: string;
   displayText: string;
   rawText: string | null;
   sortOrder: number;
@@ -99,18 +97,48 @@ export const enhance = {
         .select({
           rawText: recipeIngredient.rawText,
           displayText: recipeIngredient.displayText,
+          quantity: recipeIngredient.quantity,
+          unit: recipeIngredient.unit,
+          parseConfidence: recipeIngredient.parseConfidence,
         })
         .from(recipeIngredient)
         .where(eq(recipeIngredient.recipeId, recipeRow.id))
         .orderBy(recipeIngredient.sortOrder);
 
       const lines = existingIngredients.map(
-        (ri) => (ri.rawText ?? ri.displayText ?? "").trim() || ri.displayText,
+        (ri) => ri.rawText?.trim() || formatIngredientLine(ri),
       );
       if (lines.length === 0) {
         throw new ActionError({
           code: "BAD_REQUEST",
           message: "Recipe has no ingredient lines.",
+        });
+      }
+
+      const structuredLines = existingIngredients.map((ingredient, index) => {
+        const parsed = parseScalableIngredientLine(lines[index]!);
+        return parsed.kind === "scalable"
+          ? {
+              quantity: parsed.quantity,
+              unit: parsed.unit,
+              displayText: parsed.displayText,
+              parseConfidence: ingredient.parseConfidence,
+            }
+          : {
+              quantity: ingredient.quantity,
+              unit: ingredient.unit,
+              displayText: ingredient.displayText,
+              parseConfidence: ingredient.parseConfidence,
+            };
+      });
+      try {
+        validateIngredientMeasurements(structuredLines);
+      } catch (error) {
+        throw new ActionError({
+          code: "BAD_REQUEST",
+          message: error instanceof Error
+            ? error.message
+            : "Every ingredient needs a quantity and unit.",
         });
       }
 
@@ -127,19 +155,8 @@ export const enhance = {
       for (let i = 0; i < lines.length; i++) {
         const rawLine = lines[i]!;
         const suggestion = suggestions[i]!;
-        const structured = parseIngredientLineStructured(rawLine);
-        const quantity =
-          structured.quantityDecimal != null &&
-          Number.isFinite(structured.quantityDecimal)
-            ? structured.quantityDecimal
-            : null;
-        const unitEnum = structured.unit
-          ? (UNIT_FROM_LABEL[structured.unit] ?? null)
-          : null;
-        const displayText =
-          getDisplayTextFromIngredientLine(rawLine).trim() ||
-          rawLine.trim() ||
-          "\u2014";
+        const structured = structuredLines[i]!;
+        const { quantity, unit, displayText } = structured;
 
         let ingredientId: string | null = null;
         let ingredientName = "";
@@ -217,8 +234,8 @@ export const enhance = {
             .where(eq(ingredient.id, ingredientId))
             .limit(1);
           const converted = autoConvert({
-            quantity: quantity ?? 1,
-            unit: unitEnum ?? null,
+            quantity,
+            unit,
             ingredient: ingForConvert ?? {
               normalizedName: null,
               gramsPerCup: null,
@@ -235,13 +252,13 @@ export const enhance = {
           recipeId: recipeRow.id,
           ingredientId,
           quantity,
-          unit: unitEnum,
+          unit,
           displayText,
           rawText: rawLine.trim() || null,
           parseConfidence: structured.parseConfidence,
           sortOrder: i,
           originalQuantity: quantity,
-          originalUnit: unitEnum,
+          originalUnit: unit,
           weightGrams,
           conversionSource,
           conversionConfidence,
@@ -252,7 +269,7 @@ export const enhance = {
           ingredientId,
           ingredientName,
           quantity,
-          unit: unitEnum,
+          unit,
           displayText,
           rawText: rawLine.trim() || null,
           sortOrder: i,
@@ -292,19 +309,10 @@ export const enhance = {
       for (let i = 0; i < lines.length; i++) {
         const rawLine = lines[i]!;
         const suggestion = suggestions[i]!;
-        const structured = parseIngredientLineStructured(rawLine);
-        const quantity =
-          structured.quantityDecimal != null &&
-          Number.isFinite(structured.quantityDecimal)
-            ? structured.quantityDecimal
-            : null;
-        const unitEnum = structured.unit
-          ? (UNIT_FROM_LABEL[structured.unit] ?? null)
-          : null;
-        const displayText =
-          getDisplayTextFromIngredientLine(rawLine).trim() ||
-          rawLine.trim() ||
-          "\u2014";
+        const amount = parseScalableIngredientLine(rawLine);
+        const quantity = amount.kind === "scalable" ? amount.quantity : null;
+        const unit = amount.kind === "scalable" ? amount.unit : null;
+        const displayText = amount.displayText.trim() || rawLine.trim() || "\u2014";
 
         let ingredientId = "";
         let ingredientName = "";
@@ -323,7 +331,7 @@ export const enhance = {
           rawText: rawLine.trim() || rawLine,
           displayText,
           quantity,
-          unit: unitEnum,
+          unit,
           ingredientId,
           ingredientName,
           createName,

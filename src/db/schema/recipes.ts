@@ -60,9 +60,9 @@ export const recipeIngredient = sqliteTable(
      * (matches Prisma default `ON DELETE NO ACTION`).
      */
     ingredientId: text("ingredientId").references(() => ingredient.id),
-    quantity: real("quantity"),
+    quantity: real("quantity").notNull(),
     rawQuantityText: text("rawQuantityText"),
-    unit: text("unit").$type<IngredientUnit>(),
+    unit: text("unit").notNull().$type<IngredientUnit>(),
     displayText: text("displayText").notNull(),
     rawText: text("rawText"),
     sortOrder: integer("sortOrder").notNull(),

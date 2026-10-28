@@ -56,7 +56,7 @@ function snapshot() {
   };
 }
 
-async function seedRecipe(amount: { quantity: number | null; unit: IngredientUnit | null }) {
+async function seedRecipe(amount: { quantity: number; unit: IngredientUnit }) {
   await test.db.insert(recipe).values({ id: "legacy", userId: "cook", title: "Soup", notes: "Keep this note." });
   const [row] = await test.db.insert(recipeIngredient).values({
     id: "row-1",
@@ -87,6 +87,19 @@ const invalidMeasurements = [
 ];
 
 describe("recipe measurement actions", () => {
+  it("enforces quantity and unit as required database fields", async () => {
+    await test.db.insert(recipe).values({ id: "required", userId: "cook", title: "Soup" });
+
+    expect(() => test.sqlite.prepare(`
+      INSERT INTO RecipeIngredient (id, recipeId, quantity, unit, displayText, sortOrder)
+      VALUES ('missing-quantity', 'required', NULL, 'TSP', 'salt', 0)
+    `).run()).toThrow(/NOT NULL constraint failed/i);
+    expect(() => test.sqlite.prepare(`
+      INSERT INTO RecipeIngredient (id, recipeId, quantity, unit, displayText, sortOrder)
+      VALUES ('missing-unit', 'required', 1, NULL, 'salt', 0)
+    `).run()).toThrow(/NOT NULL constraint failed/i);
+  });
+
   it.each(invalidMeasurements)("rejects manual create, update, and replacement before writes: %o", async (amount) => {
     await seedRecipe({ quantity: 1, unit: "TSP" });
     const before = snapshot();
@@ -117,41 +130,22 @@ describe("recipe measurement actions", () => {
     expect(runtime.queueSearchSync).not.toHaveBeenCalled();
   });
 
-  it.each([
-    { quantity: null, unit: "TSP" as const },
-    { quantity: 1, unit: null },
-    { quantity: null, unit: null },
-  ])("returns Astro BAD_REQUEST before any partial legacy edit or duplicate writes: %o", async (amount) => {
-    await seedRecipe(amount);
-    const before = snapshot();
-    const insert = vi.spyOn(test.db, "insert");
-    const update = vi.spyOn(test.db, "update");
-    const remove = vi.spyOn(test.db, "delete");
-
+  it("allows partial edits and duplication with complete stored measurements", async () => {
+    await seedRecipe({ quantity: 1, unit: "TSP" });
     const result = await recipes.update.bind(ctx)({
       id: "legacy",
       title: "Changed",
       notes: "Changed note",
-      instructions: ["Changed instruction"],
-      tagIds: [],
     });
     const form = new FormData();
     form.set("recipeId", "legacy");
     const duplicate = await recipes.duplicate.bind(ctx)(form);
 
-    for (const response of [result, duplicate]) {
-      expect(response.error).toMatchObject({
-        code: "BAD_REQUEST",
-        message: expect.stringMatching(/Ingredient 1 "salt to taste"/),
-      });
-      if (amount.quantity === null) expect(response.error?.message).toContain("Quantity");
-      if (amount.unit === null) expect(response.error?.message).toContain("Unit");
-    }
-    expect(insert).not.toHaveBeenCalled();
-    expect(update).not.toHaveBeenCalled();
-    expect(remove).not.toHaveBeenCalled();
-    expect(snapshot()).toEqual(before);
-    expect(runtime.queueSearchSync).not.toHaveBeenCalled();
+    expect(result.error).toBeUndefined();
+    expect(duplicate.error).toBeUndefined();
+    expect(await test.db.select().from(recipeIngredient).where(eq(recipeIngredient.recipeId, duplicate.data!.id)))
+      .toMatchObject([{ quantity: 1, unit: "TSP", displayText: "salt to taste" }]);
+    expect(runtime.queueSearchSync).toHaveBeenCalled();
   });
 
   it("saves measured mapped and unmapped ingredients with original text and precision", async () => {
@@ -176,8 +170,8 @@ describe("recipe measurement actions", () => {
     ]);
   });
 
-  it("repairs legacy measurements by replacement, then allows partial edits and duplication", async () => {
-    await seedRecipe({ quantity: null, unit: null });
+  it("replaces measurements, then allows partial edits and duplication", async () => {
+    await seedRecipe({ quantity: 1, unit: "TSP" });
     const repaired = await recipes.update.bind(ctx)({
       id: "legacy",
       ingredientsStructured: [{ quantity: 1 / 3, unit: "TSP", displayText: "salt to taste", rawText: "  Salt to taste  ", sortOrder: 0 }],
@@ -194,21 +188,20 @@ describe("recipe measurement actions", () => {
       .toMatchObject([{ text: "Season." }]);
   });
 
-  it("repairs legacy measurements through the ingredient replacement action", async () => {
-    await seedRecipe({ quantity: null, unit: null });
+  it("replaces complete measurements through the ingredient replacement action", async () => {
+    await seedRecipe({ quantity: 1, unit: "TSP" });
     const result = await recipeIngredients.set.bind(ctx)({
       recipeId: "legacy",
-      items: [{ quantity: 1, unit: "TSP", displayText: "salt to taste", rawText: "  Salt to taste  ", sortOrder: 0 }],
+      items: [{ quantity: 2, unit: "TBSP", displayText: "salt to taste", rawText: "  Salt to taste  ", sortOrder: 0 }],
     });
     expect(result.error).toBeUndefined();
     expect(await test.db.select().from(recipeIngredient)).toMatchObject([{
-      quantity: 1, unit: "TSP", displayText: "salt to taste", rawText: "  Salt to taste  ", ingredientId: null,
+      quantity: 2, unit: "TBSP", displayText: "salt to taste", rawText: "  Salt to taste  ", ingredientId: null,
     }]);
-    expect((await recipes.update.bind(ctx)({ id: "legacy", notes: "Repaired." })).error).toBeUndefined();
   });
 
-  it("allows deleting an incomplete legacy recipe", async () => {
-    await seedRecipe({ quantity: null, unit: null });
+  it("allows deleting a recipe with complete measurements", async () => {
+    await seedRecipe({ quantity: 1, unit: "TSP" });
     const form = new FormData();
     form.set("id", "legacy");
     expect((await recipes.delete.bind(ctx)(form)).error).toBeUndefined();
@@ -264,7 +257,7 @@ describe("recipe measurement actions", () => {
     { kind: "create", name: "Salt" },
     { kind: "unmapped" },
   ])("rejects incomplete or invalid measurements on $kind mapping Apply before writes", async (mapping) => {
-    const row = await seedRecipe({ quantity: null, unit: null });
+    const row = await seedRecipe({ quantity: 1, unit: "TSP" });
     const before = snapshot();
     const batch = vi.spyOn(test.binding, "batch");
 
@@ -286,8 +279,8 @@ describe("recipe measurement actions", () => {
     { kind: "existing", ingredientId: "salt" },
     { kind: "create", name: "Salt" },
     { kind: "unmapped" },
-  ] as const)("repairs legacy measurements with $kind mapping Apply", async (mapping) => {
-    const row = await seedRecipe({ quantity: null, unit: null });
+  ] as const)("updates measurements with $kind mapping Apply", async (mapping) => {
+    const row = await seedRecipe({ quantity: 1, unit: "TSP" });
     if (mapping.kind === "existing") {
       await test.db.insert(ingredient).values({ id: "salt", userId: "cook", name: "Salt", normalizedName: "salt", costBasisUnit: "G" });
     }
@@ -311,7 +304,7 @@ describe("recipe measurement actions", () => {
   });
 
   it("keeps mapping version checks before any catalog or recipe changes", async () => {
-    const row = await seedRecipe({ quantity: null, unit: null });
+    const row = await seedRecipe({ quantity: 1, unit: "TSP" });
     const before = snapshot();
     const result = await ingredientMapping.applyRecipe.bind(ctx)({
       recipeId: "legacy",

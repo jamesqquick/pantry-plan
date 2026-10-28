@@ -47,6 +47,13 @@
     {
       "idx": 6,
       "version": "6",
+      "when": 1793122389533,
+      "tag": "0006_awesome_daredevil",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
       "when": 1793117327985,
       "tag": "0006_uneven_ogun",
       "breakpoints": true

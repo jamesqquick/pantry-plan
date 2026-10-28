@@ -16,7 +16,7 @@ const QUANTITY_PREFIX =
 const UNIT_WORD = /^(\S+)\s*/;
 
 const SCALABLE_QUANTITY_PREFIX =
-  /^(\d+\s+\d+\s*\/\s*\d+|\d+-\d+\s*\/\s*\d+|\d+\s*\/\s*\d+|\d*\s*[½¼¾⅓⅔⅛⅜⅝⅞]|\d+(?:\.\d+)?|\.\d+)(?=\s|[a-z(]|$)\s*/i;
+  /^(\d+\s+and\s+\d+\s*\/\s*\d+|\d+\s+\d+\s*\/\s*\d+|\d+-\d+\s*\/\s*\d+|\d+\s*\/\s*\d+|\d*\s*[½¼¾⅓⅔⅛⅜⅝⅞]|\d+(?:\.\d+)?|\.\d+)(?=\s|[a-z(]|$)\s*/i;
 const UNQUANTIFIED_AMOUNT =
   /\b(?:to taste|as needed|as required|for (?:garnish|dusting|greasing|serving))\b/i;
 const PACKAGE_SIZE =
@@ -27,8 +27,23 @@ const WORDED_ADDITIONAL_AMOUNT =
 const WORDED_MEASUREMENT =
   /\b(?:an?|another|one|two|three|four|five|six|seven|eight|nine|ten|half|quarter|third)(?:\s+of)?(?:\s+an?)?\s+(?:cups?|tbsp|tablespoons?|tsp|teaspoons?|oz|ounces?|lb|pounds?|g|grams?|kg|kilograms?|ml|millilit(?:er|re)s?|l|lit(?:er|re)s?|pinch(?:es)?)\b/i;
 const RANGE_CONTINUATION = /^(?:(?:to|or|through)\s*|[-–—+&/]\s*)\p{N}/iu;
+const MALFORMED_QUANTITY_CONTINUATION = /^(?:,\s*|\.\s*|e[+-]?\s*|x\s*)?\p{N}/iu;
+const COUNT_QUALIFIER_UNIT = /^(?:heaping|heaped|rounded|scant|level)\s+([a-z]+)/i;
 const UNSUPPORTED_MEASUREMENT =
   /^(?:ml|cl|dl|l|millilit(?:er|re)s?|centilit(?:er|re)s?|decilit(?:er|re)s?|lit(?:er|re)s?|fl\.?\s*(?:oz|ounces?)|fluid\s+ounces?|pt|pints?|qt|quarts?|gal|gallons?|mg|milligrams?|tbs|c)\b/i;
+
+function hasAmbiguousCountRemainder(description: string): boolean {
+  if (
+    RANGE_CONTINUATION.test(description) ||
+    MALFORMED_QUANTITY_CONTINUATION.test(description) ||
+    UNSUPPORTED_MEASUREMENT.test(description)
+  ) {
+    return true;
+  }
+
+  const qualifierUnit = description.match(COUNT_QUALIFIER_UNIT)?.[1];
+  return qualifierUnit != null && normalizeUnit(qualifierUnit) != null;
+}
 
 export type ScalableIngredientAmount =
   | { kind: "scalable"; quantity: number; unit: IngredientUnit; displayText: string }
@@ -55,7 +70,7 @@ export function hasAdditionalIngredientAmount(
   );
 }
 
-/** Strict interpretation for arithmetic; uncertain lines keep their complete text. */
+/** Extract the leading amount and leave any later measurements in the ingredient text. */
 export function parseScalableIngredientLine(rawText: string): ScalableIngredientAmount {
   const raw = htmlToText(rawText).trim();
   const review = { kind: "needs-review", displayText: raw } as const;
@@ -66,7 +81,9 @@ export function parseScalableIngredientLine(rawText: string): ScalableIngredient
       : review;
   }
 
-  const quantity = parseQuantityText(match[1].replace(/^\./, "0."));
+  const quantity = parseQuantityText(
+    match[1].replace(/^\./, "0.").replace(/\s+and\s+/i, " "),
+  );
   if (quantity == null || !Number.isFinite(quantity) ||
     (quantity === 0 && /[1-9½¼¾⅓⅔⅛⅜⅝⅞]/.test(match[1]))) {
     return review;
@@ -78,7 +95,9 @@ export function parseScalableIngredientLine(rawText: string): ScalableIngredient
   const unit = label ? UNIT_FROM_LABEL[label] : "COUNT";
   if (label && unitMatch) displayText = displayText.slice(unitMatch[0].length).trim();
 
-  if (!displayText || !unit || hasAdditionalIngredientAmount(displayText, unit)) return review;
+  if (!displayText || !unit || (!label && hasAmbiguousCountRemainder(displayText))) {
+    return review;
+  }
   return { kind: "scalable", quantity, unit, displayText };
 }
 

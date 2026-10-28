@@ -126,6 +126,22 @@ describe("getRecipeMappingPreviewFields", () => {
     ).toEqual({ displayText: "flour", quantity: 2, unit: "CUP" });
   });
 
+  it("keeps measurements after the first amount in the ingredient description", () => {
+    const rawText = "2 cups semisweet chocolate chips ((12 oz))";
+
+    expect(getRecipeMappingPreviewFields({
+      isMapped: false,
+      rawText,
+      storedDisplayText: rawText,
+      storedQuantity: null,
+      storedUnit: null,
+    })).toEqual({
+      displayText: "semisweet chocolate chips ((12 oz))",
+      quantity: 2,
+      unit: "CUP",
+    });
+  });
+
   it("preserves a stored zero quantity", () => {
     expect(
       getRecipeMappingPreviewFields({
@@ -167,11 +183,8 @@ describe("getRecipeMappingPreviewFields", () => {
   });
 
   it.each([
-    "0.75 l milk", "500 ml milk", "1 fl oz vanilla", "400g tin tomatoes",
-    "1 cup plus a tablespoon sugar", "2 heaping tbsp sugar", "2 rounded tsp sugar",
-    "1 cup sugar, plus another tablespoon", "1 cup sugar, and another tablespoon",
-    "1 cup sugar, plus extra tablespoon", "1 cup sugar with an extra tablespoon",
-  ])("does not suggest count units or partial amounts for %s", (line) => {
+    "0.75 l milk", "500 ml milk", "1 fl oz vanilla", "2 heaping tbsp sugar", "2 rounded tsp sugar",
+  ])("does not suggest units for unsupported or ambiguous amounts: %s", (line) => {
     expect(getRecipeMappingPreviewFields({
       isMapped: false,
       rawText: line,

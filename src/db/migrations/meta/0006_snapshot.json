@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "aaf97f13-ebab-4e9a-8066-578592e0cb72",
+  "id": "6e284615-111a-4d64-a754-f93a5f15ec58",
   "prevId": "565ccd32-3d7a-47b9-8f1a-3261172114d4",
   "tables": {
     "account": {
@@ -896,7 +896,7 @@
           "name": "quantity",
           "type": "real",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false
         },
         "rawQuantityText": {
@@ -910,7 +910,7 @@
           "name": "unit",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false
         },
         "displayText": {
