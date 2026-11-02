@@ -17,7 +17,7 @@ export function ChatgptConnection({ initialConnection }: { initialConnection: Co
     setError(null);
     try {
       const { error } = await actions.chatgpt.disconnect({});
-      if (error) setError("Could not disconnect ChatGPT. Please try again.");
+      if (error) setError(error.message || "Could not disconnect ChatGPT. Please try again.");
       else { setConnection(null); setDisconnected(true); }
     } catch {
       setError("Unable to reach Quick Pantry. Please try again.");

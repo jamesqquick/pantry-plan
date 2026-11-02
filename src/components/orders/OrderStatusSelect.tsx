@@ -15,6 +15,7 @@ export function OrderStatusSelect({
 }) {
   const [status, setStatus] = useState(initialStatus);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const statusId = `order-status-${orderId}`;
 
   async function updateStatus(value: string) {
@@ -22,6 +23,7 @@ export function OrderStatusSelect({
     const previousStatus = status;
     setStatus(nextStatus);
     setSaving(true);
+    setError(null);
 
     try {
       const { error: actionError } = await actions.orders.updateStatus({
@@ -30,6 +32,7 @@ export function OrderStatusSelect({
       });
       if (actionError) {
         setStatus(previousStatus);
+        if (actionError.code === "SERVICE_UNAVAILABLE") setError(actionError.message);
       }
     } catch {
       setStatus(previousStatus);
@@ -39,19 +42,23 @@ export function OrderStatusSelect({
   }
 
   return (
-    <select
-      id={statusId}
-      aria-label="Order status"
-      value={status}
-      onChange={(event) => void updateStatus(event.target.value)}
-      disabled={saving}
-      className="flex h-10 w-full cursor-pointer rounded-input border border-input bg-card px-3 py-1.5 font-ui text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-    >
-      {ORDER_STATUSES.map((option) => (
-        <option key={option} value={option}>
-          {ORDER_STATUS_LABELS[option]}
-        </option>
-      ))}
-    </select>
+    <>
+      <select
+        id={statusId}
+        aria-label="Order status"
+        aria-describedby={error ? `${statusId}-error` : undefined}
+        value={status}
+        onChange={(event) => void updateStatus(event.target.value)}
+        disabled={saving}
+        className="flex h-10 w-full cursor-pointer rounded-input border border-input bg-card px-3 py-1.5 font-ui text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {ORDER_STATUSES.map((option) => (
+          <option key={option} value={option}>
+            {ORDER_STATUS_LABELS[option]}
+          </option>
+        ))}
+      </select>
+      {error && <p id={`${statusId}-error`} role="alert" className="mt-2 text-body text-destructive">{error}</p>}
+    </>
   );
 }

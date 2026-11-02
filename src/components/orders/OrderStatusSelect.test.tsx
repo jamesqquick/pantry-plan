@@ -18,6 +18,22 @@ afterEach(cleanup);
 beforeEach(() => vi.clearAllMocks());
 
 describe("OrderStatusSelect", () => {
+  it("settles saving state and shows write uncertainty without retrying a timed-out update", async () => {
+    const message = "We could not confirm whether your change was saved. Refresh before trying again.";
+    vi.mocked(actions.orders.updateStatus).mockResolvedValue({
+      data: undefined,
+      error: { code: "SERVICE_UNAVAILABLE", message },
+    } as never);
+    const user = userEvent.setup();
+    render(<OrderStatusSelect orderId="order-123" initialStatus="CONFIRMED" />);
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Order status" }), "READY");
+
+    expect(await screen.findByRole("alert")).toHaveProperty("textContent", message);
+    expect(screen.getByRole("combobox", { name: "Order status" })).toHaveProperty("disabled", false);
+    expect(actions.orders.updateStatus).toHaveBeenCalledOnce();
+  });
+
   it("saves a status change and reports the saved status", async () => {
     vi.mocked(actions.orders.updateStatus).mockResolvedValue({
       data: { id: "order-123", status: "READY" },

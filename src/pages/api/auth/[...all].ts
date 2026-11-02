@@ -2,6 +2,8 @@ import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
 import { createAuth } from "@/lib/auth";
 import { getRequestIp, isRateLimited } from "@/lib/rate-limit-utils";
+import { DatabaseBudget, getDatabaseBudget, withDatabaseBudget } from "@/lib/database-timeout";
+import { databaseUnavailableResponse } from "@/lib/database-unavailable";
 
 // Must be on-demand rendered so `env` is available per-request.
 export const prerender = false;
@@ -67,6 +69,23 @@ export const ALL: APIRoute = async (ctx) => {
   }
 
   const waitUntil = ctx.locals.cfContext?.waitUntil.bind(ctx.locals.cfContext);
-  const auth = createAuth(env, waitUntil);
-  return auth.handler(ctx.request);
+  const budget = getDatabaseBudget() ?? new DatabaseBudget({
+    route: ctx.routePattern ?? url.pathname,
+    requestId: ctx.request.headers.get("cf-ray") ?? undefined,
+  });
+  return withDatabaseBudget(budget, async () => {
+    try {
+      const auth = await budget.run("auth.initialize", async () => {
+        const auth = createAuth(env, waitUntil);
+        await auth.$context;
+        return auth;
+      });
+      // D1 execution steps are guarded individually so timeout stops subsequent writes.
+      const response = await auth.handler(ctx.request);
+      return budget.error ? databaseUnavailableResponse(ctx, budget) : response;
+    } catch (error) {
+      if (budget.error) return databaseUnavailableResponse(ctx, budget);
+      throw error;
+    }
+  });
 };

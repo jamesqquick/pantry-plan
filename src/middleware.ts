@@ -3,6 +3,8 @@ import { env } from "cloudflare:workers";
 import { getSessionCookie } from "better-auth/cookies";
 import { createAuth } from "@/lib/auth";
 import { isForbiddenCrossOriginRequest } from "@/lib/request-origin";
+import { DatabaseBudget, withDatabaseBudget } from "@/lib/database-timeout";
+import { databaseUnavailableResponse } from "@/lib/database-unavailable";
 
 /**
  * Public routes — anything else requires auth.
@@ -51,32 +53,50 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // MCP and OAuth discovery authenticate independently of browser sessions.
   if (pathname === "/mcp" || pathname.startsWith("/.well-known/")) return next();
 
-  const waitUntil = context.locals.cfContext?.waitUntil.bind(context.locals.cfContext);
-  const result = getSessionCookie(context.request)
-    ? await createAuth(env, waitUntil).api.getSession({
-        headers: context.request.headers,
-      })
-    : null;
+  const isAction = pathname.startsWith("/_actions/");
+  const budget = new DatabaseBudget({
+    route: context.routePattern ?? pathname,
+    requestId: context.request.headers.get("cf-ray") ?? undefined,
+    databaseTimeOnly: isAction,
+  });
+  return withDatabaseBudget(budget, async () => {
+    try {
+      const waitUntil = context.locals.cfContext?.waitUntil.bind(context.locals.cfContext);
+      const result = getSessionCookie(context.request)
+        ? await budget.run("auth.session", () => createAuth(env, waitUntil).api.getSession({
+            headers: context.request.headers,
+          }))
+        : null;
 
-  // Better Auth's base User type doesn't include `role` (it's an additionalField),
-  // but the adapter returns it at runtime. Cast via unknown for the type narrowing.
-  context.locals.user = (result?.user ?? null) as App.Locals["user"];
-  context.locals.session = result?.session ?? null;
+      // Better Auth's base User type doesn't include `role` (it's an additionalField),
+      // but the adapter returns it at runtime. Cast via unknown for the type narrowing.
+      context.locals.user = (result?.user ?? null) as App.Locals["user"];
+      context.locals.session = result?.session ?? null;
 
-  const isAuthed = !!context.locals.session;
+      const isAuthed = !!context.locals.session;
 
-  // Already signed in? Don't show login/register — bounce to recipes.
-  if (isAuthed && AUTH_ONLY_PATHS.has(pathname) && !context.url.searchParams.has("sig")) {
-    return context.redirect("/recipes");
-  }
+      // Already signed in? Don't show login/register — bounce to recipes.
+      if (isAuthed && AUTH_ONLY_PATHS.has(pathname) && !context.url.searchParams.has("sig")) {
+        return context.redirect("/recipes");
+      }
 
-  // Protected area: anything not in the public list requires auth.
-  if (!isAuthed && !isPublicPath(pathname)) {
-    const next = pathname + context.url.search;
-    return context.redirect(
-      `/login?next=${encodeURIComponent(next)}`
-    );
-  }
+      // Protected area: anything not in the public list requires auth.
+      if (!isAuthed && !isPublicPath(pathname)) {
+        const next = pathname + context.url.search;
+        return context.redirect(
+          `/login?next=${encodeURIComponent(next)}`
+        );
+      }
 
-  return next();
+      // Astro may turn a page exception into its own 500 response before next() settles.
+      // Observe our typed failure independently; never race a multi-step action handler.
+      const response = isAction
+        ? await next()
+        : await Promise.race([next(), budget.timedOut.then(() => databaseUnavailableResponse(context, budget))]);
+      return budget.error ? databaseUnavailableResponse(context, budget) : response;
+    } catch (error) {
+      if (budget.error) return databaseUnavailableResponse(context, budget);
+      throw error;
+    }
+  });
 });
