@@ -76,6 +76,7 @@ function recipeOwnerScope(recipeId: string, userId: string) {
 }
 
 function prepareIngredientInsert(
+  binding: D1Database,
   rows: ReadonlyArray<{
     id: string;
     userId: string;
@@ -93,16 +94,17 @@ function prepareIngredientInsert(
     row.costBasisUnit,
   ]);
 
-  return env.DB.prepare(
+  return binding.prepare(
     `INSERT INTO "Ingredient" ("id", "userId", "name", "normalizedName", "costBasisUnit") VALUES ${placeholders}`,
   ).bind(...values);
 }
 
 function prepareRecipeIngredientUpdates(
+  binding: D1Database,
   recipeId: string,
   rows: readonly VersionedRecipeIngredientMappingUpdate[],
 ) {
-  return env.DB.prepare(
+  return binding.prepare(
     `WITH updates (
       "id", "ingredientId", "quantity", "unit", "displayText",
       "originalQuantity", "originalUnit", "weightGrams", "conversionSource",
@@ -156,11 +158,12 @@ function prepareRecipeIngredientUpdates(
 }
 
 function prepareRecipeIngredientVersionGuard(
+  binding: D1Database,
   recipeId: string,
   rows: readonly { id: string; updatedAt: number }[],
 ) {
   // Invalid JSON deliberately aborts the D1 batch so no writes can commit.
-  return env.DB.prepare(
+  return binding.prepare(
     `WITH expected ("id", "updatedAt") AS (
        SELECT
          json_extract(value, '$.id'),
@@ -591,21 +594,22 @@ export const ingredientMapping = {
       });
       const updateStatement =
         updates.length > 0
-          ? prepareRecipeIngredientUpdates(ownedRecipe.id, updates)
+          ? prepareRecipeIngredientUpdates(db.$client, ownedRecipe.id, updates)
           : null;
       const batchStatements = [
         prepareRecipeIngredientVersionGuard(
+          db.$client,
           ownedRecipe.id,
           submittedVersions,
         ),
         ...chunkRows(
           newIngredients,
           NEW_INGREDIENT_INSERT_PARAMS_PER_ROW,
-        ).map(prepareIngredientInsert),
+        ).map((rows) => prepareIngredientInsert(db.$client, rows)),
         ...(updateStatement ? [updateStatement] : []),
       ];
       try {
-        await env.DB.batch(batchStatements);
+        await db.$client.batch(batchStatements);
       } catch (error) {
         const latestRows = await db
           .select({

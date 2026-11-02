@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ActionAPIContext } from "astro:actions";
 import { eq } from "drizzle-orm";
-import { ingredient, recipe, recipeIngredient, recipeInstruction, recipeTag, tag, type Db } from "@/db";
+import { createDb, ingredient, recipe, recipeIngredient, recipeInstruction, recipeTag, tag, type Db } from "@/db";
+import { DatabaseBudget, DatabaseTimeoutError, withDatabaseBudget } from "@/lib/database-timeout";
 import type { IngredientUnit } from "@/db/schema/enums";
 import { createTestDb } from "@/test/d1";
 import { ingredientMapping } from "./ingredient-mapping";
@@ -42,6 +43,7 @@ beforeEach(() => {
     VALUES ('cook', 'Cook', 'cook@example.test', 1, 1)`);
 });
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   test.sqlite.close();
 });
@@ -319,5 +321,35 @@ describe("recipe measurement actions", () => {
     });
     expect(result.error).toMatchObject({ code: "CONFLICT" });
     expect(snapshot()).toEqual(before);
+  });
+
+  it("bounds the native mapping batch and does not start recovery reads after timeout", async () => {
+    const row = await seedRecipe({ quantity: 1, unit: "TSP" });
+    vi.useFakeTimers();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const batch = vi.spyOn(test.binding, "batch").mockImplementationOnce(() => new Promise(() => {}));
+    const raw = vi.spyOn(Object.getPrototypeOf(test.binding.prepare("SELECT 1")), "raw");
+    const budget = new DatabaseBudget({}, 100);
+    const operation = withDatabaseBudget(budget, () => {
+      runtime.db = createDb(test.binding);
+      return ingredientMapping.applyRecipe.orThrow.call(ctx, {
+        recipeId: "legacy",
+        items: [{
+          recipeIngredientId: row.id,
+          recipeIngredientUpdatedAt: row.updatedAt.getTime(),
+          displayText: "salt to taste", quantity: 2, unit: "TSP", mapping: { kind: "unmapped" },
+        }],
+      });
+    });
+    const assertion = expect(operation).rejects.toBeInstanceOf(DatabaseTimeoutError);
+    await vi.advanceTimersByTimeAsync(0);
+    const initialReads = raw.mock.calls.length;
+    expect(batch).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(100);
+    await assertion;
+    expect(raw).toHaveBeenCalledTimes(initialReads);
+    expect(budget.error).toBeInstanceOf(DatabaseTimeoutError);
+    expect(budget.writeStarted).toBe(true);
+    expect(runtime.queueSearchSync).not.toHaveBeenCalled();
   });
 });

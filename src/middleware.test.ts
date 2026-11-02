@@ -1,6 +1,10 @@
 import type { APIContext, MiddlewareHandler } from "astro";
+import { inspect } from "node:util";
+import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
-import { session } from "@/db";
+import { createDb, recipe, session } from "@/db";
+import { getDatabaseBudget } from "@/lib/database-timeout";
+import { DATABASE_UNAVAILABLE_MESSAGE, DATABASE_WRITE_UNCERTAIN_MESSAGE } from "@/lib/database-unavailable";
 import * as auth from "@/lib/auth";
 import { createTestDb } from "@/test/d1";
 import { onRequest } from "./middleware";
@@ -11,6 +15,11 @@ vi.mock("cloudflare:workers", () => ({ env: runtime.env }));
 vi.mock("astro:middleware", () => ({
   defineMiddleware: (middleware: MiddlewareHandler) => middleware,
 }));
+vi.mock("astro:actions", async () => {
+  const { getActionContext } = await import("../node_modules/astro/dist/actions/runtime/server.js");
+  const { ActionError } = await import("../node_modules/astro/dist/actions/runtime/client.js");
+  return { getActionContext, ActionError };
+});
 
 class DatabaseUnavailableError extends Error {
   constructor() {
@@ -35,9 +44,19 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   test.sqlite.close();
 });
+
+function stallDatabase() {
+  const prototype = Object.getPrototypeOf(test.binding.prepare("SELECT 1"));
+  for (const method of ["raw", "all", "first", "run"]) {
+    vi.spyOn(prototype, method).mockImplementation(() => new Promise(() => {}));
+  }
+  vi.useFakeTimers();
+  vi.spyOn(console, "error").mockImplementation(() => {});
+}
 
 function request(path: string, init: RequestInit = {}) {
   const url = new URL(path, runtime.env.AUTH_URL);
@@ -240,5 +259,149 @@ describe("browser session middleware", () => {
     expect(response?.status).toBeLessThan(500);
     expect(createAuth).toHaveBeenCalledOnce();
     expect(context.locals.session).toBeNull();
+  });
+});
+
+describe("database outage responses", () => {
+  it("keeps a valid session token out of Better Auth logs when session lookup stalls", async () => {
+    const cookie = await signUp();
+    const token = test.sqlite.prepare("SELECT token FROM session").get()!.token as string;
+    vi.useFakeTimers();
+    const logs = (["error", "warn", "info", "log", "debug"] as const).map((method) =>
+      vi.spyOn(console, method).mockImplementation(() => {}),
+    );
+    const prototype = Object.getPrototypeOf(test.binding.prepare("SELECT 1"));
+    const original = prototype.raw;
+    const lookup = vi.spyOn(prototype, "raw").mockImplementation(function (this: { query: string }) {
+      return /from "session"/i.test(this.query)
+        ? new Promise(() => {})
+        : original.call(this);
+    });
+    const { context, next } = request("/recipes", { headers: { cookie } });
+    const pending = onRequest(context, next);
+    await vi.waitFor(() => {
+      expect(lookup.mock.contexts.some((value) => /from "session"/i.test((value as { query: string }).query))).toBe(true);
+    });
+    await vi.advanceTimersByTimeAsync(5_000);
+    const response = await pending;
+    await vi.runAllTimersAsync();
+    expect(response?.status).toBe(503);
+    expect(next).not.toHaveBeenCalled();
+    const output = inspect(logs.flatMap((log) => log.mock.calls), { depth: null });
+    expect(output).not.toContain(token);
+    expect(output).not.toContain("Failed query:");
+    expect(output).toContain("database_timeout");
+  });
+
+  it("bounds real auth initialization with a session cookie and never dispatches protected content", async () => {
+    stallDatabase();
+    const { context, next } = request("/recipes?private=value", {
+      headers: { cookie: "better-auth.session_token=invalid", "cf-ray": "test-ray" },
+    });
+    const pending = onRequest(context, next);
+    await vi.advanceTimersByTimeAsync(5_000);
+    const response = await pending;
+    expect(response?.status).toBe(503);
+    expect(response?.headers.get("cache-control")).toBe("no-store");
+    expect(response?.headers.get("retry-after")).toBe("10");
+    expect(await response?.text()).toContain(DATABASE_UNAVAILABLE_MESSAGE);
+    expect(context.locals.session).toBeNull();
+    expect(context.locals.user).toBeNull();
+    expect(next).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+    expect(console.error).toHaveBeenCalledWith(expect.not.stringContaining("private=value"));
+  });
+
+  it.each(["/api/auth/sign-in/email", "/api/auth/sign-up/email", "/api/auth/get-session"])(
+    "bounds independent auth initialization for %s and returns structured JSON",
+    async (path) => {
+      stallDatabase();
+      const { context } = request(path, { method: path.endsWith("get-session") ? "GET" : "POST" });
+      const pending = ALL(context);
+      await vi.advanceTimersByTimeAsync(5_000);
+      const response = await pending;
+      expect(response.status).toBe(503);
+      expect(response.headers.get("cache-control")).toBe("no-store");
+      expect(await response.json()).toEqual({ code: "SERVICE_UNAVAILABLE", message: DATABASE_UNAVAILABLE_MESSAGE });
+    },
+  );
+
+  it("serializes an auth timeout before action dispatch as a real Astro ActionError", async () => {
+    stallDatabase();
+    const { context, next } = request("/_actions/recipes.create", {
+      method: "POST", headers: { cookie: "better-auth.session_token=invalid", origin: runtime.env.AUTH_URL, "content-type": "application/json" },
+    });
+    const pending = onRequest(context, next);
+    await vi.advanceTimersByTimeAsync(5_000);
+    const response = await pending;
+    expect(response?.status).toBe(503);
+    expect(next).not.toHaveBeenCalled();
+    const { deserializeActionResult } = await import("../node_modules/astro/dist/actions/runtime/client.js");
+    const result = deserializeActionResult({ type: "error", status: 503, contentType: "application/json", body: await response!.text() });
+    expect(result.error).toMatchObject({ code: "SERVICE_UNAVAILABLE", message: DATABASE_UNAVAILABLE_MESSAGE });
+  });
+
+  it("shares auth's remaining deadline with page data and replaces Astro's swallowed page error", async () => {
+    const cookie = await signUp();
+    stallDatabase();
+    const result = { user: { id: "cook" }, session: { userId: "cook" } };
+    createAuth.mockReturnValue({
+      api: { getSession: () => new Promise((resolve) => setTimeout(() => resolve(result), 3_000)) },
+    } as unknown as ReturnType<typeof auth.createAuth>);
+    const { context } = request("/recipes", { headers: { cookie } });
+    const next = vi.fn(async () => {
+      try {
+        await createDb(runtime.env.DB).select().from(recipe).where(eq(recipe.userId, "private-page-owner"));
+      } catch (error) {
+        // Model the runtime replacing the original page exception with a 500.
+        console.error(error instanceof Error ? error.stack : error);
+        return new Response("Astro internal error", { status: 500 });
+      }
+      return new Response("Protected content");
+    });
+    const pending = onRequest(context, next);
+    await vi.advanceTimersByTimeAsync(3_000);
+    expect(next).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(2_000);
+    const response = await pending;
+    expect(response?.status).toBe(503);
+    expect(await response?.text()).toContain(DATABASE_UNAVAILABLE_MESSAGE);
+    const output = inspect(vi.mocked(console.error).mock.calls, { depth: null });
+    expect(output).not.toContain("private-page-owner");
+    expect(output).not.toContain("Failed query:");
+  });
+
+  it("converts an action's swallowed write timeout and preserves uncertainty", async () => {
+    stallDatabase();
+    const { context } = request("/_actions/recipes.create", { method: "POST", headers: { origin: runtime.env.AUTH_URL, "content-type": "application/json" } });
+    const later = vi.fn();
+    const pending = onRequest(context, async () => {
+      try {
+        await createDb(runtime.env.DB).insert(recipe).values({ userId: "cook", title: "Soup" });
+        later();
+      } catch {
+        return new Response('{"code":"INTERNAL_SERVER_ERROR"}', { status: 500 });
+      }
+      return new Response("saved");
+    });
+    await vi.advanceTimersByTimeAsync(5_000);
+    const response = await pending;
+    expect(response?.status).toBe(503);
+    expect(await response?.json()).toMatchObject({ code: "SERVICE_UNAVAILABLE", message: DATABASE_WRITE_UNCERTAIN_MESSAGE });
+    expect(response?.headers.has("retry-after")).toBe(false);
+    expect(later).not.toHaveBeenCalled();
+  });
+
+  it("keeps long non-database action processing outside the database budget", async () => {
+    vi.useFakeTimers();
+    const { context } = request("/_actions/parse.parseFromUrl", { method: "POST", headers: { origin: runtime.env.AUTH_URL, "content-type": "application/json" } });
+    const pending = onRequest(context, async () => {
+      await getDatabaseBudget()!.run("initial.read", () => Promise.resolve(null));
+      await new Promise((resolve) => setTimeout(resolve, 20_000));
+      await createDb(runtime.env.DB).select().from(recipe);
+      return new Response("import parsed");
+    });
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(await (await pending)?.text()).toBe("import parsed");
   });
 });

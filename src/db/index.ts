@@ -1,5 +1,8 @@
 import { drizzle } from "drizzle-orm/d1";
 import * as schema from "./schema";
+import { getDatabaseBudget } from "@/lib/database-timeout";
+import { withD1Deadline } from "./deadline-binding";
+import { redactDatabaseTimeouts } from "./timeout-errors";
 
 /**
  * Build a Drizzle client from a D1 binding.
@@ -14,7 +17,9 @@ import * as schema from "./schema";
  * work without extra wiring.
  */
 export function createDb(binding: D1Database) {
-  return drizzle(binding, { schema, casing: "camelCase" });
+  const budget = getDatabaseBudget();
+  const db = drizzle(budget ? withD1Deadline(binding, budget) : binding, { schema, casing: "camelCase" });
+  return budget ? redactDatabaseTimeouts(db) : db;
 }
 
 export type Db = ReturnType<typeof createDb>;
