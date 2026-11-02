@@ -1,5 +1,6 @@
 import { defineMiddleware } from "astro:middleware";
 import { env } from "cloudflare:workers";
+import { getSessionCookie } from "better-auth/cookies";
 import { createAuth } from "@/lib/auth";
 import { isForbiddenCrossOriginRequest } from "@/lib/request-origin";
 
@@ -51,10 +52,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (pathname === "/mcp" || pathname.startsWith("/.well-known/")) return next();
 
   const waitUntil = context.locals.cfContext?.waitUntil.bind(context.locals.cfContext);
-  const auth = createAuth(env, waitUntil);
-  const result = await auth.api.getSession({
-    headers: context.request.headers,
-  });
+  const result = getSessionCookie(context.request)
+    ? await createAuth(env, waitUntil).api.getSession({
+        headers: context.request.headers,
+      })
+    : null;
 
   // Better Auth's base User type doesn't include `role` (it's an additionalField),
   // but the adapter returns it at runtime. Cast via unknown for the type narrowing.
