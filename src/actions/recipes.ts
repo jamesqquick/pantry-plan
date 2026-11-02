@@ -1,5 +1,7 @@
 import { ActionError, defineAction } from "astro:actions";
-import { and, eq, inArray } from "drizzle-orm";
+import { createId } from "@paralleldrive/cuid2";
+import { and, eq, inArray, isNull, or } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import { z } from "zod";
 import {
   recipeCreateSchema,
@@ -13,6 +15,7 @@ import {
   validateIngredientMeasurements,
 } from "@/features/recipes/ingredient-measurements";
 import {
+  ingredient,
   recipe,
   recipeIngredient,
   recipeInstruction,
@@ -20,6 +23,7 @@ import {
   tag,
 } from "@/db";
 import { chunkRows } from "@/db/chunked-insert";
+import { chunkInValues } from "@/db/chunked-read";
 import { getDb, queueSearchSync, requireUser } from "./_shared";
 
 /**
@@ -41,6 +45,8 @@ const recipeCreateInputSchema = recipeCreateSchema.extend({
 });
 
 const recipeUpdateInputSchema = recipeUpdateSchema.extend({
+  // Omitted tags must not inherit the create schema's empty-array default.
+  tagIds: recipeCreateSchema.shape.tagIds.unwrap(),
   ingredientsStructured: z
     .array(setRecipeIngredientsSchema.shape.items.element)
     .optional(),
@@ -64,6 +70,33 @@ async function filterOwnedTagIds(
   return tagIds.filter((id) => ownedSet.has(id));
 }
 
+async function validateIngredientReferences(
+  db: ReturnType<typeof getDb>,
+  userId: string,
+  items: readonly { ingredientId?: string }[]
+): Promise<void> {
+  const ids = [
+    ...new Set(items.flatMap((item) => item.ingredientId ? [item.ingredientId] : [])),
+  ];
+  for (const chunk of chunkInValues(ids, 1)) {
+    const accessible = await db
+      .select({ id: ingredient.id })
+      .from(ingredient)
+      .where(
+        and(
+          inArray(ingredient.id, chunk),
+          or(isNull(ingredient.userId), eq(ingredient.userId, userId))
+        )
+      );
+    if (accessible.length !== chunk.length) {
+      throw new ActionError({
+        code: "FORBIDDEN",
+        message: "An ingredient was not found or does not belong to you.",
+      });
+    }
+  }
+}
+
 export const recipes = {
   /**
    * Create a recipe with structured ingredients, instructions, and tags.
@@ -75,27 +108,9 @@ export const recipes = {
       const user = requireUser(ctx);
       const db = getDb();
 
-      const [row] = await db
-        .insert(recipe)
-        .values({
-          userId: user.id,
-          title: input.title,
-          sourceUrl: input.sourceUrl || null,
-          imageUrl: input.imageUrl || null,
-          servings: input.servings ?? null,
-          prepTimeMinutes: input.prepTimeMinutes ?? null,
-          cookTimeMinutes: input.cookTimeMinutes ?? null,
-          totalTimeMinutes: input.totalTimeMinutes ?? null,
-          notes: input.notes ?? null,
-        })
-        .returning({ id: recipe.id });
-      if (!row) {
-        throw new ActionError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create recipe",
-        });
-      }
-      const recipeId = row.id;
+      await validateIngredientReferences(db, user.id, input.ingredientsStructured);
+      const validTagIds = await filterOwnedTagIds(db, user.id, input.tagIds);
+      const recipeId = createId();
 
       // Chunk bulk inserts to stay under D1's bound-parameter cap.
       // Param counts incl. cuid id: instruction=4, ingredient=8, tag=3.
@@ -104,10 +119,6 @@ export const recipes = {
         sortOrder,
         text: text.trim() || "—",
       }));
-      for (const chunk of chunkRows(instructionRows, 4)) {
-        await db.insert(recipeInstruction).values(chunk);
-      }
-
       const ingredientRows = input.ingredientsStructured.map((item) => ({
         recipeId,
         ingredientId:
@@ -120,15 +131,29 @@ export const recipes = {
         rawText: item.rawText ?? null,
         sortOrder: item.sortOrder,
       }));
-      for (const chunk of chunkRows(ingredientRows, 8)) {
-        await db.insert(recipeIngredient).values(chunk);
-      }
-
-      const validTagIds = await filterOwnedTagIds(db, user.id, input.tagIds);
       const tagRows = validTagIds.map((tagId) => ({ recipeId, tagId }));
-      for (const chunk of chunkRows(tagRows, 3)) {
-        await db.insert(recipeTag).values(chunk);
-      }
+
+      await db.batch([
+        db.insert(recipe).values({
+          id: recipeId,
+          userId: user.id,
+          title: input.title,
+          sourceUrl: input.sourceUrl || null,
+          imageUrl: input.imageUrl || null,
+          servings: input.servings ?? null,
+          prepTimeMinutes: input.prepTimeMinutes ?? null,
+          cookTimeMinutes: input.cookTimeMinutes ?? null,
+          totalTimeMinutes: input.totalTimeMinutes ?? null,
+          notes: input.notes ?? null,
+        }),
+        ...chunkRows(instructionRows, 4).map((chunk) =>
+          db.insert(recipeInstruction).values(chunk)
+        ),
+        ...chunkRows(ingredientRows, 8).map((chunk) =>
+          db.insert(recipeIngredient).values(chunk)
+        ),
+        ...chunkRows(tagRows, 3).map((chunk) => db.insert(recipeTag).values(chunk)),
+      ]);
 
       await queueSearchSync(ctx, db, [recipeId]);
       return { id: recipeId };
@@ -176,6 +201,13 @@ export const recipes = {
         throw new ActionError({ code: "BAD_REQUEST", message: error.message });
       }
 
+      if (input.ingredientsStructured !== undefined) {
+        await validateIngredientReferences(db, user.id, input.ingredientsStructured);
+      }
+      const validTagIds = input.tagIds !== undefined
+        ? await filterOwnedTagIds(db, user.id, input.tagIds)
+        : undefined;
+
       // Build partial update for core fields — only set what was provided.
       const patch: Partial<typeof recipe.$inferInsert> = {};
       if (input.title !== undefined) patch.title = input.title;
@@ -190,28 +222,34 @@ export const recipes = {
         patch.totalTimeMinutes = input.totalTimeMinutes ?? null;
       if (input.notes !== undefined) patch.notes = input.notes ?? null;
 
+      const statements: BatchItem<"sqlite">[] = [];
       if (Object.keys(patch).length > 0) {
-        await db.update(recipe).set(patch).where(eq(recipe.id, input.id));
+        statements.push(
+          db.update(recipe).set(patch)
+            .where(and(eq(recipe.id, input.id), eq(recipe.userId, user.id)))
+        );
       }
 
       if (input.instructions !== undefined) {
-        await db
-          .delete(recipeInstruction)
-          .where(eq(recipeInstruction.recipeId, input.id));
+        statements.push(
+          db.delete(recipeInstruction)
+            .where(eq(recipeInstruction.recipeId, input.id))
+        );
         const instructionRows = input.instructions.map((text, sortOrder) => ({
           recipeId: input.id,
           sortOrder,
           text: text.trim() || "—",
         }));
         for (const chunk of chunkRows(instructionRows, 4)) {
-          await db.insert(recipeInstruction).values(chunk);
+          statements.push(db.insert(recipeInstruction).values(chunk));
         }
       }
 
       if (input.ingredientsStructured !== undefined) {
-        await db
-          .delete(recipeIngredient)
-          .where(eq(recipeIngredient.recipeId, input.id));
+        statements.push(
+          db.delete(recipeIngredient)
+            .where(eq(recipeIngredient.recipeId, input.id))
+        );
         const ingredientRows = input.ingredientsStructured.map((item) => ({
           recipeId: input.id,
           ingredientId:
@@ -225,21 +263,23 @@ export const recipes = {
           sortOrder: item.sortOrder,
         }));
         for (const chunk of chunkRows(ingredientRows, 8)) {
-          await db.insert(recipeIngredient).values(chunk);
+          statements.push(db.insert(recipeIngredient).values(chunk));
         }
       }
 
-      if (input.tagIds !== undefined) {
-        const validTagIds = await filterOwnedTagIds(db, user.id, input.tagIds);
-        await db.delete(recipeTag).where(eq(recipeTag.recipeId, input.id));
+      if (validTagIds !== undefined) {
+        statements.push(db.delete(recipeTag).where(eq(recipeTag.recipeId, input.id)));
         const tagRows = validTagIds.map((tagId) => ({
           recipeId: input.id,
           tagId,
         }));
         for (const chunk of chunkRows(tagRows, 3)) {
-          await db.insert(recipeTag).values(chunk);
+          statements.push(db.insert(recipeTag).values(chunk));
         }
       }
+
+      const [first, ...rest] = statements;
+      if (first) await db.batch([first, ...rest]);
 
       await queueSearchSync(ctx, db, [input.id]);
       return { id: input.id };
