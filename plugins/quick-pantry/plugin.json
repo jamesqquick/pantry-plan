@@ -15,7 +15,7 @@
       "interface": {
         "displayName": "Quick Pantry",
         "shortDescription": "Recipes and weekly meal plans",
-        "longDescription": "Search and read recipes saved in your Quick Pantry account, create or edit recipes, import a recipe from a URL, and replace a weekly meal plan with saved recipes. Any signed-in Quick Pantry user can approve their own OAuth connection. Results appear as normal ChatGPT responses. The plugin provides six recipe and meal-planning tools; it cannot manage orders, grocery lists, pantry ingredient records, recipe tags, or delete recipes.",
+        "longDescription": "Search and read recipes saved in your Quick Pantry account, create or edit recipes and their assigned tags, import a recipe from a URL, and replace a weekly meal plan with saved recipes. Any signed-in Quick Pantry user can approve their own OAuth connection. Results appear as normal ChatGPT responses. The plugin provides six recipe and meal-planning tools; it cannot manage orders, grocery lists, pantry ingredient records, rename or delete tags, or delete recipes.",
         "developerName": "James Quick",
         "category": "Productivity",
         "capabilities": [

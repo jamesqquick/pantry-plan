@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DatabaseSync } from "node:sqlite";
 import { eq } from "drizzle-orm";
-import { oauthAccessToken, oauthClient, oauthConsent, oauthRefreshToken, plannedMeal, recipe, session, user, verification } from "@/db";
+import { oauthAccessToken, oauthClient, oauthConsent, oauthRefreshToken, plannedMeal, recipe, recipeSearchIndex, recipeTag, session, tag, user, verification } from "@/db";
 import { createTestDb } from "@/test/d1";
 import { createAuth } from "./auth";
 import { CHATGPT_CLIENT_ID, getOAuthUrls, OAUTH_SCOPES } from "./oauth";
@@ -435,6 +435,92 @@ describe("Quick Pantry OAuth", () => {
     expect((await mcp(tokens.access_token, "tools/list")).response.status).toBe(401);
     expect((await refresh(tokens.refresh_token)).status).toBe(400);
     expect((await exchange(pending)).status).toBe(400);
+  });
+
+  it.each(["OAuth", "MCP key"])("scopes tag creation, replacement, readback, and search to the authenticated %s account", async (credentialType) => {
+    const { db, signUp, connect, mcp, owner } = await setup();
+    const other = await signUp("other@example.com");
+    const tokenFor = async (account: Account) => credentialType === "OAuth"
+      ? (await connect(account)).access_token
+      : (await createMcpApiKey(db, account.id, "Tags client")).token;
+    const ownerToken = await tokenFor(owner);
+    const otherToken = await tokenFor(other);
+    await db.insert(tag).values([
+      { id: "owner-shared", userId: owner.id, name: "Shared" },
+      { id: "other-shared", userId: other.id, name: "Shared" },
+      { id: "other-private", userId: other.id, name: "Private tag" },
+    ]);
+    const created = await mcp(ownerToken, "tools/call", {
+      name: "create_recipe",
+      arguments: { title: "Tagged soup", ingredients: [{ quantity: 1, unit: "CUP", displayText: "stock" }], instructions: ["Simmer."], tags: [" Shared ", "Dinner", "Shared"] },
+    });
+    expect(created.body).toMatchObject({ result: { structuredContent: { title: "Tagged soup" } } });
+    const saved = await db.query.recipe.findFirst({ where: eq(recipe.userId, owner.id) });
+    expect(saved).toBeDefined();
+    const recipeId = saved!.id;
+    const read = await mcp(ownerToken, "tools/call", { name: "get_recipe", arguments: { recipeId } });
+    expect(read.body).toMatchObject({ result: { structuredContent: { tags: ["Dinner", "Shared"] } } });
+    expect(await db.query.recipeTag.findMany({ where: eq(recipeTag.tagId, "owner-shared") })).toHaveLength(1);
+    expect(await db.query.recipeTag.findMany({ where: eq(recipeTag.tagId, "other-shared") })).toHaveLength(0);
+    const beforeTags = await db.query.tag.findMany();
+    const beforeAssociations = await db.query.recipeTag.findMany();
+    const beforeIndex = await db.query.recipeSearchIndex.findMany();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    for (const [name, args] of [
+      ["get_recipe", { recipeId }],
+      ["edit_recipe", { recipeId, tags: ["Unauthorized tag"] }],
+      ["edit_recipe", { recipeId, tags: [] }],
+    ] as const) {
+      const rejected = await mcp(otherToken, "tools/call", { name, arguments: args });
+      expect(rejected.body).toMatchObject({ result: { isError: true } });
+      expect(JSON.stringify(rejected.body)).not.toContain("Dinner");
+    }
+    expect(await db.query.tag.findMany()).toEqual(beforeTags);
+    expect(await db.query.recipeTag.findMany()).toEqual(beforeAssociations);
+    expect(await db.query.recipeSearchIndex.findMany()).toEqual(beforeIndex);
+    expect((await mcp(otherToken, "tools/call", { name: "search_recipes", arguments: { query: "soup", tag: "Shared" } })).body)
+      .toMatchObject({ result: { structuredContent: { count: 0, recipes: [] } } });
+
+    const edited = await mcp(ownerToken, "tools/call", { name: "edit_recipe", arguments: { recipeId, tags: ["Quick", " Quick "] } });
+    expect(edited.body).toMatchObject({ result: { structuredContent: { tags: ["Quick"] } } });
+    expect((await mcp(ownerToken, "tools/call", { name: "search_recipes", arguments: { query: "soup", tag: "Quick" } })).body)
+      .toMatchObject({ result: { structuredContent: { count: 1, recipes: [{ id: recipeId }] } } });
+    expect((await mcp(ownerToken, "tools/call", { name: "edit_recipe", arguments: { recipeId, tags: [] } })).body)
+      .toMatchObject({ result: { structuredContent: { tags: [] } } });
+    expect((await mcp(ownerToken, "tools/call", { name: "get_recipe", arguments: { recipeId } })).body)
+      .toMatchObject({ result: { structuredContent: { tags: [] } } });
+  });
+
+  it("prevents read-only OAuth credentials from creating or clearing recipe tags", async () => {
+    const { db, connect, mcp, owner } = await setup();
+    const saved = await createMcpRecipe(db, owner.id, {
+      title: "Keep tags",
+      ingredients: [{ quantity: 1, unit: "CUP", displayText: "stock" }],
+      instructions: ["Simmer."],
+      tags: ["Original"],
+    });
+    const beforeTags = await db.query.tag.findMany();
+    const beforeAssociations = await db.query.recipeTag.findMany();
+    const beforeRecipes = await db.query.recipe.findMany();
+    const tokens = await connect(owner, "recipes:read offline_access");
+    for (const [name, input] of [
+      ["edit_recipe", { recipeId: saved.recipeId, tags: [] }],
+      ["edit_recipe", { recipeId: saved.recipeId, tags: ["Denied"] }],
+      ["create_recipe", { title: "Denied", ingredients: [{ quantity: 1, unit: "CUP", displayText: "stock" }], instructions: ["Simmer."], tags: ["Denied"] }],
+    ] as const) {
+      const result = await mcp(tokens.access_token, "tools/call", { name, arguments: input });
+      expect(result.body).toMatchObject({ result: {
+        isError: true,
+        _meta: { "mcp/www_authenticate": [expect.stringContaining('scope="recipes:write"')] },
+      } });
+    }
+    expect(await db.query.tag.findMany()).toEqual(beforeTags);
+    expect(await db.query.recipeTag.findMany()).toEqual(beforeAssociations);
+    expect(await db.query.recipe.findMany()).toEqual(beforeRecipes);
+    expect(await db.select().from(recipeSearchIndex)).toEqual([]);
+    expect((await mcp(tokens.access_token, "tools/call", { name: "get_recipe", arguments: { recipeId: saved.recipeId } })).body)
+      .toMatchObject({ result: { structuredContent: { tags: ["Original"] } } });
   });
 
   it("rejects stale-version credentials that finish persisting after disconnect", async () => {

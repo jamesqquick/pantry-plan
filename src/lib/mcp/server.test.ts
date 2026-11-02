@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { WebStandardStreamableHTTPServerTransport, type CallToolResult } from "@modelcontextprotocol/server";
 import type { DatabaseSync } from "node:sqlite";
-import { recipe, recipeIngredient, recipeInstruction, user, type Db } from "@/db";
+import { recipe, recipeIngredient, recipeInstruction, recipeSearchIndex, recipeTag, tag, user, type Db } from "@/db";
 import { createTestDb } from "@/test/d1";
+import { createdRecipeOutputSchema } from "@/features/mcp/mcp.schemas";
 import { parseRecipeFromUrl } from "@/lib/parse/parse-recipe";
-import { createServer, isRecipeAiSearchEnabled, RECIPE_AI_SEARCH_FLAG } from "./server";
+import { createServer, isRecipeAiSearchEnabled, RECIPE_AI_SEARCH_FLAG, type McpSearchContext } from "./server";
 import { createMcpRecipe } from "./create-recipe";
 
 vi.mock("@/lib/parse/parse-recipe", () => ({ parseRecipeFromUrl: vi.fn() }));
@@ -15,8 +16,8 @@ afterEach(() => {
   for (const sqlite of databases.splice(0)) sqlite.close();
 });
 
-async function callTool(db: Db, name: string, input: Record<string, unknown>) {
-  const server = createServer(db, "cook", "https://quickpantry.test", undefined);
+async function callTool(db: Db, name: string, input: Record<string, unknown>, search?: McpSearchContext) {
+  const server = createServer(db, "cook", "https://quickpantry.test", undefined, search);
   const transport = new WebStandardStreamableHTTPServerTransport({ enableJsonResponse: true });
   await server.connect(transport);
   try {
@@ -59,7 +60,7 @@ async function listTools() {
     }));
     expect(response.status).toBe(200);
     const message = await response.json() as {
-      result: { tools: Array<{ name: string; description: string; inputSchema: unknown }> };
+      result: { tools: Array<{ name: string; description: string; inputSchema: unknown; outputSchema: unknown }> };
       error?: unknown;
     };
     expect(message.error).toBeUndefined();
@@ -103,6 +104,33 @@ describe("isRecipeAiSearchEnabled", () => {
 });
 
 describe("MCP tool registration", () => {
+  it("advertises optional tag names, edit semantics, and tag readback", async () => {
+    const tools = await listTools();
+    for (const name of ["create_recipe", "edit_recipe"]) {
+      const tool = tools.find((listed) => listed.name === name);
+      expect(tool?.description).toMatch(/tags as names/i);
+      expect(tool?.inputSchema).toMatchObject({
+        properties: {
+          tags: {
+            type: "array",
+            maxItems: 100,
+            items: { type: "string", minLength: 1, maxLength: 100 },
+          },
+        },
+      });
+      expect((tool?.inputSchema as { required: string[] }).required).not.toContain("tags");
+    }
+    expect(tools.find((tool) => tool.name === "edit_recipe")?.description).toMatch(/empty array to clear tags/i);
+    for (const name of ["get_recipe", "edit_recipe"]) {
+      const tool = tools.find((listed) => listed.name === name);
+      expect(tool?.description).toMatch(/tag names/i);
+      expect(tool?.outputSchema).toMatchObject({
+        properties: { tags: { type: "array", items: { type: "string" } } },
+        required: expect.arrayContaining(["tags"]),
+      });
+    }
+  });
+
   it("registers complete Zod schemas so strict object rules reach MCP", async () => {
     const server = createServer(
       undefined as never,
@@ -152,6 +180,150 @@ describe("MCP tool registration", () => {
     expect(createTool).toBeDefined();
     expect(createTool?.description).toMatch(/separate fields/i);
     expect(createTool?.description).toMatch(/does not parse/i);
+  });
+});
+
+describe("MCP tag tools", () => {
+  it.each([null, "Dinner", [42], [""], ["\t\n "], ["x".repeat(101)], Array(101).fill("Dinner")])("rejects malformed tag payloads without any recipe, tag, or index writes: %o", async (tags) => {
+    const { db } = await setupDb();
+    const saved = await createMcpRecipe(db, "cook", {
+      title: "Original soup",
+      ingredients: [{ quantity: 1, unit: "CUP", displayText: "stock" }],
+      instructions: ["Simmer."],
+      tags: ["Original"],
+    });
+    const before = {
+      recipes: await db.select().from(recipe),
+      tags: await db.select().from(tag),
+      associations: await db.select().from(recipeTag),
+    };
+    const search = { env: {} as McpSearchContext["env"] };
+    const created = await callTool(db, "create_recipe", {
+      title: "Rejected soup",
+      ingredients: [{ quantity: 1, unit: "CUP", displayText: "stock" }],
+      instructions: ["Simmer."],
+      tags,
+    }, search);
+    const edited = await callTool(db, "edit_recipe", { recipeId: saved.recipeId, title: "Rejected soup", tags }, search);
+
+    expect(created.isError).toBe(true);
+    expect(edited.isError).toBe(true);
+    expect(await db.select().from(recipe)).toEqual(before.recipes);
+    expect(await db.select().from(tag)).toEqual(before.tags);
+    expect(await db.select().from(recipeTag)).toEqual(before.associations);
+    expect(await db.select().from(recipeSearchIndex)).toEqual([]);
+  });
+
+  it("uploads changed tag names and removes cleared names from search documents", async () => {
+    const { db } = await setupDb();
+    const pending: Promise<unknown>[] = [];
+    const upload = vi.fn(async (key: string, _content: unknown) => ({ id: "test-item", key, status: "queued" }) as AiSearchItemInfo);
+    const search: McpSearchContext = {
+      env: {
+        AI_SEARCH: { get: () => ({ items: { upload } }) },
+        AI_SEARCH_INSTANCE: "issue-102-test",
+      } as unknown as McpSearchContext["env"],
+      waitUntil: (promise) => { pending.push(promise); },
+    };
+    const created = await callTool(db, "create_recipe", {
+      title: "Indexed soup",
+      ingredients: [{ quantity: 1, unit: "CUP", displayText: "stock" }],
+      instructions: ["Simmer."],
+      tags: ["Dinner"],
+    }, search);
+    expect(created.isError).toBeUndefined();
+    const { recipeId } = createdRecipeOutputSchema.parse(created.structuredContent);
+    await Promise.all(pending.splice(0));
+    expect(upload).toHaveBeenCalledOnce();
+    expect(upload.mock.calls[0][1]).toContain("Tags: Dinner");
+
+    expect((await callTool(db, "edit_recipe", { recipeId, tags: ["Quick"] }, search)).isError).toBeUndefined();
+    await Promise.all(pending.splice(0));
+    expect(upload).toHaveBeenCalledTimes(2);
+    expect(upload.mock.calls[1][1]).toContain("Tags: Quick");
+    expect(upload.mock.calls[1][1]).not.toContain("Dinner");
+
+    expect((await callTool(db, "edit_recipe", { recipeId, tags: ["Quick", " Quick "] }, search)).isError).toBeUndefined();
+    await Promise.all(pending.splice(0));
+    expect(upload).toHaveBeenCalledTimes(2);
+
+    expect((await callTool(db, "edit_recipe", { recipeId, tags: [] }, search)).isError).toBeUndefined();
+    await Promise.all(pending.splice(0));
+    expect(upload).toHaveBeenCalledTimes(3);
+    expect(upload.mock.calls[2][1]).not.toContain("Tags:");
+    expect(upload.mock.calls[2][1]).not.toContain("Quick");
+    expect(await db.select().from(recipeSearchIndex)).toMatchObject([{ recipeId, status: "indexed" }]);
+  });
+
+  it("creates, reads, replaces, preserves, and clears tags while queuing search synchronization", async () => {
+    const { db } = await setupDb();
+    const search = { env: {} as McpSearchContext["env"] };
+    const created = await callTool(db, "create_recipe", {
+      title: "Soup",
+      ingredients: [{ quantity: 1, unit: "CUP", displayText: "stock" }],
+      instructions: ["Simmer."],
+      tags: [" Soup ", "Dinner", "Soup"],
+    }, search);
+    expect(created.isError).toBeUndefined();
+    const { recipeId } = createdRecipeOutputSchema.parse(created.structuredContent);
+    const read = await callTool(db, "get_recipe", { recipeId }, search);
+    expect(read.isError).toBeUndefined();
+    expect(read.structuredContent).toMatchObject({ tags: ["Dinner", "Soup"] });
+    expect(await db.select().from(recipeSearchIndex)).toMatchObject([{ recipeId, userId: "cook", status: "pending", version: 1 }]);
+
+    const edited = await callTool(db, "edit_recipe", { recipeId, tags: ["Quick", " Quick "] }, search);
+    expect(edited.isError).toBeUndefined();
+    expect(edited.structuredContent).toMatchObject({ tags: ["Quick"] });
+    expect(await db.select().from(recipeSearchIndex)).toMatchObject([{ recipeId, status: "pending", version: 2 }]);
+    expect((await callTool(db, "get_recipe", { recipeId })).structuredContent).toMatchObject({ tags: ["Quick"] });
+
+    const unchanged = await callTool(db, "edit_recipe", { recipeId, notes: "Keep tags." }, search);
+    expect(unchanged.isError).toBeUndefined();
+    expect(unchanged.structuredContent).toMatchObject({ tags: ["Quick"] });
+
+    const cleared = await callTool(db, "edit_recipe", { recipeId, tags: [] }, search);
+    expect(cleared.isError).toBeUndefined();
+    expect(cleared.structuredContent).toMatchObject({ tags: [] });
+    expect((await callTool(db, "get_recipe", { recipeId })).structuredContent).toMatchObject({ tags: [] });
+    expect(await db.select().from(recipeSearchIndex)).toMatchObject([{ recipeId, status: "pending", version: 4 }]);
+  });
+
+  it.each([undefined, []])("keeps existing create/edit calls working without tags: %o", async (tags) => {
+    const { db } = await setupDb();
+    const created = await callTool(db, "create_recipe", {
+      title: "Soup",
+      ingredients: [{ quantity: 1, unit: "CUP", displayText: "stock" }],
+      instructions: ["Simmer."],
+      tags,
+    });
+    expect(created.isError).toBeUndefined();
+    const { recipeId } = createdRecipeOutputSchema.parse(created.structuredContent);
+    const edited = await callTool(db, "edit_recipe", { recipeId, title: "Updated soup", tags });
+    expect(edited.isError).toBeUndefined();
+    expect(edited.structuredContent).toMatchObject({ title: "Updated soup", tags: [] });
+  });
+
+  it("returns a tool error and does not queue search synchronization when a tag write fails", async () => {
+    const { db, sqlite } = await setupDb();
+    const saved = await createMcpRecipe(db, "cook", {
+      title: "Soup",
+      ingredients: [{ quantity: 1, unit: "CUP", displayText: "stock" }],
+      instructions: ["Simmer."],
+      tags: ["Dinner"],
+    });
+    const before = await db.select().from(recipeTag);
+    sqlite.exec(`CREATE TRIGGER fail_tags BEFORE INSERT ON RecipeTag
+      BEGIN SELECT RAISE(ABORT, 'injected tag failure'); END;`);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await callTool(db, "edit_recipe", { recipeId: saved.recipeId, tags: ["New"] }, {
+      env: {} as McpSearchContext["env"],
+    });
+
+    expect(result).toMatchObject({ isError: true, content: [{ type: "text", text: "Could not edit the recipe." }] });
+    expect(await db.select().from(recipeTag)).toEqual(before);
+    expect(await db.select({ name: tag.name }).from(tag)).toEqual([{ name: "Dinner" }]);
+    expect(await db.select().from(recipeSearchIndex)).toEqual([]);
   });
 });
 

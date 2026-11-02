@@ -155,7 +155,7 @@ export function createServer(
     toolConfig("create_recipe", "recipes:write", {
       title: "Create recipe",
       description:
-        "Create a recipe in the authenticated user's Quick Pantry account. Provide each ingredient's quantity, unit, and displayText as separate fields, for example { quantity: 2, unit: \"CUP\", displayText: \"flour\" }. Do not include measurements only in ingredient text; this tool does not parse them.",
+        "Create a recipe in the authenticated user's Quick Pantry account. Optionally supply tags as names; existing account tags are reused and missing tags are created. Provide each ingredient's quantity, unit, and displayText as separate fields, for example { quantity: 2, unit: \"CUP\", displayText: \"flour\" }. Do not include measurements only in ingredient text; this tool does not parse them.",
       inputSchema: createRecipeToolSchema,
       outputSchema: createdRecipeOutputSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
@@ -190,7 +190,7 @@ export function createServer(
     toolConfig("get_recipe", "recipes:read", {
       title: "Get recipe",
       description:
-        "Get the complete editable recipe, including structured ingredients and ordered instructions, from the authenticated user's Quick Pantry account.",
+        "Get the complete editable recipe, including structured ingredients, ordered instructions, and tag names, from the authenticated user's Quick Pantry account.",
       inputSchema: getRecipeToolSchema,
       outputSchema: recipeDetailsOutputSchema,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
@@ -225,7 +225,7 @@ export function createServer(
     toolConfig("edit_recipe", "recipes:write", {
       title: "Edit recipe",
       description:
-        "Partially edit a recipe in the authenticated user's Quick Pantry account. Omitted fields remain unchanged, null clears optional metadata, and supplied ingredients or instructions replace the complete ordered list. Every ingredient requires an explicit quantity and supported unit, including stored ingredients when the list is omitted.",
+        "Partially edit a recipe in the authenticated user's Quick Pantry account. Omitted fields remain unchanged, null clears optional metadata, and supplied ingredients or instructions replace the complete ordered list. Supply tags as names to replace all tags, or an empty array to clear tags; existing account tags are reused and missing tags are created. The result includes saved tag names. Every ingredient requires an explicit quantity and supported unit, including stored ingredients when the list is omitted.",
       inputSchema: editRecipeToolSchema,
       outputSchema: recipeDetailsOutputSchema,
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },

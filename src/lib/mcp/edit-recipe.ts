@@ -1,10 +1,11 @@
 import { and, eq } from "drizzle-orm";
 import type { Db } from "@/db";
-import { recipe, recipeIngredient, recipeInstruction } from "@/db";
+import { recipe, recipeIngredient, recipeInstruction, recipeTag } from "@/db";
 import type { EditRecipeToolInput } from "@/features/mcp/mcp.schemas";
 import { chunkRows } from "@/db/chunked-insert";
 import { validateIngredientMeasurements } from "@/features/recipes/ingredient-measurements";
 import { RecipeNotFoundError } from "./recipe-errors";
+import { mcpRecipeTagStatements } from "./recipe-tags";
 
 export async function editMcpRecipe(
   db: Db,
@@ -87,6 +88,13 @@ export async function editMcpRecipe(
         })),
         8,
       ).map((chunk) => db.insert(recipeIngredient).values(chunk)),
+    );
+  }
+
+  if (input.tags !== undefined) {
+    statements.push(
+      db.delete(recipeTag).where(eq(recipeTag.recipeId, input.recipeId)),
+      ...mcpRecipeTagStatements(db, userId, input.recipeId, input.tags),
     );
   }
 

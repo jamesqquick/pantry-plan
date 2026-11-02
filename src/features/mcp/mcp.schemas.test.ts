@@ -109,8 +109,17 @@ describe("MCP tool schemas", () => {
       recipeUrl: "https://quickpantry.test/recipes/recipe-1",
       ingredients: [{ quantity: 1, unit: "TSP", displayText: "salt to taste" }],
       instructions: ["Season."],
+      tags: [],
     };
     expect(recipeDetailsOutputSchema.safeParse(recipeOutput).success).toBe(true);
+    expect(recipeDetailsOutputSchema.safeParse({
+      ...recipeOutput,
+      tags: ["Dinner", "Soup"],
+    }).success).toBe(true);
+    expect(recipeDetailsOutputSchema.safeParse({
+      ...recipeOutput,
+      tags: [{ id: "tag-1", name: "Soup" }],
+    }).success).toBe(false);
     expect(recipeDetailsOutputSchema.safeParse({
       ...recipeOutput,
       ingredients: [{ quantity: null, unit: null, displayText: "salt to taste" }],
@@ -144,6 +153,35 @@ describe("MCP tool schemas", () => {
         ingredients: [],
       }).success,
     ).toBe(false);
+  });
+
+  it.each([undefined, [], [" Dinner ", "Soup", "Dinner"]])("accepts optional tag names on create and edit: %o", (tags) => {
+    const created = createRecipeToolSchema.parse({
+      title: "Soup",
+      ingredients: [{ quantity: 1, unit: "CUP", displayText: "stock" }],
+      instructions: ["Simmer."],
+      tags,
+    });
+    const edited = editRecipeToolSchema.parse({ recipeId: "recipe-1", notes: "Updated", tags });
+    const expected = tags?.map((name) => name.trim());
+    expect(created.tags).toEqual(expected);
+    expect(edited.tags).toEqual(expected);
+  });
+
+  it("accepts edits that only replace or clear tags", () => {
+    expect(editRecipeToolSchema.safeParse({ recipeId: "recipe-1", tags: ["Soup"] }).success).toBe(true);
+    expect(editRecipeToolSchema.safeParse({ recipeId: "recipe-1", tags: [] }).success).toBe(true);
+    expect(editRecipeToolSchema.safeParse({ recipeId: "recipe-1", tags: undefined }).success).toBe(false);
+  });
+
+  it.each([null, "Soup", [1], [""], ["   "], ["x".repeat(101)], Array(101).fill("Soup")])("rejects invalid tags on create and edit: %o", (tags) => {
+    expect(createRecipeToolSchema.safeParse({
+      title: "Soup",
+      ingredients: [{ quantity: 1, unit: "CUP", displayText: "stock" }],
+      instructions: ["Simmer."],
+      tags,
+    }).success).toBe(false);
+    expect(editRecipeToolSchema.safeParse({ recipeId: "recipe-1", tags }).success).toBe(false);
   });
 
   it("caps recipe URL input size", () => {
