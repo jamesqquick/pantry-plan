@@ -26,10 +26,13 @@ function createFakeDb(recipeRows: unknown[]) {
                   rawText: null,
                 },
               ]
-            : [{ text: "Combine ingredients" }, { text: "Simmer" }];
+            : selectCount === 3
+              ? [{ text: "Combine ingredients" }, { text: "Simmer" }]
+              : [{ name: "Dinner" }, { name: "Soup" }];
       const chain = {
         from: () => chain,
         leftJoin: () => chain,
+        innerJoin: () => chain,
         where: () => chain,
         orderBy: async () => rows,
         limit: async () => rows,
@@ -80,6 +83,7 @@ describe("getMcpRecipe", () => {
         { quantity: 1, unit: "CUP", displayText: "stock", rawText: null },
       ],
       instructions: ["Combine ingredients", "Simmer"],
+      tags: ["Dinner", "Soup"],
     });
   });
 

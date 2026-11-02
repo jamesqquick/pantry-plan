@@ -1,6 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import type { Db } from "@/db";
-import { recipe, recipeIngredient, recipeInstruction } from "@/db";
+import { recipe, recipeIngredient, recipeInstruction, recipeTag, tag } from "@/db";
 import type { McpRecipeIngredient } from "@/features/mcp/mcp.schemas";
 import { RecipeNotFoundError } from "./recipe-errors";
 
@@ -16,6 +16,7 @@ export type McpRecipe = {
   notes: string | null;
   ingredients: McpRecipeIngredient[];
   instructions: string[];
+  tags: string[];
 };
 
 export async function getMcpRecipe(
@@ -42,7 +43,7 @@ export async function getMcpRecipe(
   const row = rows[0];
   if (!row) throw new RecipeNotFoundError();
 
-  const [ingredients, instructions] = await Promise.all([
+  const [ingredients, instructions, tags] = await Promise.all([
     db
       .select({
         quantity: recipeIngredient.quantity,
@@ -58,11 +59,18 @@ export async function getMcpRecipe(
       .from(recipeInstruction)
       .where(eq(recipeInstruction.recipeId, recipeId))
       .orderBy(asc(recipeInstruction.sortOrder)),
+    db
+      .select({ name: tag.name })
+      .from(recipeTag)
+      .innerJoin(tag, eq(tag.id, recipeTag.tagId))
+      .where(and(eq(recipeTag.recipeId, recipeId), eq(tag.userId, userId)))
+      .orderBy(asc(tag.name)),
   ]);
 
   return {
     ...row,
     ingredients,
     instructions: instructions.map((instruction) => instruction.text),
+    tags: tags.map((tag) => tag.name),
   };
 }

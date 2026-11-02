@@ -107,16 +107,19 @@ OAuth and MCP keys use the same six tools:
 
 - `create_recipe` creates a recipe in your account. Ingredients use structured
   objects with `quantity`, `unit`, `displayText`, and optional `rawText` fields.
+  Pass optional `tags` as tag names to reuse existing tags or create missing ones
+  in your account. Names are trimmed and duplicates are ignored.
 - `import_recipe_from_url` fetches and saves a recipe from a URL.
 - `search_recipes` searches your recipes. Pass an optional `tag` name to only
   search recipes with that tag. Natural-language search across ingredients,
   instructions, and notes is rolling out gradually; otherwise it matches titles.
 - `get_recipe` returns the complete recipe for a recipe ID, including ordered
-  instructions and structured ingredients.
+  instructions, structured ingredients, and tag names.
 - `edit_recipe` partially edits a recipe by ID. Omitted fields remain unchanged,
   `null` clears optional metadata, and supplied ingredients or instructions
   replace the complete ordered list. Replacement lists must contain at least one
-  item.
+  item. Supply `tags` as tag names to replace all tags, or `[]` to clear them.
+  Omit `tags` to keep the current tags. The result includes the saved tag names.
 - `create_weekly_meal_plan` replaces a week with saved recipe IDs. Use
   `search_recipes` and `create_recipe` first when a recipe is not already saved.
 
@@ -131,8 +134,7 @@ Example structured ingredient:
 }
 ```
 
-MCP recipe tools do not currently edit tags or link ingredients to pantry
-ingredient records.
+MCP recipe tools do not currently link ingredients to pantry ingredient records.
 
 ## For Contributors
 

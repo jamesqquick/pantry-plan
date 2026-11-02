@@ -60,7 +60,12 @@ or instruction list replaces that whole list. Quick Pantry weeks start on Sunday
 Creating a weekly meal plan replaces the entire selected week, so the request must
 specify the intended meals.
 
-The plugin cannot delete recipes, edit tags, manage pantry ingredient records,
+Recipe creation and editing accept optional `tags` as tag names, reusing or
+creating tags within the connected account. Editing `tags` replaces all tags;
+an empty array clears them, and omitting the field leaves them unchanged.
+Recipe reads and edit results include the saved tag names.
+
+The plugin cannot delete recipes, rename or delete tags, manage pantry ingredient records,
 manage orders or grocery lists, or make purchases.
 
 ## Hosted OAuth setup

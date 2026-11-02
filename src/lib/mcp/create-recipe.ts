@@ -4,6 +4,7 @@ import { recipe, recipeIngredient, recipeInstruction } from "@/db";
 import type { CreateRecipeToolInput } from "@/features/mcp/mcp.schemas";
 import { chunkRows } from "@/db/chunked-insert";
 import { validateIngredientMeasurements } from "@/features/recipes/ingredient-measurements";
+import { mcpRecipeTagStatements } from "./recipe-tags";
 
 export async function createMcpRecipe(
   db: Db,
@@ -47,6 +48,7 @@ export async function createMcpRecipe(
     ...chunkRows(ingredientRows, 8).map((chunk) =>
       db.insert(recipeIngredient).values(chunk),
     ),
+    ...mcpRecipeTagStatements(db, userId, recipeId, input.tags ?? []),
   ];
 
   await db.batch(statements as [(typeof statements)[0], ...typeof statements]);

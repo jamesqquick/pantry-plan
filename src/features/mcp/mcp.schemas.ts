@@ -47,6 +47,9 @@ const recipeToolFields = {
   ingredients: z.array(mcpRecipeIngredientSchema).min(1).max(200),
   instructions: z.array(z.string().trim().min(1).max(5_000)).min(1).max(200),
   notes: z.string().max(20_000).optional(),
+  tags: z.array(z.string().trim().min(1).max(100)).max(100).optional().describe(
+    "Tag names in your account. Names are trimmed and duplicates ignored; existing tags are reused and missing tags are created.",
+  ),
 };
 
 export const createRecipeToolSchema = z.object(recipeToolFields).strict();
@@ -70,6 +73,9 @@ export const editRecipeToolSchema = z
     ingredients: recipeToolFields.ingredients.optional(),
     instructions: recipeToolFields.instructions.optional(),
     notes: recipeToolFields.notes.nullable().optional(),
+    tags: recipeToolFields.tags.describe(
+      "Replace all recipe tags with these names. Omit to leave tags unchanged; an empty array clears all tags. Names are trimmed and duplicates ignored; existing account tags are reused and missing tags are created.",
+    ),
   })
   .strict()
   .refine(
@@ -141,6 +147,7 @@ export const recipeDetailsOutputSchema = z.object({
     rawText: z.string().nullable().optional(),
   }).strict()),
   instructions: z.array(z.string()),
+  tags: z.array(z.string()),
 }).strict();
 
 export const searchRecipesOutputSchema = z.object({
