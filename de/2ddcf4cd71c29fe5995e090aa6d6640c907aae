@@ -1,0 +1,101 @@
+src/actions/import.ts
+  s_b4bfdbe82d2558::t_2f2555ca9abce5 36-37,336,341-343
+src/actions/orders.ts
+  s_b4bfdbe82d2558::t_8695b8e383055e 12-13,40,44-47,56,77
+src/actions/recipe-measurements.test.ts
+  s_efb06f447625d7::t_0b58dd8b959fe7 110-111,146-147,162-163,191-192,225-226,242-243,260-261
+src/actions/recipes.test.ts
+  s_efb06f447625d7::t_bcf13ea115e8e3 97,224,255,283
+src/actions/recipes.ts
+  s_b4bfdbe82d2558::t_6835c770fd3c66 28-29,108,112-118,145,167-168,332,337-343,369,383,389,397-415,417-418
+src/components/app/PendingCreates.test.tsx
+  s_07909bef84dbaa::t_b07b30d30c145a 1-90
+src/components/app/PendingCreates.tsx
+  s_b4bfdbe82d2558::t_29de169c75474e 1-58
+src/components/orders/OrderForm.test.tsx
+  s_b4bfdbe82d2558::t_c0388f2b0c9db6 15,23-27
+src/components/orders/OrderForm.tsx
+  s_b4bfdbe82d2558::t_ea334fa8e980df 3,87,126,134-135
+src/components/recipes/RecipeActions.tsx
+  s_b4bfdbe82d2558::t_09cb939f31f5b9 7,46,50-59
+src/components/recipes/RecipeForm.test.tsx
+  s_b4bfdbe82d2558::t_2ea014bca5fbb7 18-21,91-92
+src/components/recipes/RecipeForm.tsx
+  s_b4bfdbe82d2558::t_02783ff71482ba 21,207,241-242
+src/components/recipes/import/RecipeDraftEditor.test.tsx
+  s_efb06f447625d7::t_d73bf432d9554d 19,45-46,488-489
+src/components/recipes/import/RecipeDraftEditor.tsx
+  s_b4bfdbe82d2558::t_341a95d48b9cb8 7,242,245,252
+src/db/migrations/0008_mutation_operations.sql
+  s_5bc09201e75855::t_6dbf628406eb62 1-10
+src/db/migrations/meta/0008_snapshot.json
+  s_5bc09201e75855::t_c66a51b2ea8c91 1-2944
+src/db/migrations/meta/0009_snapshot.json
+  s_5bc09201e75855::t_a596457a391215 1-2952
+src/db/migrations/meta/_journal.json
+  s_5bc09201e75855::t_87c370cfff78ea 60-73,76
+src/db/schema/mutation-operations.ts
+  s_b4bfdbe82d2558::t_2f3bfa91c807d1 1-18
+src/features/mutations/canonical.ts
+  s_b4bfdbe82d2558::t_83d86f7ab369d4 1-7
+src/features/mutations/client.test.ts
+  s_07909bef84dbaa::t_561502f5864d5e 1-238
+src/features/mutations/client.ts
+  s_b4bfdbe82d2558::t_94b2bc9bb14ee2 1-203
+src/features/mutations/mutations.schemas.ts
+  s_b4bfdbe82d2558::t_9e5aa6f4355dbe 1-15
+src/features/mutations/server.ts
+  s_b4bfdbe82d2558::t_103698ce530c86 1-65
+src/layouts/AppLayout.astro
+  s_b4bfdbe82d2558::t_7ad9fd468bf5fb 4,37,40
+src/test/d1.ts
+  s_4bb741f6f7329d::t_064a4ffb27b10d 22,29,37-40,46-52,56-66,70-74,79-80,84-94,97,101,111-114
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "de2ddcf4cd71c29fe5995e090aa6d6640c907aae",
+  "prompts": {},
+  "sessions": {
+    "s_07909bef84dbaa": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e61d31c75ffe3RirG5JdXQAmWh",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    },
+    "s_4bb741f6f7329d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e61c0afa3ffedYSPRPFMooAjCS",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    },
+    "s_5bc09201e75855": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e61e32f61ffeBkW1l6I5A4EVi4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    },
+    "s_b4bfdbe82d2558": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e7c92d384ffe17LCCK9WI9MXRG",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    },
+    "s_efb06f447625d7": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e727e40bbffel4E35f1BAWKM4K",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "James Quick <jquick@cloudflare.com>"
+    }
+  }
+}
