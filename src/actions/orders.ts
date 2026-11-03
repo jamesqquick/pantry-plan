@@ -9,6 +9,8 @@ import {
 } from "@/features/orders/orders.schemas";
 import { order, orderItem, recipe } from "@/db";
 import { getDb, requireUser } from "./_shared";
+import { mutationInputSchema } from "@/features/mutations/mutations.schemas";
+import { assertMutationAccount, prepareCreate } from "@/features/mutations/server";
 
 /**
  * Ensure every recipeId in `items` belongs to the given user. Throws
@@ -35,10 +37,14 @@ async function ensureAllRecipesOwned(
 export const orders = {
   /** Create an order with its initial set of recipe × batchCount items. */
   create: defineAction({
-    input: orderCreateSchema,
+    input: orderCreateSchema.extend(mutationInputSchema.shape),
     handler: async (input, ctx) => {
       const user = requireUser(ctx);
       const db = getDb();
+      const { operationId, accountId, ...payload } = input;
+      assertMutationAccount(user.id, accountId);
+      const operation = await prepareCreate(db, user.id, "orders.create", operationId, payload);
+      if (operation.resourceId) return { id: operation.resourceId };
 
       await ensureAllRecipesOwned(
         db,
@@ -47,7 +53,7 @@ export const orders = {
       );
 
       const id = createId();
-      await db.batch([
+      const savedId = await operation.commit(id, [
         db.insert(order).values({
           id,
           userId: user.id,
@@ -68,7 +74,7 @@ export const orders = {
         }))),
       ]);
 
-      return { id };
+      return { id: savedId };
     },
   }),
 

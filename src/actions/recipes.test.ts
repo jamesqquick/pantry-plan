@@ -94,7 +94,7 @@ function submittedRecipe() {
 
 function mutate(method: "create" | "update", input = submittedRecipe()) {
   return method === "create"
-    ? recipes.create.orThrow.call(ctx, input)
+    ? recipes.create.orThrow.call(ctx, { ...input, accountId: "cook", operationId: crypto.randomUUID() })
     : recipes.update.orThrow.call(ctx, { id: "existing", ...input });
 }
 
@@ -221,6 +221,7 @@ describe.each(["create", "update"] as const)("atomic recipe %s", (method) => {
     });
     const assertion = expect(operation).rejects.toBeInstanceOf(DatabaseTimeoutError);
 
+    await vi.waitFor(() => expect(raw).toHaveBeenCalledOnce(), { interval: 1 });
     await vi.advanceTimersByTimeAsync(100);
     await assertion;
 
@@ -251,8 +252,7 @@ describe.each(["create", "update"] as const)("atomic recipe %s", (method) => {
       return mutate(method);
     });
     const assertion = expect(operation).rejects.toBeInstanceOf(DatabaseTimeoutError);
-    await vi.advanceTimersByTimeAsync(0);
-    expect(batch).toHaveBeenCalledOnce();
+    await vi.waitFor(() => expect(batch).toHaveBeenCalledOnce(), { interval: 1 });
     const initialQueries = prepare.mock.calls.length;
 
     await vi.advanceTimersByTimeAsync(100);
@@ -280,7 +280,7 @@ describe.each(["create", "update"] as const)("atomic recipe %s", (method) => {
 
 describe("partial recipe mutations", () => {
   it("creates a recipe without optional children", async () => {
-    const { id } = await recipes.create.orThrow.call(ctx, { title: "Simple soup", instructions: ["  Cook.  "] });
+    const { id } = await recipes.create.orThrow.call(ctx, { accountId: "cook", operationId: crypto.randomUUID(), title: "Simple soup", instructions: ["  Cook.  "] });
 
     expect(test.sqlite.prepare("SELECT text FROM RecipeInstruction WHERE recipeId = ?").all(id)).toEqual([{ text: "Cook." }]);
     expect(test.sqlite.prepare("SELECT * FROM RecipeIngredient WHERE recipeId = ?").all(id)).toEqual([]);

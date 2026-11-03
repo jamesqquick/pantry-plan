@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "./BaseLayout.astro";
 import { AppHeader } from "@/components/app/AppHeader";
+import { PendingCreates } from "@/components/app/PendingCreates";
 
 interface Props {
   title?: string;
@@ -33,8 +34,10 @@ const pathname = Astro.url.pathname;
     />
     <main
       id="main-content"
+      data-account-id={user.id}
       class:list={[containerClass, "pb-[calc(5rem+env(safe-area-inset-bottom))]", "lg:pb-[calc(2rem+env(safe-area-inset-bottom))]"]}
     >
+      <PendingCreates client:load />
       <slot />
     </main>
   </div>

@@ -25,6 +25,8 @@ import {
 import { chunkRows } from "@/db/chunked-insert";
 import { chunkInValues } from "@/db/chunked-read";
 import { getDb, queueSearchSync, requireUser } from "./_shared";
+import { mutationInputSchema } from "@/features/mutations/mutations.schemas";
+import { assertMutationAccount, prepareCreate } from "@/features/mutations/server";
 
 /**
  * Recipes submit complex nested data (ingredients + instructions + tags).
@@ -103,10 +105,17 @@ export const recipes = {
    * Returns the new id; the client is expected to navigate to it.
    */
   create: defineAction({
-    input: recipeCreateInputSchema,
+    input: recipeCreateInputSchema.extend(mutationInputSchema.shape),
     handler: async (input, ctx) => {
       const user = requireUser(ctx);
       const db = getDb();
+      const { operationId, accountId, ...payload } = input;
+      assertMutationAccount(user.id, accountId);
+      const operation = await prepareCreate(db, user.id, "recipes.create", operationId, payload);
+      if (operation.resourceId) {
+        await queueSearchSync(ctx, db, [operation.resourceId]);
+        return { id: operation.resourceId };
+      }
 
       await validateIngredientReferences(db, user.id, input.ingredientsStructured);
       const validTagIds = await filterOwnedTagIds(db, user.id, input.tagIds);
@@ -133,7 +142,7 @@ export const recipes = {
       }));
       const tagRows = validTagIds.map((tagId) => ({ recipeId, tagId }));
 
-      await db.batch([
+      const savedId = await operation.commit(recipeId, [
         db.insert(recipe).values({
           id: recipeId,
           userId: user.id,
@@ -155,8 +164,8 @@ export const recipes = {
         ...chunkRows(tagRows, 3).map((chunk) => db.insert(recipeTag).values(chunk)),
       ]);
 
-      await queueSearchSync(ctx, db, [recipeId]);
-      return { id: recipeId };
+      await queueSearchSync(ctx, db, [savedId]);
+      return { id: savedId };
     },
   }),
 
@@ -320,10 +329,17 @@ export const recipes = {
    */
   duplicate: defineAction({
     accept: "form",
-    input: duplicateRecipeSchema,
+    input: duplicateRecipeSchema.extend(mutationInputSchema.shape),
     handler: async (input, ctx) => {
       const user = requireUser(ctx);
       const db = getDb();
+
+      assertMutationAccount(user.id, input.accountId);
+      const operation = await prepareCreate(db, user.id, "recipes.duplicate", input.operationId, { recipeId: input.recipeId });
+      if (operation.resourceId) {
+        await queueSearchSync(ctx, db, [operation.resourceId]);
+        return { id: operation.resourceId };
+      }
 
       const sourceRows = await db
         .select()
@@ -350,26 +366,7 @@ export const recipes = {
         throw new ActionError({ code: "BAD_REQUEST", message: error.message });
       }
 
-      const [copy] = await db
-        .insert(recipe)
-        .values({
-          userId: user.id,
-          title: `Copy of ${source.title}`,
-          sourceUrl: source.sourceUrl,
-          imageUrl: source.imageUrl,
-          servings: source.servings,
-          prepTimeMinutes: source.prepTimeMinutes,
-          cookTimeMinutes: source.cookTimeMinutes,
-          totalTimeMinutes: source.totalTimeMinutes,
-          notes: source.notes,
-        })
-        .returning({ id: recipe.id });
-      if (!copy) {
-        throw new ActionError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to duplicate recipe",
-        });
-      }
+      const copyId = createId();
 
       const [insts, rtags] = await Promise.all([
         db
@@ -383,16 +380,13 @@ export const recipes = {
       ]);
 
       const instructionRows = insts.map((i) => ({
-        recipeId: copy.id,
+        recipeId: copyId,
         sortOrder: i.sortOrder,
         text: i.text,
       }));
-      for (const chunk of chunkRows(instructionRows, 4)) {
-        await db.insert(recipeInstruction).values(chunk);
-      }
 
       const ingredientRows = rings.map((ri, idx) => ({
-        recipeId: copy.id,
+        recipeId: copyId,
         ingredientId: ri.ingredientId,
         quantity: ri.quantity,
         unit: ri.unit,
@@ -400,24 +394,28 @@ export const recipes = {
         rawText: ri.rawText,
         sortOrder: ri.sortOrder ?? idx,
       }));
-      for (const chunk of chunkRows(ingredientRows, 8)) {
-        await db.insert(recipeIngredient).values(chunk);
-      }
+      const validTagIds = await filterOwnedTagIds(db, user.id, rtags.map((r) => r.tagId));
+      const tagRows = validTagIds.map((tagId) => ({ recipeId: copyId, tagId }));
+      const savedId = await operation.commit(copyId, [
+        db.insert(recipe).values({
+          id: copyId,
+          userId: user.id,
+          title: `Copy of ${source.title}`,
+          sourceUrl: source.sourceUrl,
+          imageUrl: source.imageUrl,
+          servings: source.servings,
+          prepTimeMinutes: source.prepTimeMinutes,
+          cookTimeMinutes: source.cookTimeMinutes,
+          totalTimeMinutes: source.totalTimeMinutes,
+          notes: source.notes,
+        }),
+        ...chunkRows(instructionRows, 4).map((chunk) => db.insert(recipeInstruction).values(chunk)),
+        ...chunkRows(ingredientRows, 8).map((chunk) => db.insert(recipeIngredient).values(chunk)),
+        ...chunkRows(tagRows, 3).map((chunk) => db.insert(recipeTag).values(chunk)),
+      ]);
 
-      if (rtags.length > 0) {
-        const tagIds = rtags.map((r) => r.tagId);
-        const validTagIds = await filterOwnedTagIds(db, user.id, tagIds);
-        const tagRows = validTagIds.map((tagId) => ({
-          recipeId: copy.id,
-          tagId,
-        }));
-        for (const chunk of chunkRows(tagRows, 3)) {
-          await db.insert(recipeTag).values(chunk);
-        }
-      }
-
-      await queueSearchSync(ctx, db, [copy.id]);
-      return { id: copy.id };
+      await queueSearchSync(ctx, db, [savedId]);
+      return { id: savedId };
     },
   }),
 };
