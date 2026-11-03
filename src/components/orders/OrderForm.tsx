@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { actions } from "astro:actions";
+import { submitCreate, SubmissionStorageError } from "@/features/mutations/client";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import type {
@@ -83,6 +84,7 @@ export default function OrderForm(props: OrderFormProps) {
 
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submitting) return;
     if (validItems.length === 0) {
       setError("Add at least one recipe.");
       return;
@@ -121,7 +123,7 @@ export default function OrderForm(props: OrderFormProps) {
         }
         window.location.href = `/orders/${props.orderId}`;
       } else {
-        const { data, error: err } = await actions.orders.create(payload);
+        const { data, error: err } = await submitCreate("orders.create", payload);
         if (err) {
           setError(err.message);
           setSubmitting(false);
@@ -129,8 +131,8 @@ export default function OrderForm(props: OrderFormProps) {
         }
         window.location.href = `/orders/${data!.id}`;
       }
-    } catch {
-      setError("Couldn't save the order. Check your connection and try again.");
+    } catch (cause) {
+      setError(cause instanceof SubmissionStorageError ? cause.message : "Couldn't save the order. Check your connection and try again.");
       setSubmitting(false);
     }
   }

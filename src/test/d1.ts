@@ -19,13 +19,14 @@ function toSqlValue(value: unknown): SQLInputValue {
 
 class FakeD1Statement {
   constructor(
+    private readonly database: FakeD1Database,
     private readonly sqlite: DatabaseSync,
     private readonly query: string,
     private readonly params: unknown[] = [],
   ) {}
 
   bind(...params: unknown[]) {
-    return new FakeD1Statement(this.sqlite, this.query, params);
+    return new FakeD1Statement(this.database, this.sqlite, this.query, params);
   }
 
   private values() {
@@ -33,49 +34,71 @@ class FakeD1Statement {
   }
 
   async all() {
+    return this.database.schedule(() => this.allInBatch());
+  }
+
+  allInBatch() {
     const results = this.sqlite.prepare(this.query).all(...this.values());
     return { results, success: true, meta: {} };
   }
 
   async first(column?: string) {
-    const row = this.sqlite.prepare(this.query).get(...this.values()) as
-      | Record<string, unknown>
-      | undefined;
-    if (!row) return null;
-    return column ? row[column] : row;
+    return this.database.schedule(() => {
+      const row = this.sqlite.prepare(this.query).get(...this.values()) as
+        | Record<string, unknown>
+        | undefined;
+      if (!row) return null;
+      return column ? row[column] : row;
+    });
   }
 
   async run() {
-    const result = this.sqlite.prepare(this.query).run(...this.values());
-    return {
-      results: [],
-      success: true,
-      meta: {
-        changes: Number(result.changes),
-        last_row_id: Number(result.lastInsertRowid),
-      },
-    };
+    return this.database.schedule(() => {
+      const result = this.sqlite.prepare(this.query).run(...this.values());
+      return {
+        results: [],
+        success: true,
+        meta: {
+          changes: Number(result.changes),
+          last_row_id: Number(result.lastInsertRowid),
+        },
+      };
+    });
   }
 
   async raw() {
-    const stmt = this.sqlite.prepare(this.query);
-    stmt.setReturnArrays(true);
-    return stmt.all(...this.values());
+    return this.database.schedule(() => {
+      const stmt = this.sqlite.prepare(this.query);
+      stmt.setReturnArrays(true);
+      return stmt.all(...this.values());
+    });
   }
 }
 
 class FakeD1Database {
+  private tail: Promise<unknown> = Promise.resolve();
+
   constructor(private readonly sqlite: DatabaseSync) {}
 
   prepare(query: string) {
-    return new FakeD1Statement(this.sqlite, query);
+    return new FakeD1Statement(this, this.sqlite, query);
   }
 
-  async batch(statements: FakeD1Statement[]) {
+  schedule<T>(execute: () => T) {
+    const pending = this.tail.then(execute);
+    this.tail = pending.catch(() => {});
+    return pending;
+  }
+
+  batch(statements: FakeD1Statement[]) {
+    return this.schedule(() => this.runBatch(statements));
+  }
+
+  private runBatch(statements: FakeD1Statement[]) {
     this.sqlite.exec("BEGIN");
     try {
       const results = [];
-      for (const statement of statements) results.push(await statement.all());
+      for (const statement of statements) results.push(statement.allInBatch());
       this.sqlite.exec("COMMIT");
       return results;
     } catch (error) {
@@ -85,8 +108,10 @@ class FakeD1Database {
   }
 
   async exec(query: string) {
-    this.sqlite.exec(query);
-    return { count: 0, duration: 0 };
+    return this.schedule(() => {
+      this.sqlite.exec(query);
+      return { count: 0, duration: 0 };
+    });
   }
 }
 

@@ -18,6 +18,7 @@ import { requiredIngredientMeasurementsSchema } from "@/features/recipes/ingredi
 import type { RecipeIngredientItemInput } from "@/features/recipes/recipe-ingredients.schemas";
 import { SortableRecipeList } from "./SortableRecipeList";
 import { useRecipeEditorRows } from "./useRecipeEditorRows";
+import { submitCreate, SubmissionStorageError } from "@/features/mutations/client";
 
 export type RecipeFormMode = "create" | "edit";
 
@@ -203,7 +204,7 @@ export default function RecipeForm({
     setPending(true);
     try {
       if (mode === "create") {
-        const { data, error: err } = await actions.recipes.create(payload);
+        const { data, error: err } = await submitCreate("recipes.create", payload);
         if (err) {
           setError(err.message || "Could not create recipe");
           if ("fields" in err && err.fields) {
@@ -237,8 +238,8 @@ export default function RecipeForm({
           window.location.href = `/recipes/${data.id}`;
         }
       }
-    } catch {
-      setError("Could not save recipe. Please try again.");
+    } catch (cause) {
+      setError(cause instanceof SubmissionStorageError ? cause.message : "Could not save recipe. Please try again.");
       setPending(false);
     }
   }

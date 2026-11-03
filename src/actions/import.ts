@@ -33,6 +33,8 @@ import {
   RecipeCreationError,
 } from "@/features/recipes/create-text-recipe";
 import { IngredientMeasurementValidationError } from "@/features/recipes/ingredient-measurements";
+import { mutationInputSchema } from "@/features/mutations/mutations.schemas";
+import { assertMutationAccount } from "@/features/mutations/server";
 
 export const recipeImport = {
   /**
@@ -331,12 +333,14 @@ export const recipeImport = {
    * Raw text lines are conservatively parsed for quick saves and MCP imports.
    */
   saveTextOnly: defineAction({
-    input: saveImportedRecipeTextOnlySchema,
+    input: saveImportedRecipeTextOnlySchema.extend(mutationInputSchema.shape),
     handler: async (input, ctx) => {
       const user = requireUser(ctx);
       const db = getDb();
       try {
-        const result = await createTextOnlyRecipe(db, user.id, input);
+        const { operationId, accountId, ...payload } = input;
+        assertMutationAccount(user.id, accountId);
+        const result = await createTextOnlyRecipe(db, user.id, payload, operationId);
         await queueSearchSync(ctx, db, [result.recipeId]);
         return result;
       } catch (error) {
