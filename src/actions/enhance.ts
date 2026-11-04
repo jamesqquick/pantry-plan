@@ -187,7 +187,11 @@ export const enhance = {
                 userId: user.id,
                 name: createName,
                 normalizedName,
-                costBasisUnit: "G",
+                costBasisUnit: unit === "COUNT"
+                  ? "COUNT"
+                  : ["TSP", "TBSP", "CUP", "PINCH"].includes(unit)
+                    ? "CUP"
+                    : "G",
               })
               .returning({ id: ingredient.id });
             ingredientId = created!.id;
@@ -229,6 +233,8 @@ export const enhance = {
             .select({
               normalizedName: ingredient.normalizedName,
               gramsPerCup: ingredient.gramsPerCup,
+              gramsPerEach: ingredient.gramsPerEach,
+              cupsPerEach: ingredient.cupsPerEach,
             })
             .from(ingredient)
             .where(eq(ingredient.id, ingredientId))
@@ -239,6 +245,8 @@ export const enhance = {
             ingredient: ingForConvert ?? {
               normalizedName: null,
               gramsPerCup: null,
+              gramsPerEach: null,
+              cupsPerEach: null,
             },
             originalLine: rawLine,
           });

@@ -75,8 +75,10 @@ if (recipeIds.length > 0) {
       ingCostBasisUnit: ingredient.costBasisUnit,
       ingEstimatedCentsPerBasisUnit: ingredient.estimatedCentsPerBasisUnit,
       ingGramsPerCup: ingredient.gramsPerCup,
+      ingGramsPerEach: ingredient.gramsPerEach,
       ingCupsPerEach: ingredient.cupsPerEach,
       ingPreferredDisplayUnit: ingredient.preferredDisplayUnit,
+      ingPurchaseUnit: ingredient.purchaseUnit,
     })
     .from(recipeIngredient)
     .leftJoin(ingredient, eq(recipeIngredient.ingredientId, ingredient.id))
@@ -109,8 +111,10 @@ if (recipeIds.length > 0) {
             costBasisUnit: ri.ingCostBasisUnit!,
             estimatedCentsPerBasisUnit: ri.ingEstimatedCentsPerBasisUnit ?? null,
             gramsPerCup: ri.ingGramsPerCup ?? null,
+            gramsPerEach: ri.ingGramsPerEach ?? null,
             cupsPerEach: ri.ingCupsPerEach ?? null,
             preferredDisplayUnit: ri.ingPreferredDisplayUnit ?? null,
+            purchaseUnit: ri.ingPurchaseUnit ?? null,
           }
         : null,
       quantity: ri.quantity,

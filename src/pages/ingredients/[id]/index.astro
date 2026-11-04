@@ -5,7 +5,9 @@ import AppLayout from "@/layouts/AppLayout.astro";
 import PageHeader from "@/components/ui/PageHeader.astro";
 import { DeleteIngredientButton } from "@/components/ingredients/DeleteIngredientButton";
 import { renderMarkdownToHtml } from "@/features/markdown/render-markdown";
-import { formatDollars } from "@/lib/money";
+import { formatIngredientCost } from "@/lib/ingredients/pricing";
+import { DISPLAY_UNIT_LABELS, UNIT_LABELS } from "@/lib/ingredients/units";
+import { formatQuantity } from "@/lib/quantity/quantity";
 import { createDb, ingredient, recipeIngredient, recipe } from "@/db";
 
 
@@ -73,44 +75,28 @@ const notesHtml = ing.notes?.trim()
   : null;
 
 // Build detail fields.
-const UNIT_LABELS: Record<string, string> = {
-  COUNT: "count",
-  TSP: "tsp",
-  TBSP: "tbsp",
-  CUP: "cup",
-  OZ: "oz",
-  LB: "lb",
-  G: "g",
-  KG: "kg",
-  PINCH: "pinch",
-};
-
-const DISPLAY_UNIT_LABELS: Record<string, string> = {
-  AUTO: "Auto",
-  GRAM: "Grams",
-  CUP: "Cups",
-  EACH: "Each",
-  TBSP: "Tablespoon",
-  TSP: "Teaspoon",
-};
-
 type DetailField = { label: string; value: string };
 const details: DetailField[] = [];
 if (ing.category) details.push({ label: "Category", value: ing.category });
-if (ing.defaultUnit) details.push({ label: "Default unit", value: UNIT_LABELS[ing.defaultUnit] ?? ing.defaultUnit });
 if (ing.preferredDisplayUnit && ing.preferredDisplayUnit !== "AUTO") {
-  details.push({ label: "Preferred display unit", value: DISPLAY_UNIT_LABELS[ing.preferredDisplayUnit] ?? ing.preferredDisplayUnit });
+  details.push({ label: "Grocery list unit", value: DISPLAY_UNIT_LABELS[ing.preferredDisplayUnit] ?? ing.preferredDisplayUnit });
 }
-if (ing.costBasisUnit) details.push({ label: "Cost basis unit", value: UNIT_LABELS[ing.costBasisUnit] ?? ing.costBasisUnit });
-if (ing.estimatedCentsPerBasisUnit != null) {
+if (ing.purchasePriceCents != null && ing.purchaseQuantity != null && ing.purchaseUnit != null) {
+  details.push({ label: "Cost", value: `${formatIngredientCost(ing.purchasePriceCents)} for ${formatQuantity(ing.purchaseQuantity)} ${UNIT_LABELS[ing.purchaseUnit]}` });
+} else if (ing.estimatedCentsPerBasisUnit != null) {
   const basisLabel = UNIT_LABELS[ing.costBasisUnit] ?? ing.costBasisUnit;
   details.push({
     label: "Estimated cost",
-    value: `${formatDollars(ing.estimatedCentsPerBasisUnit)} per ${basisLabel}`,
+    value: `${formatIngredientCost(ing.estimatedCentsPerBasisUnit)} per ${basisLabel}`,
   });
 }
-if (ing.gramsPerCup != null) {
-  details.push({ label: "Grams per cup", value: String(ing.gramsPerCup) });
+if (ing.volumeAmount != null && ing.volumeUnit != null && ing.volumeWeightGrams != null) {
+  details.push({ label: "Volume to weight", value: `${formatQuantity(ing.volumeAmount)} ${UNIT_LABELS[ing.volumeUnit]} = ${ing.volumeWeightGrams} g` });
+} else if (ing.gramsPerCup != null) {
+  details.push({ label: "Volume to weight", value: `1 cup = ${ing.gramsPerCup} g` });
+}
+if (ing.gramsPerEach != null) {
+  details.push({ label: "Weight per item", value: `${ing.gramsPerEach} g` });
 }
 ---
 

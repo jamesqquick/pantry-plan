@@ -10,12 +10,12 @@ import {
   globalIngredientByIdSchema,
 } from "@/features/ingredients/ingredients.schemas";
 import { normalizeIngredientName } from "@/lib/ingredients/normalize";
+import { deriveIngredientPricing } from "@/lib/ingredients/pricing";
 import {
   ingredient,
   ingredientCategory,
   recipeIngredient,
-  type CostBasisUnit,
-  type IngredientUnit,
+  type Ingredient,
 } from "@/db";
 import { getDb, queueSearchSync, requireUser, requireAdmin } from "./_shared";
 import { recipeIdsUsingIngredient } from "@/lib/search/recipe-index";
@@ -26,13 +26,12 @@ export type PickerIngredient = {
   source: "global" | "custom";
 };
 
-export type GlobalIngredientBasePrefillData = {
-  category: string | null;
-  defaultUnit: IngredientUnit | null;
-  costBasisUnit: CostBasisUnit;
-  estimatedCentsPerBasisUnit: number | null;
-  notes: string | null;
-};
+export type GlobalIngredientBasePrefillData = Pick<Ingredient,
+  | "category" | "defaultUnit" | "costBasisUnit" | "estimatedCentsPerBasisUnit"
+  | "purchasePriceCents" | "purchaseQuantity" | "purchaseUnit"
+  | "volumeAmount" | "volumeUnit" | "volumeWeightGrams" | "gramsPerCup"
+  | "gramsPerEach" | "preferredDisplayUnit" | "notes"
+>;
 
 const PICKER_SEARCH_TAKE = 25;
 const GLOBAL_BASE_SEARCH_TAKE = 25;
@@ -126,8 +125,9 @@ export const ingredients = {
           category: categoryResolved,
           subcategory: subcategoryForCreate,
           defaultUnit: input.defaultUnit ?? null,
-          costBasisUnit: input.costBasisUnit,
-          estimatedCentsPerBasisUnit: input.estimatedCentsPerBasisUnit ?? null,
+          ...deriveIngredientPricing(input),
+          gramsPerEach: input.gramsPerEach ?? null,
+          preferredDisplayUnit: input.preferredDisplayUnit,
           notes: input.notes?.trim() || null,
           baseIngredientId: input.baseIngredientId ?? null,
         })
@@ -211,11 +211,9 @@ export const ingredients = {
           name: input.name.trim(),
           normalizedName,
           category: categoryResolved,
-          defaultUnit: input.defaultUnit ?? null,
-          ...(input.costBasisUnit != null && {
-            costBasisUnit: input.costBasisUnit,
-          }),
-          estimatedCentsPerBasisUnit: input.estimatedCentsPerBasisUnit ?? null,
+          ...(input.defaultUnit !== undefined && { defaultUnit: input.defaultUnit }),
+          ...deriveIngredientPricing(input),
+          gramsPerEach: input.gramsPerEach ?? null,
           notes: input.notes?.trim() || null,
           preferredDisplayUnit: input.preferredDisplayUnit,
         })
@@ -409,6 +407,15 @@ export const ingredients = {
           defaultUnit: ingredient.defaultUnit,
           costBasisUnit: ingredient.costBasisUnit,
           estimatedCentsPerBasisUnit: ingredient.estimatedCentsPerBasisUnit,
+          purchasePriceCents: ingredient.purchasePriceCents,
+          purchaseQuantity: ingredient.purchaseQuantity,
+          purchaseUnit: ingredient.purchaseUnit,
+          volumeAmount: ingredient.volumeAmount,
+          volumeUnit: ingredient.volumeUnit,
+          volumeWeightGrams: ingredient.volumeWeightGrams,
+          gramsPerCup: ingredient.gramsPerCup,
+          gramsPerEach: ingredient.gramsPerEach,
+          preferredDisplayUnit: ingredient.preferredDisplayUnit,
           notes: ingredient.notes,
         })
         .from(ingredient)

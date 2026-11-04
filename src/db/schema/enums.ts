@@ -35,6 +35,12 @@ export const COST_BASIS_UNITS = [
 ] as const;
 export type CostBasisUnit = (typeof COST_BASIS_UNITS)[number];
 
+export const PURCHASE_UNITS = ["COUNT", "G", "KG", "OZ", "LB", "CUP"] as const;
+export type PurchaseUnit = (typeof PURCHASE_UNITS)[number];
+
+export const VOLUME_UNITS = ["CUP", "TBSP", "TSP"] as const;
+export type VolumeUnit = (typeof VOLUME_UNITS)[number];
+
 export const ORDER_STATUSES = [
   "DRAFT",
   "CONFIRMED",
@@ -58,6 +64,9 @@ export type OrderFulfillmentMethod = (typeof ORDER_FULFILLMENT_METHODS)[number];
 export const INGREDIENT_DISPLAY_UNITS = [
   "AUTO",
   "GRAM",
+  "KG",
+  "OZ",
+  "LB",
   "CUP",
   "EACH",
   "TBSP",

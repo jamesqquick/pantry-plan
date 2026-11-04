@@ -255,6 +255,41 @@ describe("recipe measurement actions", () => {
   });
 
   it.each([
+    { units: ["COUNT"], basis: "COUNT" },
+    { units: ["CUP", "TBSP"], basis: "CUP" },
+    { units: ["COUNT", "G"], basis: "G" },
+  ] as const)("infers $basis for imported ingredient units $units", async ({ units, basis }) => {
+    const result = await recipeImport.saveWithMappings.bind(ctx)({
+      recipe: { title: "Imported", instructions: ["Mix."] },
+      ingredientLines: units.map((unit, sortOrder) => ({ originalLine: `1 ${unit.toLowerCase()} imported ingredient`, createName: "Imported ingredient", quantity: 1, unit, sortOrder })),
+    });
+    expect(result.error).toBeUndefined();
+    expect(await test.db.select().from(ingredient)).toMatchObject([{ costBasisUnit: basis, purchasePriceCents: null, gramsPerCup: null }]);
+  });
+
+  it.each([{ ingredientId: "eggs" }, { createName: "Eggs" }])("uses saved item weight for imported mapping %o", async (mapping) => {
+    await test.db.insert(ingredient).values({
+      id: "eggs", userId: "cook", name: "Eggs", normalizedName: "eggs", costBasisUnit: "COUNT", gramsPerEach: 50,
+    });
+    const result = await recipeImport.saveWithMappings.bind(ctx)({
+      recipe: { title: "Breakfast", instructions: ["Cook."] },
+      ingredientLines: [{ originalLine: "2 eggs", quantity: 2, unit: "COUNT", sortOrder: 0, ...mapping }],
+    });
+    expect(result.error).toBeUndefined();
+    expect(await test.db.select().from(recipeIngredient)).toMatchObject([{ ingredientId: "eggs", weightGrams: 100, conversionSource: "AUTO" }]);
+  });
+
+  it.each(["COUNT", "CUP", "G"] as const)("keeps %s as the appropriate basis for new mapped ingredients", async (unit) => {
+    const row = await seedRecipe({ quantity: 1, unit });
+    const result = await ingredientMapping.applyRecipe.bind(ctx)({
+      recipeId: "legacy",
+      items: [{ recipeIngredientId: row.id, recipeIngredientUpdatedAt: row.updatedAt.getTime(), displayText: "New ingredient", quantity: 1, unit, mapping: { kind: "create", name: "New ingredient" } }],
+    });
+    expect(result.error).toBeUndefined();
+    expect(await test.db.select().from(ingredient)).toMatchObject([{ costBasisUnit: unit, purchasePriceCents: null }]);
+  });
+
+  it.each([
     { kind: "existing", ingredientId: "salt" },
     { kind: "create", name: "Salt" },
     { kind: "unmapped" },

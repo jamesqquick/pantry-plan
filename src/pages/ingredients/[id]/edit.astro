@@ -5,7 +5,7 @@ import { and, asc, eq, isNull, or } from "drizzle-orm";
 import AppLayout from "@/layouts/AppLayout.astro";
 import IngredientForm from "@/components/ingredients/IngredientForm";
 import { createDb, ingredient, ingredientCategory } from "@/db";
-import { centsToDollarsInput } from "@/lib/money";
+import { ingredientFormValues } from "@/features/ingredients/ingredients.form";
 
 export const prerender = false;
 
@@ -51,18 +51,7 @@ const categories = await db
 const categoryNames = categories.map((c) => c.name);
 
 // Build initial form values.
-const initialValues = {
-  name: ing.name,
-  category: ing.category ?? "",
-  defaultUnit: ing.defaultUnit ?? "",
-  costBasisUnit: ing.costBasisUnit ?? "G",
-  estimatedCost: ing.estimatedCentsPerBasisUnit != null
-    ? centsToDollarsInput(ing.estimatedCentsPerBasisUnit)
-    : "",
-  notes: ing.notes ?? "",
-  preferredDisplayUnit: ing.preferredDisplayUnit ?? "AUTO",
-  baseIngredientId: ing.baseIngredientId ?? "",
-};
+const initialValues = ingredientFormValues(ing);
 
 // Load base ingredient name for display.
 let baseName: string | null = null;
@@ -102,7 +91,7 @@ if (ing.baseIngredientId) {
         </a>
       </nav>
       <div slot="content" class="space-y-2">
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
           <h1 class="font-display text-4xl leading-[0.95] tracking-[-0.03em] text-foreground sm:text-5xl">
             Edit ingredient
           </h1>
@@ -117,6 +106,12 @@ if (ing.baseIngredientId) {
             {isGlobal ? "Global" : "Custom"}
           </span>
         </div>
+        <p class="max-w-[65ch] text-base text-muted-foreground">
+          Use your purchase price and measurement conversions to estimate recipe and order costs and build grocery lists in the units you buy.
+        </p>
+        <p class="max-w-[65ch] text-base text-muted-foreground">
+          For example, if a 2 kg bag of flour costs $8 and 1 cup weighs 120 g, ½ cup becomes 60 g and costs $0.24.
+        </p>
         {baseName && (
           <p class="text-body text-muted-foreground">
             Based on{" "}

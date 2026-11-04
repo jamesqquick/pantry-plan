@@ -31,4 +31,36 @@ describe("autoConvert", () => {
       conversionConfidence: "HIGH",
     });
   });
+
+  it("converts count to weight with gramsPerEach", () => {
+    expect(
+      autoConvert({
+        quantity: 2,
+        unit: "COUNT",
+        ingredient: { normalizedName: "eggs", gramsPerEach: 50 },
+        originalLine: "2 eggs",
+      }),
+    ).toMatchObject({
+      weightGrams: 100,
+      conversionSource: "AUTO",
+    });
+  });
+
+  it("falls back to cupsPerEach for existing count conversion data", () => {
+    expect(
+      autoConvert({
+        quantity: 2,
+        unit: "COUNT",
+        ingredient: {
+          normalizedName: "eggs",
+          gramsPerCup: 240,
+          cupsPerEach: 0.25,
+        },
+        originalLine: "2 eggs",
+      }),
+    ).toMatchObject({
+      weightGrams: 120,
+      conversionSource: "AUTO",
+    });
+  });
 });

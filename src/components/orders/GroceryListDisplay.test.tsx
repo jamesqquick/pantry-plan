@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 import type { GroceryListResult } from "@/lib/grocery/aggregate";
 import { GroceryListDisplay } from "./GroceryListDisplay";
 
@@ -16,6 +16,7 @@ const grocery: GroceryListResult = {
     anyOptional: false,
     preferredDisplayUnit: "AUTO",
     gramsPerCup: null,
+    gramsPerEach: null,
     sources: [],
   }],
   issues: {
@@ -26,6 +27,8 @@ const grocery: GroceryListResult = {
   },
   totalEstimatedCostCents: 88,
 };
+
+afterEach(cleanup);
 
 describe("GroceryListDisplay", () => {
   it("keeps item prices unbroken and stacks them below details on small screens", () => {
@@ -38,5 +41,20 @@ describe("GroceryListDisplay", () => {
     expect(price.className).toContain("whitespace-nowrap");
     expect(item?.className).toContain("grid-cols-1");
     expect(item?.className).toContain("sm:grid-cols-[minmax(0,1fr)_auto]");
+  });
+
+  it("normalizes a pound basis and preserves pounds for automatic shopping display", () => {
+    render(<GroceryListDisplay grocery={{ ...grocery, totals: [{
+      ...grocery.totals[0]!, basisUnit: "LB", basisUnitLabel: "lb", totalBasisQty: 0.5, purchaseUnit: "LB",
+    }] }} />);
+    expect(screen.getByText("0.5 lb")).toBeTruthy();
+  });
+
+  it("honors ounces for a volume-based total using saved density", () => {
+    render(<GroceryListDisplay grocery={{ ...grocery, totals: [{
+      ...grocery.totals[0]!, basisUnit: "CUP", basisUnitLabel: "cup", totalBasisQty: 2,
+      gramsPerCup: 200, preferredDisplayUnit: "OZ",
+    }] }} />);
+    expect(screen.getByText("14.11 oz")).toBeTruthy();
   });
 });

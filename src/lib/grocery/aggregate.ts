@@ -2,7 +2,7 @@
  * Grocery list aggregator: sum by mapped ingredient, convert to canonical basis (server-only).
  * Uses Prisma types only; no Prisma client.
  */
-import type { CostBasisUnit } from "@/db/schema/enums";
+import type { CostBasisUnit, IngredientDisplayUnit, PurchaseUnit } from "@/db/schema/enums";
 import type { IngredientUnit } from "@/db/schema/enums";
 import { convertToBasis, type BasisUnitLabel } from "./canonical";
 
@@ -15,8 +15,11 @@ export type GroceryListResult = {
     totalBasisQty: number;
     estimatedCostCents: number | null;
     anyOptional: boolean;
-    preferredDisplayUnit: string;
+    preferredDisplayUnit: IngredientDisplayUnit;
+    purchaseUnit?: PurchaseUnit | null;
     gramsPerCup: number | null;
+    gramsPerEach: number | null;
+    cupsPerEach?: number | null;
     sources: Array<{
       recipeId: string;
       recipeTitle: string;
@@ -57,8 +60,10 @@ type RecipeIngredientInput = {
     costBasisUnit: CostBasisUnit;
     estimatedCentsPerBasisUnit: number | null;
     gramsPerCup?: number | null;
+    gramsPerEach?: number | null;
     cupsPerEach?: number | null;
-    preferredDisplayUnit?: string | null;
+    preferredDisplayUnit?: IngredientDisplayUnit | null;
+    purchaseUnit?: PurchaseUnit | null;
   } | null;
   quantity: number | null;
   unit: IngredientUnit | null;
@@ -85,8 +90,11 @@ type Accumulator = {
   anyOptional: boolean;
   sources: GroceryListResult["totals"][0]["sources"];
   estimatedCentsPerBasisUnit: number | null;
-  preferredDisplayUnit: string;
+  preferredDisplayUnit: IngredientDisplayUnit;
+  purchaseUnit: PurchaseUnit | null;
   gramsPerCup: number | null;
+  gramsPerEach: number | null;
+  cupsPerEach: number | null;
 };
 
 export function buildGroceryList(params: {
@@ -150,6 +158,7 @@ export function buildGroceryList(params: {
         basisUnit,
         ingredientConversion: {
           gramsPerCup: ingredient.gramsPerCup ?? undefined,
+          gramsPerEach: ingredient.gramsPerEach ?? undefined,
           cupsPerEach: ingredient.cupsPerEach ?? undefined,
         },
       });
@@ -180,7 +189,10 @@ export function buildGroceryList(params: {
           sources: [],
           estimatedCentsPerBasisUnit: ingredient.estimatedCentsPerBasisUnit ?? null,
           preferredDisplayUnit: ingredient.preferredDisplayUnit ?? "AUTO",
+          purchaseUnit: ingredient.purchaseUnit ?? null,
           gramsPerCup: ingredient.gramsPerCup ?? null,
+          gramsPerEach: ingredient.gramsPerEach ?? null,
+          cupsPerEach: ingredient.cupsPerEach ?? null,
         };
         byIngredientId.set(ri.ingredientId, acc);
       }
@@ -200,10 +212,15 @@ export function buildGroceryList(params: {
   let totalEstimatedCostCents = 0;
 
   for (const acc of byIngredientId.values()) {
-    const estimatedCostCents =
-      acc.estimatedCentsPerBasisUnit != null
-        ? Math.ceil(acc.totalBasisQty * acc.estimatedCentsPerBasisUnit)
-        : null;
+    let estimatedCostCents: number | null = null;
+    if (acc.estimatedCentsPerBasisUnit != null) {
+      const rawCostCents = acc.totalBasisQty * acc.estimatedCentsPerBasisUnit;
+      const nearestCent = Math.round(rawCostCents);
+      // Allow for floating-point noise from quantity sums, division, and multiplication.
+      const tolerance = Number.EPSILON * Math.abs(rawCostCents) * (acc.sources.length + 2);
+      estimatedCostCents = Math.abs(rawCostCents - nearestCent) <= tolerance
+        ? nearestCent : Math.ceil(rawCostCents);
+    }
     if (estimatedCostCents != null) {
       totalEstimatedCostCents += estimatedCostCents;
     } else {
@@ -218,7 +235,10 @@ export function buildGroceryList(params: {
       estimatedCostCents,
       anyOptional: acc.anyOptional,
       preferredDisplayUnit: acc.preferredDisplayUnit,
+      purchaseUnit: acc.purchaseUnit,
       gramsPerCup: acc.gramsPerCup,
+      gramsPerEach: acc.gramsPerEach,
+      cupsPerEach: acc.cupsPerEach,
       sources: acc.sources,
     });
   }

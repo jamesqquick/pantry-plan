@@ -4,9 +4,11 @@ import {
   toDisplayUnits,
   formatCanonicalForKitchen,
 } from "@/lib/grocery/display-units";
-import { costBasisToCanonicalDisplay } from "@/lib/grocery/cost-basis-units";
+import {
+  costBasisToCanonicalDisplay,
+  costBasisToCanonicalQuantity,
+} from "@/lib/grocery/cost-basis-units";
 import type { GroceryListResult } from "@/lib/grocery/aggregate";
-import type { CostBasisUnit } from "@/db/schema/enums";
 
 type DisplayMode = "shopper" | "kitchen";
 
@@ -23,13 +25,20 @@ function formatIngredientLine(
     return formatCanonicalForKitchen(row.totalBasisQty, row.basisUnitLabel);
   }
   // Shopper mode: use display unit preferences.
-  const canonicalUnit = costBasisToCanonicalDisplay(row.basisUnit as CostBasisUnit);
+  const canonicalUnit = costBasisToCanonicalDisplay(row.basisUnit);
+  const canonicalQty = costBasisToCanonicalQuantity(
+    row.totalBasisQty,
+    row.basisUnit,
+  );
   const display = toDisplayUnits({
-    canonicalQty: row.totalBasisQty,
+    canonicalQty,
     canonicalUnit,
     ingredient: {
-      preferredDisplayUnit: (row.preferredDisplayUnit ?? "AUTO") as any,
+      preferredDisplayUnit: row.preferredDisplayUnit ?? "AUTO",
+      purchaseUnit: row.purchaseUnit ?? row.basisUnit,
       gramsPerCup: row.gramsPerCup ?? null,
+      gramsPerEach: row.gramsPerEach ?? null,
+      cupsPerEach: row.cupsPerEach ?? null,
     },
   });
   return display.displayText;
