@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { actions } from "astro:actions";
+import { submitCreate } from "@/features/mutations/client";
 
 import type { IngredientUnit } from "@/db/schema/enums";
 import { Button } from "@/components/ui/Button";
@@ -239,17 +239,17 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
     setSavingDestination(destination);
     let savedRecipeId: string | null = null;
     try {
-      const { data, error: saveError } = await actions.recipeImport.saveTextOnly({
+      const { data, error: saveError } = await submitCreate("recipeImport.saveTextOnly", {
         recipe: recipePayload,
         ingredients: cleanIngredients,
-      });
+      }, destination);
 
       if (saveError) {
         setError(saveError.message || "Failed to save recipe.");
         return;
       }
 
-      savedRecipeId = data.recipeId;
+      savedRecipeId = data!.id;
     } catch (cause) {
       setError(
         cause instanceof Error && cause.message

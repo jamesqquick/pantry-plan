@@ -11,3 +11,4 @@ export * from "./meal-plan";
 export * from "./mcp-api-keys";
 export * from "./search-index";
 export * from "./oauth";
+export * from "./mutation-operations";

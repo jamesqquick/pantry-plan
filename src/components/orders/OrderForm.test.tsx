@@ -12,6 +12,7 @@ vi.mock("astro:actions", () => ({
       create: vi.fn(),
       update: vi.fn(),
     },
+    mutations: { outcome: vi.fn(async () => ({ data: { status: "unknown" } })) },
   },
 }));
 
@@ -19,7 +20,11 @@ afterEach(() => {
   cleanup();
   vi.useRealTimers();
 });
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  sessionStorage.clear();
+  document.body.dataset.accountId = "cook";
+});
 
 describe("OrderForm", () => {
   it("defaults new orders to seven days from today at 9:00 AM", () => {

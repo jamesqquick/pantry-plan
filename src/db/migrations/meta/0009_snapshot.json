@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "b07b33c2-6c57-4ffb-9d46-064849a3b901",
-  "prevId": "6639101d-4431-4919-8ecd-3ec56e6b0512",
+  "id": "e1ea936c-53e6-469a-8220-77260e30f6fd",
+  "prevId": "159fb50c-ef03-47f6-bb90-a355e9e33f55",
   "tables": {
     "account": {
       "name": "account",
@@ -434,57 +434,8 @@
           "notNull": false,
           "autoincrement": false
         },
-        "purchasePriceCents": {
-          "name": "purchasePriceCents",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "purchaseQuantity": {
-          "name": "purchaseQuantity",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "purchaseUnit": {
-          "name": "purchaseUnit",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "volumeAmount": {
-          "name": "volumeAmount",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "volumeUnit": {
-          "name": "volumeUnit",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "volumeWeightGrams": {
-          "name": "volumeWeightGrams",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "gramsPerCup": {
           "name": "gramsPerCup",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "gramsPerEach": {
-          "name": "gramsPerEach",
           "type": "real",
           "primaryKey": false,
           "notNull": false,
@@ -2901,6 +2852,89 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "MutationOperation": {
+      "name": "MutationOperation",
+      "columns": {
+        "userId": {
+          "name": "userId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "operationId": {
+          "name": "operationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "requestHash": {
+          "name": "requestHash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'completed'"
+        },
+        "resourceId": {
+          "name": "resourceId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "MutationOperation_userId_user_id_fk": {
+          "name": "MutationOperation_userId_user_id_fk",
+          "tableFrom": "MutationOperation",
+          "tableTo": "user",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "MutationOperation_userId_operationId_pk": {
+          "columns": [
+            "userId",
+            "operationId"
+          ],
+          "name": "MutationOperation_userId_operationId_pk"
+        }
+      },
       "uniqueConstraints": {},
       "checkConstraints": {}
     }
