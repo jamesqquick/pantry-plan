@@ -69,7 +69,7 @@ export default function OrderForm(props: OrderFormProps) {
   const [details, setDetails] = useState<OrderDetailsFormValues>({
     totalCost: isEdit && props.initialTotalCostCents != null
       ? centsToDollarsInput(props.initialTotalCostCents)
-      : "",
+      : "0",
     customerName: isEdit ? props.initialCustomerName : "",
     customerContact: isEdit ? props.initialCustomerContact : "",
     dueDate: isEdit ? props.initialDueDate : defaultDueDate(),

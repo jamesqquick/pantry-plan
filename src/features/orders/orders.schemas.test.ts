@@ -8,8 +8,9 @@ import {
 const item = { recipeId: "recipe-123", batches: 2 };
 
 describe("order schemas", () => {
-  it("defaults new orders to draft and pickup", () => {
-    expect(orderCreateSchema.parse({ name: "Birthday cookies", totalCostCents: 0, items: [item] })).toMatchObject({
+  it("defaults new orders to zero, draft, and pickup", () => {
+    expect(orderCreateSchema.parse({ name: "Birthday cookies", items: [item] })).toMatchObject({
+      totalCostCents: 0,
       status: "DRAFT",
       fulfillmentMethod: "PICKUP",
     });
@@ -96,20 +97,40 @@ describe("order schemas", () => {
   });
 });
 
-describe.each([
-  ["create", orderCreateSchema],
-  ["update", orderUpdateSchema],
-] as const)("order %s total", (_name, schema) => {
+describe("create order total", () => {
+  const valid = { name: "Order", items: [item] };
+
+  it.each([0, 1, 2000, 2050])("accepts an explicit total of %i cents", (totalCostCents) => {
+    expect(orderCreateSchema.parse({ ...valid, totalCostCents }).totalCostCents).toBe(totalCostCents);
+  });
+
+  it.each([null, "", "2000", -1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
+    "rejects an invalid total of %s",
+    (totalCostCents) => {
+      expect(orderCreateSchema.safeParse({ ...valid, totalCostCents }).success).toBe(false);
+    },
+  );
+
+  it("defaults an omitted total to zero", () => {
+    expect(orderCreateSchema.parse(valid).totalCostCents).toBe(0);
+  });
+});
+
+describe("update order total", () => {
   const valid = { id: "order-123", name: "Order", items: [item] };
 
   it.each([0, 1, 2000, 2050])("accepts an explicit total of %i cents", (totalCostCents) => {
-    expect(schema.parse({ ...valid, totalCostCents }).totalCostCents).toBe(totalCostCents);
+    expect(orderUpdateSchema.parse({ ...valid, totalCostCents }).totalCostCents).toBe(totalCostCents);
   });
 
-  it.each([undefined, null, "", "2000", -1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
-    "rejects a missing or invalid total of %s",
+  it("leaves an omitted total unset", () => {
+    expect(orderUpdateSchema.parse(valid).totalCostCents).toBeUndefined();
+  });
+
+  it.each([null, "", "2000", -1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
+    "rejects an invalid total of %s",
     (totalCostCents) => {
-      expect(schema.safeParse({ ...valid, totalCostCents }).success).toBe(false);
+      expect(orderUpdateSchema.safeParse({ ...valid, totalCostCents }).success).toBe(false);
     },
   );
 });

@@ -50,8 +50,26 @@ describe("OrderForm", () => {
 
     render(<OrderForm mode="create" recipeOptions={[]} />);
 
+    expect(screen.getByLabelText<HTMLInputElement>(/Order total/).value).toBe("0");
     expect(screen.getByLabelText("Due date")).toHaveProperty("value", "2026-11-04");
     expect(screen.getByLabelText(/Time/)).toHaveProperty("value", "09:00");
+  });
+
+  it("submits the default zero total for a new order", async () => {
+    vi.mocked(actions.orders.create).mockResolvedValue({
+      data: undefined,
+      error: { message: "Preview test stopped before navigation." },
+    } as never);
+    const user = userEvent.setup();
+    render(<OrderForm mode="create" recipeOptions={editProps.recipeOptions} />);
+
+    await user.click(screen.getByRole("combobox", { name: "Recipe 1" }));
+    await user.keyboard("{Enter}");
+    await user.click(screen.getByRole("button", { name: "Create order" }));
+
+    await waitFor(() => expect(actions.orders.create).toHaveBeenCalledWith(
+      expect.objectContaining({ totalCostCents: 0 }),
+    ));
   });
 
   it("submits customer and fulfillment details with the existing recipe batches", async () => {
@@ -64,7 +82,9 @@ describe("OrderForm", () => {
 
     await user.clear(screen.getByRole("textbox", { name: /^Name/ }));
     await user.type(screen.getByRole("textbox", { name: /^Name/ }), "Sarah's birthday cookies");
-    await user.type(screen.getByLabelText(/Order total/), "20.50");
+    const total = screen.getByLabelText(/Order total/);
+    await user.clear(total);
+    await user.type(total, "20.50");
     await user.type(screen.getByLabelText("Customer name"), "Sarah Morgan");
     await user.type(screen.getByLabelText("Phone or email"), "sarah@example.com");
     await user.clear(screen.getByLabelText("Due date"));
@@ -100,7 +120,6 @@ describe("OrderForm", () => {
     const user = userEvent.setup();
     render(<OrderForm mode="create" recipeOptions={[]} />);
 
-    await user.type(screen.getByLabelText(/Order total/), "0");
     await user.click(screen.getByRole("button", { name: "Create order" }));
 
     expect(screen.getByRole("alert").textContent).toContain("Add at least one recipe.");
@@ -111,7 +130,6 @@ describe("OrderForm", () => {
     const user = userEvent.setup();
     render(<OrderForm mode="create" recipeOptions={[{ id: "recipe-123", title: "Chocolate chip cookies" }]} />);
 
-    await user.type(screen.getByLabelText(/Order total/), "0");
     await user.click(screen.getByRole("combobox", { name: "Recipe 1" }));
     await user.keyboard("{Enter}");
     await user.click(screen.getByRole("button", { name: "Add recipe" }));
@@ -129,7 +147,6 @@ describe("OrderForm", () => {
     const user = userEvent.setup();
     render(<OrderForm mode="create" recipeOptions={[{ id: "recipe-123", title: "Chocolate chip cookies" }]} />);
 
-    await user.type(screen.getByLabelText(/Order total/), "0");
     await user.click(screen.getByRole("combobox", { name: "Recipe 1" }));
     await user.keyboard("{Enter}");
     await user.click(screen.getByRole("button", { name: "Create order" }));
@@ -151,7 +168,6 @@ describe("OrderForm", () => {
       { id: "oatmeal", title: "Oatmeal cookies" },
     ]} />);
 
-    await user.type(screen.getByLabelText(/Order total/), "0");
     const firstRecipe = screen.getByRole<HTMLInputElement>("combobox", { name: "Recipe 1" });
     await user.click(firstRecipe);
     await user.keyboard("{ArrowDown}{Enter}");
@@ -198,6 +214,7 @@ describe("OrderForm", () => {
     render(<OrderForm mode="create" recipeOptions={editProps.recipeOptions} />);
     const total = screen.getByLabelText<HTMLInputElement>(/Order total/);
 
+    await user.clear(total);
     if (dollars) await user.type(total, dollars);
     await user.click(screen.getByRole("combobox", { name: "Recipe 1" }));
     await user.keyboard("{Enter}");
@@ -229,7 +246,7 @@ describe("OrderForm", () => {
     })));
   });
 
-  it("requires an explicit total when editing a legacy order", async () => {
+  it("defaults a legacy order with no total to zero when editing", async () => {
     vi.mocked(actions.orders.update).mockResolvedValue({
       data: undefined,
       error: { message: "Preview test stopped before navigation." },
@@ -237,11 +254,8 @@ describe("OrderForm", () => {
     const user = userEvent.setup();
     render(<OrderForm {...editProps} initialTotalCostCents={null} />);
     const total = screen.getByLabelText<HTMLInputElement>(/Order total/);
-    expect(total.value).toBe("");
+    expect(total.value).toBe("0");
 
-    await user.click(screen.getByRole("button", { name: "Save order" }));
-    expect(actions.orders.update).not.toHaveBeenCalled();
-    await user.type(total, "0");
     await user.click(screen.getByRole("button", { name: "Save order" }));
 
     await waitFor(() => expect(actions.orders.update).toHaveBeenCalledWith(expect.objectContaining({ totalCostCents: 0 })));
