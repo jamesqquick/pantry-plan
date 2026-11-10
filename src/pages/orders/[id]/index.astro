@@ -259,7 +259,7 @@ const dueTimeLabel = formatDueTime(o.dueTime);
     {notesHtml && (
       <section class="rounded-lg border border-border bg-card p-6">
         <div
-          class="prose max-w-none text-card-foreground dark:prose-invert sm:prose-sm"
+          class="prose max-w-none text-card-foreground sm:prose-sm"
           set:html={notesHtml}
         />
       </section>
@@ -305,12 +305,12 @@ const dueTimeLabel = formatDueTime(o.dueTime);
 
     {/* Issues */}
     {issueCount > 0 && (
-      <section class="rounded-lg border border-amber-200 bg-amber-50 p-6 dark:border-amber-800/30 dark:bg-amber-900/10">
-        <h2 class="font-display text-lg text-amber-800 dark:text-amber-300 mb-3">
+      <section class="rounded-lg border border-amber-200 bg-amber-50 p-6">
+        <h2 class="font-display text-lg text-amber-800 mb-3">
           Issues
           <span class="ml-2 text-sm font-normal">({issueCount})</span>
         </h2>
-        <div class="space-y-3 text-body text-amber-700 dark:text-amber-300/80">
+        <div class="space-y-3 text-body text-amber-700">
           {groceryResult.issues.unmapped.length > 0 && (
             <div>
               <p class="font-medium">Unmapped ingredients ({groceryResult.issues.unmapped.length})</p>
