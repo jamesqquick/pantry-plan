@@ -59,6 +59,7 @@ export const orders = {
           userId: user.id,
           name: input.name,
           notes: input.notes?.trim() || null,
+          totalCostCents: input.totalCostCents,
           customerName: input.customerName ?? null,
           customerContact: input.customerContact ?? null,
           dueDate: input.dueDate ?? null,
@@ -106,6 +107,7 @@ export const orders = {
       const patch: Partial<typeof order.$inferInsert> = {
         name: input.name,
         notes: input.notes?.trim() || null,
+        totalCostCents: input.totalCostCents,
       };
       if (input.customerName !== undefined) patch.customerName = input.customerName;
       if (input.customerContact !== undefined) patch.customerContact = input.customerContact;
