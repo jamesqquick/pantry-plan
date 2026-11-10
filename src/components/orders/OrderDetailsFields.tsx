@@ -10,6 +10,7 @@ import {
 } from "@/db/schema/enums";
 
 export interface OrderDetailsFormValues {
+  totalCost: string;
   customerName: string;
   customerContact: string;
   dueDate: string;
@@ -71,6 +72,28 @@ export function OrderDetailsFields({
             ))}
           </select>
         </div>
+      </div>
+
+      <div className="max-w-xs">
+        <label htmlFor="order-total-cost" className="mb-1 block text-sm font-medium text-foreground">
+          Order total ($) <span className="text-destructive">*</span>
+        </label>
+        <Input
+          id="order-total-cost"
+          type="number"
+          inputMode="decimal"
+          autoComplete="off"
+          min="0"
+          step="0.01"
+          required
+          value={details.totalCost}
+          onChange={(event) => onDetailsChange({ totalCost: event.target.value })}
+          placeholder="0.00"
+          aria-describedby="order-total-cost-help"
+        />
+        <p id="order-total-cost-help" className="mt-1 text-meta text-muted-foreground">
+          Enter 0 for a free order.
+        </p>
       </div>
 
       <section className="space-y-4 border-t border-border pt-6" aria-labelledby="order-customer-heading">

@@ -74,7 +74,8 @@ async function create(path: CreatePath, operationId: string, changed = false, us
       })).recipeId;
     case "orders.create":
       return (await orders.create.orThrow.call(ctx, {
-        operationId, accountId, name: changed ? "Other order" : "Order", items: [{ recipeId: "source", batches: 1 }],
+        operationId, accountId, name: changed ? "Other order" : "Order", totalCostCents: 0,
+        items: [{ recipeId: "source", batches: 1 }],
       })).id;
   }
 }

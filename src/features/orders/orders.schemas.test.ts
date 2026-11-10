@@ -9,7 +9,7 @@ const item = { recipeId: "recipe-123", batches: 2 };
 
 describe("order schemas", () => {
   it("defaults new orders to draft and pickup", () => {
-    expect(orderCreateSchema.parse({ name: "Birthday cookies", items: [item] })).toMatchObject({
+    expect(orderCreateSchema.parse({ name: "Birthday cookies", totalCostCents: 0, items: [item] })).toMatchObject({
       status: "DRAFT",
       fulfillmentMethod: "PICKUP",
     });
@@ -18,6 +18,7 @@ describe("order schemas", () => {
   it("trims and accepts optional customer and fulfillment details", () => {
     const result = orderCreateSchema.parse({
       name: "  Birthday cookies  ",
+      totalCostCents: 2000,
       customerName: "  Sarah Morgan  ",
       customerContact: "  sarah@example.com  ",
       dueDate: "2026-10-24",
@@ -43,6 +44,7 @@ describe("order schemas", () => {
   it("treats empty optional form fields as unset", () => {
     const result = orderCreateSchema.parse({
       name: "Order",
+      totalCostCents: 0,
       customerName: "   ",
       customerContact: "",
       dueDate: "",
@@ -59,7 +61,7 @@ describe("order schemas", () => {
   });
 
   it("rejects whitespace-only names and invalid dates, times, and fulfillment values", () => {
-    const valid = { name: "Order", items: [item] };
+    const valid = { name: "Order", totalCostCents: 0, items: [item] };
 
     expect(orderCreateSchema.safeParse({ ...valid, name: "   " }).success).toBe(false);
     expect(orderCreateSchema.safeParse({ ...valid, dueDate: "2026-02-31" }).success).toBe(false);
@@ -80,6 +82,7 @@ describe("order schemas", () => {
     expect(orderUpdateSchema.parse({
       id: "order-123",
       name: "Order",
+      totalCostCents: 0,
       customerName: "Taylor",
       fulfillmentMethod: "PICKUP",
       status: "COMPLETED",
@@ -91,4 +94,22 @@ describe("order schemas", () => {
       status: "COMPLETED",
     });
   });
+});
+
+describe.each([
+  ["create", orderCreateSchema],
+  ["update", orderUpdateSchema],
+] as const)("order %s total", (_name, schema) => {
+  const valid = { id: "order-123", name: "Order", items: [item] };
+
+  it.each([0, 1, 2000, 2050])("accepts an explicit total of %i cents", (totalCostCents) => {
+    expect(schema.parse({ ...valid, totalCostCents }).totalCostCents).toBe(totalCostCents);
+  });
+
+  it.each([undefined, null, "", "2000", -1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
+    "rejects a missing or invalid total of %s",
+    (totalCostCents) => {
+      expect(schema.safeParse({ ...valid, totalCostCents }).success).toBe(false);
+    },
+  );
 });
