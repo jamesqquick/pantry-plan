@@ -20,7 +20,7 @@ export const order = sqliteTable(
       .references(() => user.id, { onDelete: "cascade" }),
     name: text("name"),
     notes: text("notes"),
-    totalCostCents: integer("totalCostCents"),
+    totalCostCents: integer("totalCostCents").notNull().default(0),
     customerName: text("customerName"),
     customerContact: text("customerContact"),
     dueDate: text("dueDate"),

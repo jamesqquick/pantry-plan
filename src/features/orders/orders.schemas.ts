@@ -80,7 +80,7 @@ export const orderCreateSchema = z.object({
     .trim()
     .min(1, "Name is required"),
   notes: z.string().max(MAX_ORDER_NOTES).optional(),
-  totalCostCents: orderTotalCostSchema,
+  totalCostCents: orderTotalCostSchema.default(0),
   ...optionalOrderDetails,
   fulfillmentMethod: fulfillmentMethodSchema.default("PICKUP"),
   status: orderStatusSchema.default("DRAFT"),
@@ -98,7 +98,7 @@ export const orderUpdateSchema = z.object({
     .trim()
     .min(1, "Name is required"),
   notes: z.string().max(MAX_ORDER_NOTES).optional(),
-  totalCostCents: orderTotalCostSchema,
+  totalCostCents: orderTotalCostSchema.optional(),
   ...optionalOrderDetails,
   fulfillmentMethod: fulfillmentMethodSchema.optional(),
   status: orderStatusSchema.optional(),

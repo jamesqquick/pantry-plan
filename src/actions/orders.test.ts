@@ -46,6 +46,10 @@ function savedTotal(id: string) {
 }
 
 describe("order totals", () => {
+  it("defaults a database insert without a total to zero", () => {
+    expect(savedTotal("legacy-order")).toEqual({ totalCostCents: 0 });
+  });
+
   it.each([0, 2000, 2050])("persists an explicit total of %i cents when creating an order", async (totalCostCents) => {
     const { id } = await orders.create.orThrow.call(context(), {
       operationId: crypto.randomUUID(), accountId: "cook", name: "Order", totalCostCents, items,
@@ -61,25 +65,17 @@ describe("order totals", () => {
     }
   });
 
-  it("keeps legacy totals unset until an explicit amount is supplied", async () => {
-    expect(savedTotal("legacy-order")).toEqual({ totalCostCents: null });
+  it("defaults an omitted create total and preserves the saved total when update omits it", async () => {
+    const { id } = await orders.create.orThrow.call(context(), {
+      operationId: crypto.randomUUID(), accountId: "cook", name: "Zero-total order", items,
+    });
+    expect(savedTotal(id)).toEqual({ totalCostCents: 0 });
 
-    await orders.updateStatus.orThrow.call(context(), { id: "legacy-order", status: "CONFIRMED" });
-
-    expect(savedTotal("legacy-order")).toEqual({ totalCostCents: null });
-  });
-
-  it("rejects missing totals before creating or updating an order", async () => {
-    await expect(orders.create.orThrow.call(context(), {
-      operationId: crypto.randomUUID(), accountId: "cook", name: "Order", items,
-    } as never)).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    await expect(orders.update.orThrow.call(context(), {
+    test.sqlite.prepare('UPDATE "Order" SET totalCostCents = ? WHERE id = ?').run(1250, "legacy-order");
+    await orders.update.orThrow.call(context(), {
       id: "legacy-order", name: "Changed", items,
-    } as never)).rejects.toMatchObject({ code: "BAD_REQUEST" });
-
-    expect(test.sqlite.prepare('SELECT name, totalCostCents FROM "Order"').all()).toEqual([
-      { name: "Legacy order", totalCostCents: null },
-    ]);
+    });
+    expect(savedTotal("legacy-order")).toEqual({ totalCostCents: 1250 });
   });
 
   it("includes the total in create retry deduplication", async () => {
@@ -99,6 +95,6 @@ describe("order totals", () => {
       id: "legacy-order", name: "Order", totalCostCents: 2000, items,
     })).rejects.toMatchObject({ code: "NOT_FOUND" });
 
-    expect(savedTotal("legacy-order")).toEqual({ totalCostCents: null });
+    expect(savedTotal("legacy-order")).toEqual({ totalCostCents: 0 });
   });
 });
