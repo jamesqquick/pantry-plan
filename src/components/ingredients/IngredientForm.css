@@ -1,4 +1,5 @@
 .ingredient-form {
+  --ingredient-error-color: color-mix(in oklch, var(--destructive) 70%, var(--card-foreground));
   display: grid;
   gap: 1.75rem;
   width: 100%;
@@ -61,6 +62,7 @@
 
 .ingredient-two-up,
 .ingredient-conversions { display: grid; gap: 1.5rem; }
+.ingredient-conversions { max-width: 35rem; }
 .ingredient-conversions > div { min-width: 0; container-type: inline-size; }
 
 .ingredient-equation {
@@ -117,8 +119,30 @@
 .ingredient-measure .ingredient-prefix + input { padding-left: 0.25rem; }
 .ingredient-measure .ingredient-suffix { display: flex; align-items: center; }
 .ingredient-form [aria-invalid="true"],
-.ingredient-measure:has([aria-invalid="true"]) { border-color: var(--primary-on-card); box-shadow: 0 0 0 1px var(--primary-on-card); }
+.ingredient-measure:has([aria-invalid="true"]:not([aria-describedby$="-group-error"])) { border-color: var(--primary-on-card); box-shadow: 0 0 0 1px var(--primary-on-card); }
+.ingredient-form [aria-invalid="true"][aria-describedby$="-group-error"] {
+  border-color: var(--ingredient-error-color);
+  box-shadow: inset 0 0 0 2px var(--ingredient-error-color);
+}
+.ingredient-measure:has(> .ingredient-prefix + [aria-invalid="true"][aria-describedby$="-group-error"]) {
+  border-color: var(--ingredient-error-color);
+  box-shadow: inset 0 0 0 1px var(--ingredient-error-color);
+}
+.ingredient-form .ingredient-prefix + [aria-invalid="true"][aria-describedby$="-group-error"] { box-shadow: none; }
 .ingredient-form .ingredient-error { margin-top: 0.5rem; color: var(--primary-on-card); font-size: 0.9375rem; line-height: 1.4; }
+.ingredient-group-error {
+  max-width: 35rem;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--ingredient-error-color);
+  border-left-width: 4px;
+  border-radius: var(--radius);
+  background: color-mix(in oklch, var(--destructive) 7%, var(--card));
+  color: var(--card-foreground);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+.ingredient-group-error strong { display: block; margin-bottom: 0.25rem; color: var(--ingredient-error-color); font-weight: 600; }
 .ingredient-form [hidden] { display: none !important; }
 
 .ingredient-display-help,
@@ -174,8 +198,7 @@
 }
 
 @media (min-width: 48rem) {
-  .ingredient-two-up,
-  .ingredient-conversions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ingredient-two-up { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 47.999rem) {

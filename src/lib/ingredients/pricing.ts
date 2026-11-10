@@ -3,26 +3,39 @@ import { lineVolumeToCups } from "@/lib/grocery/canonical";
 import { dollarsToCents } from "@/lib/money";
 
 export type IngredientPricingInput = {
-  purchasePrice: number;
-  purchaseQuantity: number;
-  purchaseUnit: PurchaseUnit;
-  volumeAmount: number;
-  volumeUnit: VolumeUnit;
-  volumeWeightGrams: number;
+  purchasePrice?: number | null;
+  purchaseQuantity?: number | null;
+  purchaseUnit?: PurchaseUnit | null;
+  volumeAmount?: number | null;
+  volumeUnit?: VolumeUnit | null;
+  volumeWeightGrams?: number | null;
+  gramsPerEach?: number | null;
 };
 
 export function deriveIngredientPricing(input: IngredientPricingInput) {
-  const purchasePriceCents = dollarsToCents(input.purchasePrice);
+  const purchasePrice = input.purchasePrice ?? null;
+  const purchaseQuantity = input.purchaseQuantity ?? null;
+  const purchaseUnit = input.purchaseUnit ?? null;
+  const volumeAmount = input.volumeAmount ?? null;
+  const volumeUnit = input.volumeUnit ?? null;
+  const volumeWeightGrams = input.volumeWeightGrams ?? null;
+  const purchasePriceCents = purchasePrice == null ? null : dollarsToCents(purchasePrice);
+  const hasPurchaseRate = purchasePriceCents != null && purchaseQuantity != null && purchaseQuantity > 0 && purchaseUnit != null;
+  const volumeCups = volumeAmount != null && volumeAmount > 0 && volumeUnit != null
+    ? lineVolumeToCups(volumeAmount, volumeUnit)
+    : null;
+
   return {
     purchasePriceCents,
-    purchaseQuantity: input.purchaseQuantity,
-    purchaseUnit: input.purchaseUnit,
-    costBasisUnit: input.purchaseUnit,
-    estimatedCentsPerBasisUnit: purchasePriceCents / input.purchaseQuantity,
-    volumeAmount: input.volumeAmount,
-    volumeUnit: input.volumeUnit,
-    volumeWeightGrams: input.volumeWeightGrams,
-    gramsPerCup: input.volumeWeightGrams / lineVolumeToCups(input.volumeAmount, input.volumeUnit)!,
+    purchaseQuantity,
+    purchaseUnit,
+    costBasisUnit: purchaseUnit ?? "G",
+    estimatedCentsPerBasisUnit: hasPurchaseRate ? purchasePriceCents / purchaseQuantity : null,
+    volumeAmount,
+    volumeUnit,
+    volumeWeightGrams,
+    gramsPerCup: volumeCups != null && volumeWeightGrams != null ? volumeWeightGrams / volumeCups : null,
+    gramsPerEach: input.gramsPerEach ?? null,
   };
 }
 

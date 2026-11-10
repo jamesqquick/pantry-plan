@@ -9,12 +9,14 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { ORDER_ITEM_BATCH_VALUES } from "@/features/orders/orders.schemas";
+import { incompatibleGroupReason } from "@/lib/grocery/aggregate";
+import type { RecipeAvailability, RecipeAvailabilityNotice } from "@/lib/grocery/recipes";
 
 function batchLabel(v: number): string {
   return v === 0.5 ? "½" : String(v);
 }
 
-export type RecipeOption = { id: string; title: string };
+export type RecipeOption = { id: string; title: string; availability: RecipeAvailability };
 export type OrderItemRow = { recipeId: string; batches: number };
 
 interface OrderItemsEditorProps {
@@ -30,6 +32,48 @@ export function OrderItemsEditor({
 }: OrderItemsEditorProps) {
   const nextRowKey = useRef(items.length);
   const [rowKeys, setRowKeys] = useState(() => items.map((_, index) => index));
+  const selectedRecipes = items.flatMap((row) => {
+    const selected = recipeOptions.find((recipe) => recipe.id === row.recipeId);
+    return selected ? [selected] : [];
+  });
+  const unavailableRecipes = [...new Set(
+    selectedRecipes.filter((recipe) => recipe.availability.status === "unavailable").map((recipe) => recipe.title),
+  )];
+  const noticesByKey = new Map<string, RecipeAvailabilityNotice & { recipeTitles: string[] }>();
+  const groupsByIngredient = new Map<string, Array<{
+    group: NonNullable<RecipeAvailability["quantityGroups"]>[number];
+    recipeTitle: string;
+  }>>();
+
+  function addNotice(recipeTitle: string, notice: RecipeAvailabilityNotice) {
+    const key = `${notice.code}\u0000${notice.href ?? ""}\u0000${notice.message}`;
+    const existing = noticesByKey.get(key);
+    if (existing) {
+      if (!existing.recipeTitles.includes(recipeTitle)) existing.recipeTitles.push(recipeTitle);
+    } else {
+      noticesByKey.set(key, { ...notice, recipeTitles: [recipeTitle] });
+    }
+  }
+
+  for (const recipe of selectedRecipes) {
+    for (const notice of recipe.availability.notices) addNotice(recipe.title, notice);
+    if (recipe.availability.status !== "checked") continue;
+    for (const group of recipe.availability.quantityGroups ?? []) {
+      const previousGroups = groupsByIngredient.get(group.ingredientId) ?? [];
+      for (const previous of previousGroups) {
+        if (previous.group.basisUnit === group.basisUnit) continue;
+        const notice: RecipeAvailabilityNotice = {
+          code: "cannot-combine",
+          message: incompatibleGroupReason(previous.group.basisUnit, group.basisUnit, group),
+          href: `/ingredients/${group.ingredientId}`,
+        };
+        addNotice(previous.recipeTitle, notice);
+        addNotice(recipe.title, notice);
+      }
+      previousGroups.push({ group, recipeTitle: recipe.title });
+      groupsByIngredient.set(group.ingredientId, previousGroups);
+    }
+  }
 
   function addRow() {
     setRowKeys((keys) => [...keys, nextRowKey.current++]);
@@ -154,6 +198,28 @@ export function OrderItemsEditor({
             );
           })}
         </div>
+      )}
+
+      {(unavailableRecipes.length > 0 || noticesByKey.size > 0) && (
+        <section className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-body text-amber-800 dark:border-amber-800/30 dark:bg-amber-900/10 dark:text-amber-300">
+          <h3 className="font-medium">Ingredient availability</h3>
+          {unavailableRecipes.length > 0 && (
+            <p role="status">
+              Availability for {unavailableRecipes.join(", ")} could not be checked. Cost and conversion details may be incomplete.
+            </p>
+          )}
+          {noticesByKey.size > 0 && (
+            <ul className="list-inside list-disc space-y-1">
+              {[...noticesByKey.entries()].map(([key, notice]) => (
+                <li key={key}>
+                  {notice.recipeTitles.join(", ")}: {notice.href ? (
+                    <a href={notice.href} className="underline underline-offset-2">{notice.message}</a>
+                  ) : notice.message}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       )}
     </div>
   );

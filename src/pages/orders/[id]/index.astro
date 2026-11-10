@@ -57,7 +57,7 @@ type GroceryRecipe = Parameters<typeof buildGroceryList>[0]["recipes"][number];
 let groceryResult: GroceryListResult = {
   totals: [],
   issues: { unmapped: [], missingQuantityOrUnit: [], cannotConvert: [], missingCost: [] },
-  totalEstimatedCostCents: 0,
+  totalEstimatedCostCents: null,
 };
 
 if (recipeIds.length > 0) {
@@ -74,6 +74,8 @@ if (recipeIds.length > 0) {
       ingName: ingredient.name,
       ingCostBasisUnit: ingredient.costBasisUnit,
       ingEstimatedCentsPerBasisUnit: ingredient.estimatedCentsPerBasisUnit,
+      ingPurchasePriceCents: ingredient.purchasePriceCents,
+      ingPurchaseQuantity: ingredient.purchaseQuantity,
       ingGramsPerCup: ingredient.gramsPerCup,
       ingGramsPerEach: ingredient.gramsPerEach,
       ingCupsPerEach: ingredient.cupsPerEach,
@@ -110,6 +112,8 @@ if (recipeIds.length > 0) {
             name: ri.ingName!,
             costBasisUnit: ri.ingCostBasisUnit!,
             estimatedCentsPerBasisUnit: ri.ingEstimatedCentsPerBasisUnit ?? null,
+            purchasePriceCents: ri.ingPurchasePriceCents ?? null,
+            purchaseQuantity: ri.ingPurchaseQuantity ?? null,
             gramsPerCup: ri.ingGramsPerCup ?? null,
             gramsPerEach: ri.ingGramsPerEach ?? null,
             cupsPerEach: ri.ingCupsPerEach ?? null,
@@ -133,12 +137,6 @@ if (recipeIds.length > 0) {
 const notesHtml = o.notes?.trim()
   ? await renderMarkdownToHtml(o.notes)
   : null;
-
-const issueCount =
-  groceryResult.issues.unmapped.length +
-  groceryResult.issues.missingQuantityOrUnit.length +
-  groceryResult.issues.cannotConvert.length +
-  groceryResult.issues.missingCost.length;
 
 function batchLabel(v: number): string {
   return v === 0.5 ? "½" : String(v);
@@ -296,66 +294,6 @@ const dueTimeLabel = formatDueTime(o.dueTime);
       </h2>
       <GroceryListDisplay client:load grocery={groceryResult} showCost={true} />
     </section>
-
-    {/* Issues */}
-    {issueCount > 0 && (
-      <section class="rounded-lg border border-amber-200 bg-amber-50 p-6 dark:border-amber-800/30 dark:bg-amber-900/10">
-        <h2 class="font-display text-lg text-amber-800 dark:text-amber-300 mb-3">
-          Issues
-          <span class="ml-2 text-sm font-normal">({issueCount})</span>
-        </h2>
-        <div class="space-y-3 text-body text-amber-700 dark:text-amber-300/80">
-          {groceryResult.issues.unmapped.length > 0 && (
-            <div>
-              <p class="font-medium">Unmapped ingredients ({groceryResult.issues.unmapped.length})</p>
-              <ul class="mt-1 list-inside list-disc">
-                {groceryResult.issues.unmapped.map((i) => (
-                  <li>
-                    <a href={`/recipes/${i.recipeId}`} class="underline underline-offset-2">{i.recipeTitle}</a>: {i.displayText}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {groceryResult.issues.missingQuantityOrUnit.length > 0 && (
-            <div>
-              <p class="font-medium">Missing quantity or unit ({groceryResult.issues.missingQuantityOrUnit.length})</p>
-              <ul class="mt-1 list-inside list-disc">
-                {groceryResult.issues.missingQuantityOrUnit.map((i) => (
-                  <li>
-                    <a href={`/recipes/${i.recipeId}`} class="underline underline-offset-2">{i.recipeTitle}</a>: {i.displayText}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {groceryResult.issues.cannotConvert.length > 0 && (
-            <div>
-              <p class="font-medium">Cannot convert units ({groceryResult.issues.cannotConvert.length})</p>
-              <ul class="mt-1 list-inside list-disc">
-                {groceryResult.issues.cannotConvert.map((i) => (
-                  <li>
-                    <a href={`/recipes/${i.recipeId}`} class="underline underline-offset-2">{i.recipeTitle}</a>: {i.displayText} — {i.reason}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {groceryResult.issues.missingCost.length > 0 && (
-            <div>
-              <p class="font-medium">Missing cost estimates ({groceryResult.issues.missingCost.length})</p>
-              <ul class="mt-1 list-inside list-disc">
-                {groceryResult.issues.missingCost.map((i) => (
-                  <li>
-                    <a href={`/ingredients/${i.ingredientId}`} class="underline underline-offset-2">{i.name}</a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      </section>
-    )}
 
     {/* Delete */}
     <section class="pt-4 border-t border-border">

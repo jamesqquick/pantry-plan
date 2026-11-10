@@ -4,8 +4,8 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import type { PickerIngredient, GlobalIngredientBasePrefillData } from "@/actions/ingredients";
-import { PURCHASE_UNITS, VOLUME_UNITS, type IngredientDisplayUnit } from "@/db/schema/enums";
-import { ingredientCreateSchema } from "@/features/ingredients/ingredients.schemas";
+import { PURCHASE_UNITS, VOLUME_UNITS, type IngredientDisplayUnit, type PurchaseUnit } from "@/db/schema/enums";
+import { ingredientCreateSchema, OPTIONAL_FIELD_CLEAR_SENTINEL, PURCHASE_GROUP_ERROR, VOLUME_GROUP_ERROR } from "@/features/ingredients/ingredients.schemas";
 import { ingredientFormValues, type IngredientFormValues } from "@/features/ingredients/ingredients.form";
 import { convertToBasis, lineVolumeToCups } from "@/lib/grocery/canonical";
 import { formatIngredientCost } from "@/lib/ingredients/pricing";
@@ -109,36 +109,63 @@ type IngredientFormProps = { categories: string[] } & (
 );
 type Field = keyof IngredientFormValues;
 type FieldErrors = Partial<Record<Field, string>>;
+type MeasurementGroupField =
+  | "purchasePrice" | "purchaseQuantity" | "purchaseUnit"
+  | "volumeAmount" | "volumeUnit" | "volumeWeightGrams";
+
+const PURCHASE_GROUP_FIELDS = ["purchasePrice", "purchaseQuantity", "purchaseUnit"] as const;
+const VOLUME_GROUP_FIELDS = ["volumeAmount", "volumeUnit", "volumeWeightGrams"] as const;
+
+function isUnchangedPartialGroup(
+  values: IngredientFormValues,
+  initialValues: IngredientFormValues,
+  fields: readonly MeasurementGroupField[],
+) {
+  const populated = fields.map((field) => values[field].trim() !== "");
+  return populated.some(Boolean) && !populated.every(Boolean) &&
+    fields.every((field) => values[field] === initialValues[field]);
+}
 
 const DISPLAY_CHOICES: IngredientDisplayUnit[] = ["AUTO", "EACH", "GRAM", "KG", "OZ", "LB", "CUP"];
 const SHOPPING_UNIT_NAMES = {
   EACH: "count", GRAM: "grams", KG: "kilograms", OZ: "ounces", LB: "pounds",
   CUP: "cups", TBSP: "tablespoons", TSP: "teaspoons",
 };
+const SAMPLE_QUANTITIES: Record<PurchaseUnit, number> = {
+  COUNT: 2, G: 100, KG: 0.1, OZ: 1, LB: 0.5, CUP: 0.5,
+};
+
+function measurementGroupErrorId(message?: string) {
+  if (message === PURCHASE_GROUP_ERROR) return "purchase-group-error";
+  if (message === VOLUME_GROUP_ERROR) return "volume-group-error";
+}
 
 function FieldError({ field, message }: { field: Field; message?: string }) {
+  if (measurementGroupErrorId(message)) return null;
   return <p className="ingredient-error" id={`${field}-error`} hidden={!message}>{message}</p>;
 }
 
 function costExample(values: IngredientFormValues) {
   const price = Number(values.purchasePrice);
   const quantity = Number(values.purchaseQuantity);
-  if (!(price > 0 && quantity > 0 && Number.isFinite(price) && Number.isFinite(quantity))) return null;
+  const purchaseUnit = values.purchaseUnit;
+  if (!values.purchasePrice.trim() || !purchaseUnit || !(price >= 0 && quantity > 0 && Number.isFinite(price) && Number.isFinite(quantity))) return null;
   const amount = Number(values.volumeAmount);
   const weight = Number(values.volumeWeightGrams);
-  const cups = lineVolumeToCups(amount, values.volumeUnit)!;
-  const gramsPerCup = weight / cups;
-  const converted = amount > 0 && weight > 0 && Number.isFinite(gramsPerCup) && gramsPerCup > 0
+  const volumeUnit = values.volumeUnit;
+  const cups = amount > 0 && volumeUnit ? lineVolumeToCups(amount, volumeUnit) : null;
+  const gramsPerCup = cups != null && cups > 0 ? weight / cups : null;
+  const converted = amount > 0 && volumeUnit && weight > 0 && gramsPerCup != null && Number.isFinite(gramsPerCup) && gramsPerCup > 0
     ? convertToBasis({
-      quantity: amount, unit: values.volumeUnit, basisUnit: values.purchaseUnit,
+      quantity: amount, unit: volumeUnit, basisUnit: purchaseUnit,
       ingredientConversion: { gramsPerCup, gramsPerEach: Number(values.gramsPerEach) || null },
     }) : null;
-  const sample = { COUNT: 2, G: 100, KG: 0.1, OZ: 1, LB: 0.5, CUP: 0.5 }[values.purchaseUnit];
+  const sample = SAMPLE_QUANTITIES[purchaseUnit];
   const cost = dollarsToCents(price) / quantity * (converted?.basisQty ?? sample);
-  if (!Number.isFinite(cost) || cost <= 0) return null;
+  if (!Number.isFinite(cost) || cost < 0) return null;
   return {
     amount: formatQuantity(converted ? amount : sample),
-    unit: UNIT_LABELS[converted ? values.volumeUnit : values.purchaseUnit],
+    unit: converted && volumeUnit ? UNIT_LABELS[volumeUnit] : UNIT_LABELS[purchaseUnit],
     cost,
   };
 }
@@ -154,7 +181,19 @@ export default function IngredientForm(props: IngredientFormProps) {
   const [serverErrors, setServerErrors] = useState<FieldErrors>({});
   const formRef = useRef<HTMLFormElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
-  const validation = ingredientCreateSchema.safeParse({ ...values, baseIngredientId: values.baseIngredientId || undefined });
+  const validationValues = {
+    ...values,
+    ...(isEdit && isUnchangedPartialGroup(values, initialValues, PURCHASE_GROUP_FIELDS)
+      ? { purchasePrice: "", purchaseQuantity: "", purchaseUnit: "" }
+      : {}),
+    ...(isEdit && isUnchangedPartialGroup(values, initialValues, VOLUME_GROUP_FIELDS)
+      ? { volumeAmount: "", volumeUnit: "", volumeWeightGrams: "" }
+      : {}),
+  };
+  const validation = ingredientCreateSchema.safeParse({
+    ...validationValues,
+    baseIngredientId: values.baseIngredientId || undefined,
+  });
   const errors: FieldErrors = {};
   if (!validation.success) {
     for (const issue of validation.error.issues) {
@@ -181,9 +220,9 @@ export default function IngredientForm(props: IngredientFormProps) {
   function numberInput(field: "purchasePrice" | "purchaseQuantity" | "volumeAmount" | "volumeWeightGrams" | "gramsPerEach", label: string): ComponentProps<typeof Input> {
     return {
       name: field, type: "text", inputMode: "decimal", autoComplete: "off", spellCheck: false,
-      required: field !== "gramsPerEach", value: values[field], "aria-label": label,
+      value: values[field], "aria-label": label,
       "aria-invalid": shownError(field) ? true : undefined,
-      "aria-describedby": `${field}-error`,
+      "aria-describedby": measurementGroupErrorId(shownError(field)) ?? `${field}-error`,
       onChange: (event) => {
         const value = event.target.value;
         if (!/^\d*\.?\d*$/.test(value) || (value !== "." && !Number.isFinite(Number(value)))) return;
@@ -225,9 +264,17 @@ export default function IngredientForm(props: IngredientFormProps) {
     }
     setSubmitting(true);
 
+    const volumeGroupChanged = isEdit &&
+      VOLUME_GROUP_FIELDS.some((field) => values[field] !== initialValues[field]);
     const fd = new FormData();
-    for (const [key, value] of Object.entries(values)) {
-      if (key !== "baseIngredientId" || value) fd.set(key, value);
+    for (const [key, value] of Object.entries(values) as [Field, string][]) {
+      if (key === "baseIngredientId") {
+        if (!isEdit && value) fd.set(key, value);
+        continue;
+      }
+      const includeVolumeField = volumeGroupChanged && VOLUME_GROUP_FIELDS.some((field) => field === key);
+      if (isEdit && key !== "name" && value === initialValues[key] && !includeVolumeField) continue;
+      fd.set(key, isEdit && key !== "name" && value === "" ? OPTIONAL_FIELD_CLEAR_SENTINEL : value);
     }
     if (isEdit) fd.set("id", props.ingredientId);
     try {
@@ -253,15 +300,24 @@ export default function IngredientForm(props: IngredientFormProps) {
   const hasItemWeight = Number(values.gramsPerEach) > 0 && !errors.gramsPerEach;
   const purchaseDisplay = values.purchaseUnit === "COUNT" ? "EACH" : values.purchaseUnit === "G" ? "GRAM" : values.purchaseUnit;
   const automatic = hasItemWeight ? "EACH" : purchaseDisplay;
+  const automaticName = automatic ? SHOPPING_UNIT_NAMES[automatic as keyof typeof SHOPPING_UNIT_NAMES] : null;
   const preferred = values.preferredDisplayUnit;
   const needsItemWeight = preferred !== "AUTO" && !hasItemWeight &&
     ((preferred === "EACH" && purchaseDisplay !== "EACH") || (purchaseDisplay === "EACH" && preferred !== "EACH"));
   const displayHelp = needsItemWeight
-    ? `Add weight per item to show shopping amounts in ${SHOPPING_UNIT_NAMES[preferred as Exclude<IngredientDisplayUnit, "AUTO">]}. Until then, use ${SHOPPING_UNIT_NAMES[purchaseDisplay]}.`
-    : preferred === "AUTO" ? `For this ingredient, Auto uses ${SHOPPING_UNIT_NAMES[automatic]}.`
+    ? purchaseDisplay
+      ? `Add weight per item to show shopping amounts in ${SHOPPING_UNIT_NAMES[preferred as Exclude<IngredientDisplayUnit, "AUTO">]}. Until then, use ${SHOPPING_UNIT_NAMES[purchaseDisplay as keyof typeof SHOPPING_UNIT_NAMES]}.`
+      : `Add a purchase unit or weight per item to show shopping amounts in ${SHOPPING_UNIT_NAMES[preferred as Exclude<IngredientDisplayUnit, "AUTO">]}.`
+    : preferred === "AUTO"
+      ? automaticName === "count"
+        ? null
+        : automaticName ? `For this ingredient, Auto uses ${automaticName}.` : "Auto uses a purchase unit or item weight when available; otherwise, it keeps recipe units."
       : `Shopping amounts will use ${SHOPPING_UNIT_NAMES[preferred]} when the measurements are available.`;
   const example = costExample(values);
   const displayChoices = DISPLAY_CHOICES.includes(preferred) ? DISPLAY_CHOICES : [...DISPLAY_CHOICES, preferred];
+  const showPurchaseGroupError = PURCHASE_GROUP_FIELDS.some((field) => shownError(field) === PURCHASE_GROUP_ERROR);
+  const showVolumeGroupError = VOLUME_GROUP_FIELDS.some((field) => shownError(field) === VOLUME_GROUP_ERROR);
+  const hasOtherErrors = Object.values(errors).some((message) => message && !measurementGroupErrorId(message));
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} noValidate className="ingredient-form" aria-busy={submitting}
@@ -297,14 +353,20 @@ export default function IngredientForm(props: IngredientFormProps) {
               <option value="">No category</option>
               {props.categories.map((category) => <option key={category} value={category}>{category}</option>)}
             </select>
-            <FieldError field="category" message={shownError("category")} />
+              <FieldError field="category" message={shownError("category")} />
           </div>
         </div>
 
         <fieldset>
-          <legend><span className="ingredient-heading"><span>Cost <span className="ingredient-required" aria-hidden="true">*</span></span>
+          <legend><span className="ingredient-heading"><span>Cost</span>
             <IngredientFormHelp label="About purchase price">Recipe and order estimates use only the amount needed, rather than the whole package price. Update this when your usual price changes.</IngredientFormHelp>
           </span></legend>
+          {showPurchaseGroupError && (
+            <div id="purchase-group-error" className="ingredient-group-error" role="alert" aria-labelledby="purchase-group-error-title">
+              <strong id="purchase-group-error-title">Complete the cost details</strong>
+              <p>{PURCHASE_GROUP_ERROR}</p>
+            </div>
+          )}
           <div className="ingredient-equation ingredient-purchase">
             <div className="ingredient-measure"><span className="ingredient-prefix" aria-hidden="true">$</span>
               <Input id="price" {...numberInput("purchasePrice", "Price paid in dollars")} placeholder="0.00" />
@@ -313,8 +375,10 @@ export default function IngredientForm(props: IngredientFormProps) {
             <div className="ingredient-measure">
               <Input id="package-quantity" {...numberInput("purchaseQuantity", "Amount bought")} />
               <select id="package-unit" name="purchaseUnit" value={values.purchaseUnit} aria-label="Purchase unit"
-                aria-invalid={shownError("purchaseUnit") ? true : undefined} aria-describedby="purchaseUnit-error"
+                aria-invalid={shownError("purchaseUnit") ? true : undefined}
+                aria-describedby={measurementGroupErrorId(shownError("purchaseUnit")) ?? "purchaseUnit-error"}
                 onChange={(e) => set("purchaseUnit", e.target.value as IngredientFormValues["purchaseUnit"])}>
+                <option value="">Unit</option>
                 {PURCHASE_UNITS.map((unit) => <option key={unit} value={unit}>{UNIT_LABELS[unit]}</option>)}
               </select>
             </div>
@@ -327,15 +391,23 @@ export default function IngredientForm(props: IngredientFormProps) {
         <fieldset aria-label="Measurement conversions">
           <div className="ingredient-conversions">
             <div>
-              <div className="ingredient-heading"><label htmlFor="volume-weight">Volume to weight <span className="ingredient-required" aria-hidden="true">*</span></label>
+              <div className="ingredient-heading"><label htmlFor="volume-weight">Volume to weight</label>
                 <IngredientFormHelp label="About volume to weight">Turn cups and spoonfuls in recipes into shopping weights and cost estimates. Look for a serving size such as ¼ cup (30 g) on the Nutrition Facts label, then enter 0.25 cup = 30 g. Use the grams beside the serving size, not a nutrient or the whole package. If no volume is listed, weigh the amount shown.</IngredientFormHelp>
               </div>
+              {showVolumeGroupError && (
+                <div id="volume-group-error" className="ingredient-group-error" role="alert" aria-labelledby="volume-group-error-title">
+                  <strong id="volume-group-error-title">Complete the volume conversion</strong>
+                  <p>{VOLUME_GROUP_ERROR}</p>
+                </div>
+              )}
               <div className="ingredient-equation">
                 <div className="ingredient-measure">
                   <Input id="volume-amount" {...numberInput("volumeAmount", "Volume amount")} />
                   <select id="volume-unit" name="volumeUnit" aria-label="Volume unit" value={values.volumeUnit}
-                    aria-invalid={shownError("volumeUnit") ? true : undefined} aria-describedby="volumeUnit-error"
+                    aria-invalid={shownError("volumeUnit") ? true : undefined}
+                    aria-describedby={measurementGroupErrorId(shownError("volumeUnit")) ?? "volumeUnit-error"}
                     onChange={(e) => set("volumeUnit", e.target.value as IngredientFormValues["volumeUnit"])}>
+                    <option value="">Unit</option>
                     {VOLUME_UNITS.map((unit) => <option key={unit} value={unit}>{UNIT_LABELS[unit]}</option>)}
                   </select>
                 </div>
@@ -371,10 +443,11 @@ export default function IngredientForm(props: IngredientFormProps) {
           </div>
           <select id="display-unit" name="preferredDisplayUnit" className="ingredient-control" value={preferred}
             onChange={(e) => set("preferredDisplayUnit", e.target.value as IngredientDisplayUnit)}
-            aria-invalid={shownError("preferredDisplayUnit") ? true : undefined} aria-describedby="display-help preferredDisplayUnit-error">
+            aria-invalid={shownError("preferredDisplayUnit") ? true : undefined}
+            aria-describedby={`${displayHelp ? "display-help " : ""}preferredDisplayUnit-error`}>
             {displayChoices.map((unit) => <option key={unit} value={unit}>{DISPLAY_UNIT_LABELS[unit]}</option>)}
           </select>
-          <p id="display-help" className="ingredient-display-help">{displayHelp}</p>
+          {displayHelp && <p id="display-help" className="ingredient-display-help">{displayHelp}</p>}
           <FieldError field="preferredDisplayUnit" message={shownError("preferredDisplayUnit")} />
         </div>
 
@@ -390,7 +463,7 @@ export default function IngredientForm(props: IngredientFormProps) {
       </fieldset>
 
       <div className="ingredient-actions">
-        <p className="ingredient-save-note" role="status" aria-atomic="true">{submitted && Object.values(errors).some(Boolean) ? "Check the highlighted fields before saving." : ""}</p>
+        <p className="ingredient-save-note" role="status" aria-atomic="true">{submitted && hasOtherErrors ? "Check the highlighted fields before saving." : ""}</p>
         <div className="ingredient-buttons">
           <Button type="submit" disabled={submitting}>{submitting ? "Saving…" : isEdit ? "Save changes" : "Create ingredient"}</Button>
           {isEdit ? (

@@ -93,4 +93,26 @@ describe("toDisplayUnits count conversions", () => {
       canonicalQty: 1, canonicalUnit: "GRAM", ingredient: { preferredDisplayUnit: "KG" },
     }).displayText).toBe("0.001 kg");
   });
+
+  it("explains when an explicit display unit cannot be used", () => {
+    const result = toDisplayUnits({
+      canonicalQty: 2,
+      canonicalUnit: "EACH",
+      ingredient: { preferredDisplayUnit: "LB" },
+    });
+
+    expect(result.displayText).toBe("2 count");
+    expect(result.reason).toMatch(/weight per item/i);
+  });
+
+  it("does not warn about an unused bridge for Auto display", () => {
+    const result = toDisplayUnits({
+      canonicalQty: 2,
+      canonicalUnit: "EACH",
+      ingredient: { preferredDisplayUnit: "AUTO" },
+    });
+
+    expect(result.displayText).toBe("2 count");
+    expect(result.reason).toBeUndefined();
+  });
 });

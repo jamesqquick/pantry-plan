@@ -5,9 +5,7 @@ import AppLayout from "@/layouts/AppLayout.astro";
 import PageHeader from "@/components/ui/PageHeader.astro";
 import { DeleteIngredientButton } from "@/components/ingredients/DeleteIngredientButton";
 import { renderMarkdownToHtml } from "@/features/markdown/render-markdown";
-import { formatIngredientCost } from "@/lib/ingredients/pricing";
-import { DISPLAY_UNIT_LABELS, UNIT_LABELS } from "@/lib/ingredients/units";
-import { formatQuantity } from "@/lib/quantity/quantity";
+import { buildIngredientDetails } from "@/features/ingredients/ingredients.details";
 import { createDb, ingredient, recipeIngredient, recipe } from "@/db";
 
 
@@ -74,30 +72,7 @@ const notesHtml = ing.notes?.trim()
   ? await renderMarkdownToHtml(ing.notes)
   : null;
 
-// Build detail fields.
-type DetailField = { label: string; value: string };
-const details: DetailField[] = [];
-if (ing.category) details.push({ label: "Category", value: ing.category });
-if (ing.preferredDisplayUnit && ing.preferredDisplayUnit !== "AUTO") {
-  details.push({ label: "Grocery list unit", value: DISPLAY_UNIT_LABELS[ing.preferredDisplayUnit] ?? ing.preferredDisplayUnit });
-}
-if (ing.purchasePriceCents != null && ing.purchaseQuantity != null && ing.purchaseUnit != null) {
-  details.push({ label: "Cost", value: `${formatIngredientCost(ing.purchasePriceCents)} for ${formatQuantity(ing.purchaseQuantity)} ${UNIT_LABELS[ing.purchaseUnit]}` });
-} else if (ing.estimatedCentsPerBasisUnit != null) {
-  const basisLabel = UNIT_LABELS[ing.costBasisUnit] ?? ing.costBasisUnit;
-  details.push({
-    label: "Estimated cost",
-    value: `${formatIngredientCost(ing.estimatedCentsPerBasisUnit)} per ${basisLabel}`,
-  });
-}
-if (ing.volumeAmount != null && ing.volumeUnit != null && ing.volumeWeightGrams != null) {
-  details.push({ label: "Volume to weight", value: `${formatQuantity(ing.volumeAmount)} ${UNIT_LABELS[ing.volumeUnit]} = ${ing.volumeWeightGrams} g` });
-} else if (ing.gramsPerCup != null) {
-  details.push({ label: "Volume to weight", value: `1 cup = ${ing.gramsPerCup} g` });
-}
-if (ing.gramsPerEach != null) {
-  details.push({ label: "Weight per item", value: `${ing.gramsPerEach} g` });
-}
+const details = buildIngredientDetails(ing);
 ---
 
 <AppLayout title={`${ing.name} — Quick Pantry`}>

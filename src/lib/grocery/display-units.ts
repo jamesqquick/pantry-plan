@@ -4,8 +4,8 @@
  * Cost is always computed from canonical (costBasisUnit); this is display-only.
  */
 import { formatQuantity } from "@/lib/quantity/quantity";
-import type { CostBasisUnit, IngredientDisplayUnit } from "@/db/schema/enums";
-import { UNIT_LABELS } from "@/lib/ingredients/units";
+import type { CostBasisUnit, IngredientDisplayUnit, PurchaseUnit } from "@/db/schema/enums";
+import { DISPLAY_UNIT_LABELS, UNIT_LABELS } from "@/lib/ingredients/units";
 import { convertToBasis } from "./canonical";
 
 export type CanonicalUnit = "GRAM" | "CUP" | "EACH";
@@ -16,13 +16,14 @@ export type IngredientDisplayInfo = {
   gramsPerCup?: number | null;
   gramsPerEach?: number | null;
   cupsPerEach?: number | null;
-  purchaseUnit?: CostBasisUnit | null;
+  purchaseUnit?: PurchaseUnit | null;
 };
 
 export type DisplayResult = {
   displayQty: number;
   displayUnitLabel: string;
   displayText: string;
+  reason?: string;
 };
 
 const TSP_PER_CUP = 48;
@@ -123,6 +124,23 @@ export function formatCanonicalForKitchen(
   return `${formatDisplayQty(qty)} ${basisUnitLabel}`;
 }
 
+function unavailableDisplayReason(preferred: Exclude<DisplayPreference, "AUTO">, canonicalUnit: CanonicalUnit, fallbackUnit: CostBasisUnit) {
+  const preferredLabel = DISPLAY_UNIT_LABELS[preferred];
+  const fallbackLabel = UNIT_LABELS[fallbackUnit];
+  const needsMass = preferred === "GRAM" || preferred === "KG" || preferred === "OZ" || preferred === "LB";
+  const needsVolume = preferred === "CUP" || preferred === "TBSP" || preferred === "TSP";
+  let dependency = `a conversion to ${preferredLabel}`;
+
+  if (needsMass && canonicalUnit === "CUP") dependency = "a volume-to-weight reference";
+  else if (needsMass && canonicalUnit === "EACH") dependency = "weight per item";
+  else if (needsVolume && canonicalUnit === "GRAM") dependency = "a volume-to-weight reference";
+  else if (needsVolume && canonicalUnit === "EACH") dependency = "an item-weight and volume reference";
+  else if (preferred === "EACH" && canonicalUnit === "GRAM") dependency = "weight per item";
+  else if (preferred === "EACH" && canonicalUnit === "CUP") dependency = "a count-to-volume reference";
+
+  return `Add ${dependency} to show this amount in ${preferredLabel}; showing ${fallbackLabel} instead.`;
+}
+
 /**
  * Convert canonical total to shopper-friendly display using ingredient preferences.
  * Fall back to the purchase unit, then canonical, when conversion is unavailable.
@@ -145,11 +163,14 @@ export function toDisplayUnits(params: {
   };
   const purchaseBasis = ingredient.purchaseUnit ?? canonicalBasis[canonicalUnit];
   const automaticBasis = conversion.gramsPerEach != null || conversion.cupsPerEach != null ? "COUNT" : purchaseBasis;
-  let basis = ingredient.preferredDisplayUnit === "AUTO" ? automaticBasis : displayBasis[ingredient.preferredDisplayUnit];
+  const preferred = ingredient.preferredDisplayUnit;
+  const requestedBasis = preferred === "AUTO" ? automaticBasis : displayBasis[preferred];
+  let basis = requestedBasis;
   const convert = (basisUnit: CostBasisUnit) => convertToBasis({
     quantity: canonicalQty, unit: canonicalBasis[canonicalUnit], basisUnit, ingredientConversion: conversion,
   })?.basisQty;
   let quantity = convert(basis);
+  let reason: string | undefined;
   if (quantity == null || !Number.isFinite(quantity)) {
     basis = purchaseBasis;
     quantity = convert(basis);
@@ -157,6 +178,9 @@ export function toDisplayUnits(params: {
   if (quantity == null || !Number.isFinite(quantity)) {
     basis = canonicalBasis[canonicalUnit];
     quantity = canonicalQty;
+  }
+  if (preferred !== "AUTO" && basis !== requestedBasis) {
+    reason = unavailableDisplayReason(preferred, canonicalUnit, basis);
   }
 
   let rounded = basis === "G" ? roundGrams(quantity)
@@ -170,5 +194,5 @@ export function toDisplayUnits(params: {
   const fractionText = formatDisplayQty(rounded);
   const text = basis === "KG" || basis === "LB" || basis === "OZ" || (rounded > 0 && fractionText === "0") ? decimalText : fractionText;
   const label = UNIT_LABELS[basis];
-  return { displayQty: rounded, displayUnitLabel: label, displayText: `${text} ${label}` };
+  return { displayQty: rounded, displayUnitLabel: label, displayText: `${text} ${label}`, ...(reason ? { reason } : {}) };
 }
