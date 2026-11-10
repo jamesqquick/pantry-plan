@@ -89,11 +89,7 @@ export function OrderDetailsFields({
           value={details.totalCost}
           onChange={(event) => onDetailsChange({ totalCost: event.target.value })}
           placeholder="0.00"
-          aria-describedby="order-total-cost-help"
         />
-        <p id="order-total-cost-help" className="mt-1 text-meta text-muted-foreground">
-          Enter 0 for a free order.
-        </p>
       </div>
 
       <section className="space-y-4 border-t border-border pt-6" aria-labelledby="order-customer-heading">
