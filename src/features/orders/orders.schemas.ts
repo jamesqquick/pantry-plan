@@ -51,6 +51,10 @@ const optionalOrderDetails = {
 
 const orderStatusSchema = z.enum(ORDER_STATUSES);
 const fulfillmentMethodSchema = z.enum(ORDER_FULFILLMENT_METHODS);
+const orderTotalCostSchema = z
+  .number({ error: "Order total is required." })
+  .int()
+  .min(0, "Order total must be $0 or more.");
 
 export const orderIdSchema = z.object({
   id: z.string().min(1, "Order id is required"),
@@ -76,6 +80,7 @@ export const orderCreateSchema = z.object({
     .trim()
     .min(1, "Name is required"),
   notes: z.string().max(MAX_ORDER_NOTES).optional(),
+  totalCostCents: orderTotalCostSchema,
   ...optionalOrderDetails,
   fulfillmentMethod: fulfillmentMethodSchema.default("PICKUP"),
   status: orderStatusSchema.default("DRAFT"),
@@ -93,6 +98,7 @@ export const orderUpdateSchema = z.object({
     .trim()
     .min(1, "Name is required"),
   notes: z.string().max(MAX_ORDER_NOTES).optional(),
+  totalCostCents: orderTotalCostSchema,
   ...optionalOrderDetails,
   fulfillmentMethod: fulfillmentMethodSchema.optional(),
   status: orderStatusSchema.optional(),

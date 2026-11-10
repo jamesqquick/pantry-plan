@@ -82,6 +82,7 @@ const [existingItems, recipes] = await Promise.all([
       recipeOptions={recipes}
       initialName={o.name ?? ""}
       initialNotes={o.notes ?? ""}
+      initialTotalCostCents={o.totalCostCents}
       initialCustomerName={o.customerName ?? ""}
       initialCustomerContact={o.customerContact ?? ""}
       initialDueDate={o.dueDate ?? ""}

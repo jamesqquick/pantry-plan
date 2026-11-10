@@ -7,6 +7,7 @@ import {
   MobileFormActions,
   mobileFormActionButtonClass,
 } from "@/components/ui/MobileFormActions";
+import { centsToDollarsInput, dollarsInputToCents } from "@/lib/money";
 import type {
   OrderFulfillmentMethod,
   OrderStatus,
@@ -32,6 +33,7 @@ interface EditProps {
   recipeOptions: RecipeOption[];
   initialName: string;
   initialNotes: string;
+  initialTotalCostCents: number | null;
   initialCustomerName: string;
   initialCustomerContact: string;
   initialDueDate: string;
@@ -65,6 +67,9 @@ export default function OrderForm(props: OrderFormProps) {
   const [name, setName] = useState(isEdit ? props.initialName : defaultOrderName());
   const [notes, setNotes] = useState(isEdit ? props.initialNotes : "");
   const [details, setDetails] = useState<OrderDetailsFormValues>({
+    totalCost: isEdit && props.initialTotalCostCents != null
+      ? centsToDollarsInput(props.initialTotalCostCents)
+      : "",
     customerName: isEdit ? props.initialCustomerName : "",
     customerContact: isEdit ? props.initialCustomerContact : "",
     dueDate: isEdit ? props.initialDueDate : defaultDueDate(),
@@ -89,6 +94,15 @@ export default function OrderForm(props: OrderFormProps) {
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     if (submitting) return;
+    if (!details.totalCost.trim()) {
+      setError("Order total is required.");
+      return;
+    }
+    const totalCostCents = dollarsInputToCents(details.totalCost);
+    if (totalCostCents === null) {
+      setError("Enter a valid order total with up to 2 decimal places.");
+      return;
+    }
     if (validItems.length === 0) {
       setError("Add at least one recipe.");
       return;
@@ -103,6 +117,7 @@ export default function OrderForm(props: OrderFormProps) {
     const payload = {
       name,
       notes: notes || undefined,
+      totalCostCents,
       customerName: details.customerName,
       customerContact: details.customerContact,
       dueDate: details.dueDate,

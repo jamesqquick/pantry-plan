@@ -6,6 +6,7 @@ import PageHeader from "@/components/ui/PageHeader.astro";
 import { createDb, order, orderItem } from "@/db";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { formatDueDate, formatDueTime } from "@/components/orders/formatDue";
+import { formatDollars } from "@/lib/money";
 
 export const prerender = false;
 
@@ -17,6 +18,7 @@ const orders = await db
   .select({
     id: order.id,
     name: order.name,
+    totalCostCents: order.totalCostCents,
     customerName: order.customerName,
     dueDate: order.dueDate,
     dueTime: order.dueTime,
@@ -105,6 +107,12 @@ const orders = await db
                 <p class="mt-1 break-words text-meta text-muted-foreground">
                   {o.customerName || "Customer not added"} · {o.itemCount} {o.itemCount === 1 ? "recipe" : "recipes"}
                 </p>
+                {o.totalCostCents != null && (
+                  <p class="mt-1 text-sm font-medium tabular-nums text-card-foreground">
+                    <span class="sr-only">Order total: </span>
+                    {formatDollars(o.totalCostCents)}
+                  </p>
+                )}
               </div>
               <div class="col-start-1 row-start-2 text-sm text-muted-foreground sm:col-start-2 sm:row-start-1">
                 <span class="font-medium text-foreground sm:hidden">Due </span>
