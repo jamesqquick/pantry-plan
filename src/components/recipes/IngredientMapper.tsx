@@ -128,8 +128,8 @@ export function IngredientMapper({
         onClick={toggleOpen}
         className={`inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-full px-2 py-0.5 text-meta leading-tight font-medium ring-1 ring-transparent transition-all hover:shadow-sm sm:min-h-0 sm:text-[10px] ${
           isMapped
-            ? "bg-green-50 text-green-700 hover:bg-green-100 hover:ring-green-200 dark:bg-green-900/20 dark:text-green-300 dark:hover:bg-green-900/30 dark:hover:ring-green-700/40"
-            : "bg-amber-50 text-amber-700 hover:bg-amber-100 hover:ring-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/30 dark:hover:ring-amber-700/40"
+            ? "bg-green-50 text-green-700 hover:bg-green-100 hover:ring-green-200"
+            : "bg-amber-50 text-amber-700 hover:bg-amber-100 hover:ring-amber-200"
         }`}
       >
         {isMapped ? (
@@ -226,7 +226,7 @@ export function IngredientMapper({
               <button
                 type="button"
                 onClick={handleClear}
-                className="min-h-11 cursor-pointer rounded px-2 py-1 text-meta font-medium text-amber-700 transition-colors hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-900/20 sm:min-h-0 sm:text-[10px] sm:leading-tight"
+                className="min-h-11 cursor-pointer rounded px-2 py-1 text-meta font-medium text-amber-700 transition-colors hover:bg-amber-50 sm:min-h-0 sm:text-[10px] sm:leading-tight"
               >
                 Clear mapping
               </button>

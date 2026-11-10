@@ -283,7 +283,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
         <div
           id="recipe-import-error"
           role="alert"
-          className="rounded-input bg-red-50 p-3 text-body text-red-700 dark:bg-red-900/20 dark:text-red-300"
+          className="rounded-input bg-red-50 p-3 text-body text-red-700"
         >
           {error}
         </div>

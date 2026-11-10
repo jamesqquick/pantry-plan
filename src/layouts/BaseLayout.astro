@@ -6,19 +6,14 @@ import "@/styles/globals.css";
 interface Props {
   title?: string;
   description?: string;
-  /** Pages whose top surface ignores dark mode (the landing page) pin the browser chrome color. */
-  fixedThemeColor?: string;
 }
 
 const {
   title = "Quick Pantry",
   description = "Recipe management and meal planning",
-  fixedThemeColor,
 } = Astro.props;
 
-// Matches --header-bg in each theme so the browser chrome blends into the header.
-const THEME_COLOR_LIGHT = "#ffe28d";
-const THEME_COLOR_DARK = "#33270c";
+const THEME_COLOR = "#ffe28d";
 ---
 
 <!doctype html>
@@ -30,43 +25,11 @@ const THEME_COLOR_DARK = "#33270c";
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png?v=3" />
-    {
-      fixedThemeColor ? (
-        <meta name="theme-color" content={fixedThemeColor} data-fixed />
-      ) : (
-        <>
-          <meta name="theme-color" content={THEME_COLOR_LIGHT} media="(prefers-color-scheme: light)" data-light={THEME_COLOR_LIGHT} data-dark={THEME_COLOR_DARK} />
-          <meta name="theme-color" content={THEME_COLOR_DARK} media="(prefers-color-scheme: dark)" data-light={THEME_COLOR_LIGHT} data-dark={THEME_COLOR_DARK} />
-        </>
-      )
-    }
+    <meta name="theme-color" content={THEME_COLOR} />
     <ClientRouter />
     <Font cssVariable="--font-body" preload />
     <Font cssVariable="--font-display" preload />
     <title>{title}</title>
-    {/*
-      Inline blocking theme bootstrap. Runs before paint to prevent FOUC.
-      Mirrors the logic in src/lib/theme.ts (kept inline because is:inline
-      scripts cannot import). If you change theme behavior, update both.
-    */}
-    <script is:inline>
-      (function () {
-        try {
-          var stored = localStorage.getItem("theme");
-          var explicit = stored === "light" || stored === "dark";
-          var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-          var isDark = explicit ? stored === "dark" : prefersDark;
-          var root = document.documentElement;
-          if (isDark) root.classList.add("dark");
-          else root.classList.remove("dark");
-          var metas = document.querySelectorAll('meta[name="theme-color"]:not([data-fixed])');
-          for (var i = 0; i < metas.length; i++) {
-            var m = metas[i];
-            m.setAttribute("content", explicit ? m.getAttribute(isDark ? "data-dark" : "data-light") : m.getAttribute(m.media.indexOf("dark") > -1 ? "data-dark" : "data-light"));
-          }
-        } catch (e) {}
-      })();
-    </script>
     <script is:inline>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
@@ -81,23 +44,5 @@ const THEME_COLOR_DARK = "#33270c";
     <a href="#main-content" class="skip-to-content">Skip to content</a>
     <slot />
 
-    {/*
-      Re-apply theme after every Astro view transition (the inline bootstrap
-      above only runs on initial load). Also live-updates when the OS theme
-      flips while the user is on "system".
-    */}
-    <script>
-      import { applyTheme, getStoredTheme } from "@/lib/theme";
-
-      // Reapply on every client-side navigation. Defensive: fixes any
-      // desync between SSR and prerendered pages under view transitions.
-      document.addEventListener("astro:after-swap", applyTheme);
-
-      // Live OS theme updates — only when the user hasn't picked an override.
-      const mql = window.matchMedia("(prefers-color-scheme: dark)");
-      mql.addEventListener("change", () => {
-        if (getStoredTheme() === "system") applyTheme();
-      });
-    </script>
   </body>
 </html>
