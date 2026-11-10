@@ -10,6 +10,10 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
+import {
+  MobileFormActions,
+  mobileFormActionButtonClass,
+} from "@/components/ui/MobileFormActions";
 import type { PickerIngredient, GlobalIngredientBasePrefillData } from "@/actions/ingredients";
 import { INGREDIENT_UNITS, COST_BASIS_UNITS, INGREDIENT_DISPLAY_UNITS } from "@/db/schema/enums";
 import { centsToDollarsInput } from "@/lib/money";
@@ -452,8 +456,12 @@ export default function IngredientForm(props: IngredientFormProps) {
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Button type="submit" disabled={submitting}>
+      <MobileFormActions className="flex-row-reverse sm:flex-row sm:justify-start sm:gap-3">
+        <Button
+          type="submit"
+          disabled={submitting}
+          className={mobileFormActionButtonClass}
+        >
           {submitting
             ? isEdit
               ? "Saving…"
@@ -465,10 +473,11 @@ export default function IngredientForm(props: IngredientFormProps) {
         <Button
           variant="secondary"
           href={isEdit ? `/ingredients/${(props as EditProps).ingredientId}` : "/ingredients"}
+          className={mobileFormActionButtonClass}
         >
           Cancel
         </Button>
-      </div>
+      </MobileFormActions>
     </form>
   );
 }

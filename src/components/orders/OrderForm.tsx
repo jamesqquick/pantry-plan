@@ -3,6 +3,10 @@ import { actions } from "astro:actions";
 import { submitCreate, SubmissionStorageError } from "@/features/mutations/client";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
+import {
+  MobileFormActions,
+  mobileFormActionButtonClass,
+} from "@/components/ui/MobileFormActions";
 import type {
   OrderFulfillmentMethod,
   OrderStatus,
@@ -178,8 +182,12 @@ export default function OrderForm(props: OrderFormProps) {
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Button type="submit" disabled={submitting}>
+      <MobileFormActions className="flex-row-reverse sm:flex-row sm:justify-start sm:gap-3">
+        <Button
+          type="submit"
+          disabled={submitting}
+          className={mobileFormActionButtonClass}
+        >
           {submitting
             ? isEdit
               ? "Saving…"
@@ -191,10 +199,11 @@ export default function OrderForm(props: OrderFormProps) {
         <Button
           variant="secondary"
           href={isEdit ? `/orders/${(props as EditProps).orderId}` : "/orders"}
+          className={mobileFormActionButtonClass}
         >
           Cancel
         </Button>
-      </div>
+      </MobileFormActions>
     </form>
   );
 }

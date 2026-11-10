@@ -3,6 +3,10 @@ import { actions } from "astro:actions";
 import { INGREDIENT_UNITS, type IngredientUnit } from "@/db/schema/enums";
 import { parseQuantityText } from "@/lib/quantity/quantity";
 import { Button } from "@/components/ui/Button";
+import {
+  MobileFormActions,
+  mobileFormActionButtonClass,
+} from "@/components/ui/MobileFormActions";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import {
@@ -548,9 +552,10 @@ export default function RecipeForm({
         </div>
       )}
 
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+      <MobileFormActions className="flex-row sm:justify-end sm:gap-3">
         <Button
           variant="secondary"
+          className={mobileFormActionButtonClass}
           href={
             mode === "edit" && initial.id
               ? `/recipes/${initial.id}`
@@ -562,7 +567,7 @@ export default function RecipeForm({
         <Button
           type="submit"
           disabled={pending}
-          className="w-full px-5 sm:w-auto"
+          className={`${mobileFormActionButtonClass} w-full px-5 sm:w-auto`}
         >
           {pending
             ? mode === "create"
@@ -572,7 +577,7 @@ export default function RecipeForm({
               ? "Create recipe"
               : "Save changes"}
         </Button>
-      </div>
+      </MobileFormActions>
     </form>
   );
 }
