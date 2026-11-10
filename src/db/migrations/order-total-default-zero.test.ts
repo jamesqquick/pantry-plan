@@ -40,8 +40,15 @@ describe("order total default migration", () => {
     `);
 
     const migration = readFileSync(path.join(migrationsDir, defaultZeroMigration), "utf8");
-    for (const statement of migration.split("--> statement-breakpoint")) {
-      if (statement.trim()) sqlite.exec(statement);
+    sqlite.exec("BEGIN");
+    try {
+      for (const statement of migration.split("--> statement-breakpoint")) {
+        if (statement.trim()) sqlite.exec(statement);
+      }
+      sqlite.exec("COMMIT");
+    } catch (error) {
+      sqlite.exec("ROLLBACK");
+      throw error;
     }
 
     expect(sqlite.prepare('SELECT totalCostCents FROM "Order" WHERE id = ?').get("legacy-order"))
