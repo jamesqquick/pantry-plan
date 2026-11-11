@@ -8,6 +8,7 @@ export const mutationInputSchema = z.object({
 export const MUTATION_KINDS = [
   "recipes.create",
   "recipes.duplicate",
+  "recipeImport.saveWithMappings",
   "recipeImport.saveTextOnly",
   "orders.create",
 ] as const;

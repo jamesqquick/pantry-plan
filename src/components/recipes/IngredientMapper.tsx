@@ -1,13 +1,13 @@
-/**
- * Inline ingredient mapper: shows current mapping status and lets the user
- * search the ingredient catalog to change/set/clear the mapping.
- *
- * Uses ingredients.searchForPicker action (debounced) for typeahead search.
- */
-
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { actions } from "astro:actions";
+import { ChevronDown, Info, Search } from "lucide-react";
 import { Input } from "@/components/ui/Input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/Tooltip";
 
 type PickerResult = {
   id: string;
@@ -16,225 +16,347 @@ type PickerResult = {
 };
 
 interface Props {
-  /** Currently mapped ingredient ID (empty string = unmapped). */
   ingredientId: string | null;
-  /** Currently mapped ingredient name. */
   ingredientName: string | null | undefined;
-  /** Called when the user selects a mapping. */
+  createIngredientName: string | null | undefined;
+  disabled?: boolean;
   onMap: (ingredientId: string, ingredientName: string) => void;
-  /** Called when the user clears the mapping. */
+  onCreate: (ingredientName: string) => void;
   onClear: () => void;
 }
+
+const CATALOG_INGREDIENT_HELP =
+  "Link this recipe line to a catalog item to combine matching shopping-list items, convert units, and estimate cost.";
 
 export function IngredientMapper({
   ingredientId,
   ingredientName,
+  createIngredientName,
+  disabled = false,
   onMap,
+  onCreate,
   onClear,
 }: Props) {
+  const listboxId = useId();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PickerResult[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [highlightIdx, setHighlightIdx] = useState(-1);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [completedQuery, setCompletedQuery] = useState<string | null>(null);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
-  const isMapped = !!ingredientId;
+  const trimmedQuery = query.trim();
+  const selectedName =
+    ingredientName || createIngredientName || ingredientId || "";
+  const isMapped = Boolean(ingredientId || createIngredientName);
+  const searchComplete = completedQuery === trimmedQuery;
+  const visibleResults = searchComplete ? results : [];
+  const canCreate =
+    searchComplete && trimmedQuery.length > 0 && results.length === 0 && !searchError;
+  const optionCount = visibleResults.length + (canCreate ? 1 : 0);
+  const activeOption =
+    highlightedIndex >= 0 && highlightedIndex < optionCount
+      ? `${listboxId}-option-${canCreate && highlightedIndex === results.length ? "create" : visibleResults[highlightedIndex]?.id}`
+      : undefined;
 
-  // Close on outside click
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
+    function handleOutsidePointer(event: MouseEvent) {
+      if (containerRef.current?.contains(event.target as Node)) return;
+      setOpen(false);
+      setResults([]);
+      setSearching(false);
+      setSearchError(null);
+      setCompletedQuery(null);
+      setHighlightedIndex(-1);
     }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+
+    document.addEventListener("mousedown", handleOutsidePointer);
+    return () => document.removeEventListener("mousedown", handleOutsidePointer);
   }, []);
 
-  const search = useCallback(async (q: string) => {
-    const trimmed = q.trim();
-    if (trimmed.length < 2) {
+  useEffect(() => {
+    if (disabled) setOpen(false);
+    if (!open || disabled || trimmedQuery.length === 0) {
       setResults([]);
-      setLoading(false);
+      setSearching(false);
+      setSearchError(null);
+      setCompletedQuery(null);
+      setHighlightedIndex(-1);
       return;
     }
-    setLoading(true);
-    const { data, error } = await actions.ingredients.searchForPicker({
-      query: trimmed,
-    });
-    setLoading(false);
-    if (!error && data) {
-      setResults(data);
-      setHighlightIdx(-1);
-    }
-  }, []);
 
-  function handleQueryChange(value: string) {
-    setQuery(value);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => search(value), 250);
-  }
-
-  function handleSelect(item: PickerResult) {
-    onMap(item.id, item.name);
-    setOpen(false);
-    setQuery("");
+    let cancelled = false;
     setResults([]);
-  }
+    setSearching(true);
+    setSearchError(null);
+    setCompletedQuery(null);
+    setHighlightedIndex(-1);
 
-  function handleClear() {
-    onClear();
-    setOpen(false);
-    setQuery("");
-    setResults([]);
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setHighlightIdx((prev) => Math.min(prev + 1, results.length - 1));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setHighlightIdx((prev) => Math.max(prev - 1, 0));
-    } else if (e.key === "Enter" && highlightIdx >= 0 && results[highlightIdx]) {
-      e.preventDefault();
-      handleSelect(results[highlightIdx]);
-    } else if (e.key === "Escape") {
-      setOpen(false);
-    }
-  }
-
-  function toggleOpen() {
-    setOpen((prev) => {
-      if (!prev) {
-        // Focus the search input when opening
-        setTimeout(() => inputRef.current?.focus(), 0);
+    const timer = window.setTimeout(async () => {
+      try {
+        const { data, error } = await actions.ingredients.searchForPicker({
+          query: trimmedQuery,
+        });
+        if (cancelled) return;
+        if (error || !data) {
+          setSearchError(error?.message || "Ingredient search failed.");
+          return;
+        }
+        setResults(data);
+        setCompletedQuery(trimmedQuery);
+      } catch (cause) {
+        if (cancelled) return;
+        setSearchError(
+          cause instanceof Error && cause.message
+            ? `Ingredient search failed: ${cause.message}`
+            : "Ingredient search failed.",
+        );
+      } finally {
+        if (!cancelled) setSearching(false);
       }
-      return !prev;
-    });
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [disabled, open, trimmedQuery]);
+
+  function closePicker(clearSearch = false) {
+    setOpen(false);
+    setResults([]);
+    setSearching(false);
+    setSearchError(null);
+    setCompletedQuery(null);
+    setHighlightedIndex(-1);
+    if (clearSearch) setQuery("");
+  }
+
+  function togglePicker() {
+    if (disabled) return;
+    if (open) {
+      closePicker();
+      return;
+    }
+    setOpen(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
+  function selectResult(item: PickerResult) {
+    onMap(item.id, item.name);
+    closePicker(true);
+  }
+
+  function selectCreate() {
+    onCreate(trimmedQuery);
+    closePicker(true);
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.nativeEvent.isComposing) return;
+
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      if (optionCount > 0) {
+        setHighlightedIndex((current) =>
+          event.key === "ArrowDown"
+            ? Math.min(current + 1, optionCount - 1)
+            : Math.max(current - 1, 0),
+        );
+      }
+    } else if (event.key === "Enter" && optionCount > 0) {
+      event.preventDefault();
+      const index = Math.max(highlightedIndex, 0);
+      if (canCreate && index === results.length) selectCreate();
+      else if (visibleResults[index]) selectResult(visibleResults[index]!);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      closePicker();
+    }
   }
 
   return (
-    <div ref={containerRef} className="relative inline-block">
-      {/* Trigger: shows current mapping status */}
+    <div ref={containerRef} className="relative w-full min-w-0 space-y-1.5">
+      <div className="flex min-h-5 items-center gap-1.5">
+        <span
+          id={`${listboxId}-field-label`}
+          className="text-meta font-medium text-muted-foreground"
+        >
+          Catalog ingredient
+        </span>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label="About catalog ingredients"
+                disabled={disabled}
+                className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Info size={15} aria-hidden="true" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>{CATALOG_INGREDIENT_HELP}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+
       <button
         type="button"
-        onClick={toggleOpen}
-        className={`inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-full px-2 py-0.5 text-meta leading-tight font-medium ring-1 ring-transparent transition-all hover:shadow-sm sm:min-h-0 sm:text-[10px] ${
-          isMapped
-            ? "bg-green-50 text-green-700 hover:bg-green-100 hover:ring-green-200"
-            : "bg-amber-50 text-amber-700 hover:bg-amber-100 hover:ring-amber-200"
-        }`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={isMapped
+          ? createIngredientName
+            ? `${selectedName}, new catalog ingredient`
+            : selectedName
+          : "Choose an ingredient"}
+        aria-describedby={`${listboxId}-field-label`}
+        disabled={disabled}
+        onClick={togglePicker}
+        className="flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-input border border-input bg-card px-3 py-2 text-left text-sm text-foreground transition-colors hover:border-foreground/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isMapped ? (
-          <>
-            {ingredientName || ingredientId}
-            {/* Pencil icon */}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-2.5 w-2.5"
-              aria-hidden="true"
-            >
-              <path d="M12 20h9" />
-              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-            </svg>
-          </>
-        ) : (
-          <>
-            Unmapped — click to map
-            {/* Search icon */}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-2.5 w-2.5"
-              aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
-          </>
-        )}
+        <span
+          className={`min-w-0 flex-1 truncate ${isMapped ? "" : "text-muted-foreground"}`}
+        >
+          {isMapped ? selectedName : "Choose an ingredient"}
+        </span>
+        <span className="flex shrink-0 items-center gap-2">
+          {createIngredientName && (
+            <span className="inline-flex shrink-0 items-center rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
+              New
+            </span>
+          )}
+          <ChevronDown
+            size={16}
+            aria-hidden="true"
+            className={`shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
+          />
+        </span>
       </button>
 
-      {/* Dropdown */}
-      {open && (
-        <div className="absolute left-0 z-50 mt-1 w-64 rounded-lg border border-border bg-card shadow-lg">
-          <div className="p-2">
+      {open && !disabled && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 w-full max-w-full overflow-hidden rounded-input border border-border bg-card shadow-lg">
+          <div className="relative p-2">
+            <Search
+              size={16}
+              aria-hidden="true"
+              className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
             <Input
               ref={inputRef}
-              value={query}
-              onChange={(e) => handleQueryChange(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Search ingredients..."
-              className="h-11 text-base sm:h-8 sm:text-xs"
+              role="combobox"
+              aria-label="Search catalog ingredients"
+              aria-autocomplete="list"
+              aria-expanded={searching || optionCount > 0}
+              aria-controls={optionCount > 0 ? listboxId : undefined}
+              aria-activedescendant={activeOption}
               autoComplete="off"
+              maxLength={500}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Search catalog ingredients"
+              className="h-11 pl-10 pr-3"
             />
           </div>
 
-          <div className="max-h-48 overflow-y-auto">
-            {loading && (
-              <p className="px-3 py-2 text-meta text-muted-foreground">
-                Searching...
+          <div className="max-h-64 overflow-y-auto border-t border-border p-1">
+            {searching && (
+              <p role="status" className="px-3 py-2 text-meta text-muted-foreground">
+                Searching catalog…
               </p>
             )}
-
-            {!loading && query.trim().length >= 2 && results.length === 0 && (
-              <p className="px-3 py-2 text-meta text-muted-foreground">
-                No matches found
+            {searchError && (
+              <p role="alert" className="px-3 py-2 text-meta text-destructive">
+                {searchError}
               </p>
             )}
-
-            {results.map((item, idx) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => handleSelect(item)}
-                className={`flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 px-3 py-1.5 text-left text-meta transition-colors ${
-                  idx === highlightIdx
-                    ? "bg-primary/10 text-foreground"
-                    : "text-foreground hover:bg-muted"
-                } ${item.id === ingredientId ? "font-semibold" : ""}`}
+            {!searching && !searchError && trimmedQuery.length === 0 && (
+              <p className="px-3 py-2 text-meta text-muted-foreground">
+                Search your catalog by ingredient name.
+              </p>
+            )}
+            {searchComplete && !searching && optionCount > 0 && (
+              <div
+                id={listboxId}
+                role="listbox"
+                aria-label="Catalog ingredient results"
+                className="max-h-60 overflow-y-auto"
               >
-                <span className="truncate">{item.name}</span>
-                <span className="shrink-0 text-meta text-muted-foreground sm:text-[9px] sm:leading-tight">
-                  {item.source === "custom" ? "yours" : "global"}
-                </span>
-              </button>
-            ))}
+                {visibleResults.map((item, index) => (
+                  <button
+                    id={`${listboxId}-option-${item.id}`}
+                    key={item.id}
+                    type="button"
+                    role="option"
+                    tabIndex={-1}
+                    aria-selected={item.id === ingredientId}
+                    className={`flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-input px-3 py-2 text-left text-sm ${
+                      index === highlightedIndex
+                        ? "bg-primary/10 text-foreground"
+                        : "text-foreground hover:bg-accent"
+                    }`}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => selectResult(item)}
+                  >
+                    <span className="min-w-0 flex-1 break-words">{item.name}</span>
+                    <span className="shrink-0 text-meta text-muted-foreground">
+                      {item.source === "custom" ? "Yours" : "Global"}
+                    </span>
+                  </button>
+                ))}
+                {canCreate && (
+                  <button
+                    id={`${listboxId}-option-create`}
+                    type="button"
+                    role="option"
+                    tabIndex={-1}
+                    aria-selected={highlightedIndex === results.length}
+                    className={`flex min-h-11 w-full min-w-0 items-center gap-2 rounded-input px-3 py-2 text-left text-sm font-medium text-primary-on-card ${
+                      highlightedIndex === results.length
+                        ? "bg-primary/10"
+                        : "hover:bg-accent"
+                    }`}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={selectCreate}
+                  >
+                    <span className="min-w-0 flex-1 break-words">
+                      Add “{trimmedQuery}” to catalog
+                    </span>
+                    <span className="inline-flex shrink-0 items-center rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
+                      New
+                    </span>
+                  </button>
+                )}
+              </div>
+            )}
+            {searchComplete && !searching && !searchError && optionCount === 0 && (
+              <p className="px-3 py-2 text-meta text-muted-foreground">
+                No matches found.
+              </p>
+            )}
           </div>
 
-          {/* Footer actions */}
-          <div className="flex items-center gap-1 border-t border-border px-2 py-1.5">
+          <div className="flex items-center gap-2 border-t border-border px-2 py-2">
             {isMapped && (
               <button
                 type="button"
-                onClick={handleClear}
-                className="min-h-11 cursor-pointer rounded px-2 py-1 text-meta font-medium text-amber-700 transition-colors hover:bg-amber-50 sm:min-h-0 sm:text-[10px] sm:leading-tight"
+                onClick={() => {
+                  onClear();
+                  closePicker(true);
+                }}
+                className="min-h-11 rounded-input px-3 py-2 text-meta font-medium text-primary-on-card hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Clear mapping
               </button>
             )}
             <button
               type="button"
-              onClick={() => setOpen(false)}
-              className="ml-auto min-h-11 cursor-pointer rounded px-2 py-1 text-meta font-medium text-muted-foreground transition-colors hover:bg-muted sm:min-h-0 sm:text-[10px] sm:leading-tight"
+              onClick={() => closePicker()}
+              className="ml-auto min-h-11 rounded-input px-3 py-2 text-meta font-medium text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Cancel
             </button>
