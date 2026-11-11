@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ingredientFormValues } from "@/features/ingredients/ingredients.form";
@@ -566,5 +566,48 @@ describe("IngredientForm", () => {
     await user.click(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => expect(actionMocks.update).toHaveBeenCalledOnce());
     expect((actionMocks.update.mock.calls[0]![0] as FormData).get("gramsPerEach")).toBe(OPTIONAL_FIELD_CLEAR_SENTINEL);
+  });
+});
+
+describe("IngredientForm actions", () => {
+  it.each([
+    ["create", "Create ingredient"],
+    ["edit", "Save changes"],
+  ] as const)("keeps %s actions in the mobile dock", async (mode, saveLabel) => {
+    const user = userEvent.setup();
+    render(
+      mode === "create" ? (
+        <IngredientForm mode="create" categories={[]} />
+      ) : (
+        <IngredientForm
+          mode="edit"
+          ingredientId="ingredient-123"
+          categories={[]}
+          initialValues={ingredientFormValues({ name: "Flour" })}
+        />
+      ),
+    );
+
+    const actions = screen.getByRole("group", { name: "Form actions" });
+    const dock = actions.parentElement;
+    expect(dock?.className).toContain("fixed");
+    expect(dock?.className).toContain("sm:static");
+    expect(actions.className).toContain("flex-row-reverse");
+    expect(within(actions).getByRole("button", { name: saveLabel }).className).toContain("min-h-12");
+    if (mode === "create") {
+      const cancel = within(actions).getByRole("link", { name: "Cancel" });
+      expect(cancel.getAttribute("href")).toBe("/ingredients");
+      expect(cancel.className).toContain("min-h-12");
+    } else {
+      const reset = within(actions).getByRole("button", { name: "Reset changes" });
+      expect(reset.className).toContain("min-h-12");
+      expect(within(actions).queryByRole("link", { name: "Cancel" })).toBeNull();
+      const name = screen.getByRole("textbox", { name: "Name" });
+      await user.clear(name);
+      await user.type(name, "Bread flour");
+      await user.click(reset);
+      expect(name).toHaveProperty("value", "Flour");
+      expect(actionMocks.update).not.toHaveBeenCalled();
+    }
   });
 });

@@ -8,6 +8,10 @@ import { submitCreate } from "@/features/mutations/client";
 
 import type { IngredientUnit } from "@/db/schema/enums";
 import { Button } from "@/components/ui/Button";
+import {
+  MobileFormActions,
+  mobileFormActionButtonClass,
+} from "@/components/ui/MobileFormActions";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { TagToggle } from "@/components/ui/TagToggle";
@@ -283,7 +287,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
         <div
           id="recipe-import-error"
           role="alert"
-          className="rounded-input bg-red-50 p-3 text-body text-red-700 dark:bg-red-900/20 dark:text-red-300"
+          className="rounded-input bg-red-50 p-3 text-body text-red-700"
         >
           {error}
         </div>
@@ -573,11 +577,14 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
       )}
 
       {/* Actions */}
-      <div className="flex flex-col-reverse gap-3 border-t border-border pt-4 sm:flex-row">
+      <MobileFormActions
+        dockClassName="sm:border-t sm:pt-4"
+        className="flex-row-reverse gap-2 sm:flex-row sm:justify-start sm:gap-3"
+      >
         <Button
           onClick={() => handleSave("detail")}
           disabled={saving}
-          className="w-full sm:w-auto"
+          className={`${mobileFormActionButtonClass} w-full sm:w-auto`}
         >
           {savingDestination === "detail" ? "Saving..." : "Save recipe"}
         </Button>
@@ -588,7 +595,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                 variant="secondary"
                 onClick={() => handleSave("map")}
                 disabled={saving}
-                className="w-full sm:w-auto"
+                className={`${mobileFormActionButtonClass} w-full sm:w-auto`}
               >
                 {savingDestination === "map" ? "Saving..." : "Save and map"}
               </Button>
@@ -599,10 +606,15 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        <Button variant="secondary" onClick={onBack} disabled={saving} className="w-full sm:w-auto">
+        <Button
+          variant="secondary"
+          onClick={onBack}
+          disabled={saving}
+          className={`${mobileFormActionButtonClass} w-full sm:w-auto`}
+        >
           Cancel
         </Button>
-      </div>
+      </MobileFormActions>
     </div>
   );
 }

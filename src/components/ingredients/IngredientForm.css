@@ -187,8 +187,6 @@
   text-align: left;
 }
 
-.ingredient-buttons { display: flex; flex-wrap: wrap; gap: 0.75rem; }
-.ingredient-buttons > :is(button, a) { min-height: 3rem; font-size: 1rem; }
 .ingredient-save-note { margin-bottom: 0.75rem; color: var(--muted-foreground); font-size: 0.9375rem; line-height: 1.4; }
 .ingredient-save-note:empty { display: none; }
 
@@ -199,22 +197,4 @@
 
 @media (min-width: 48rem) {
   .ingredient-two-up { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-@media (max-width: 47.999rem) {
-  .ingredient-actions {
-    position: sticky;
-    bottom: 0;
-    z-index: 1;
-    margin-inline: -1.25rem;
-    padding: 0.75rem 1.25rem max(0.875rem, env(safe-area-inset-bottom));
-    border-top: 1px solid var(--border);
-    background: var(--background);
-  }
-  .ingredient-buttons { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 0.5rem; }
-  .ingredient-buttons > :is(button, a) { padding-inline: 0.5rem; }
-}
-
-@media (min-width: 40rem) and (max-width: 47.999rem) {
-  .ingredient-actions { margin-inline: -2rem; padding-inline: 2rem; }
 }

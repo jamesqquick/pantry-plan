@@ -3,6 +3,10 @@ import { actions, isInputError } from "astro:actions";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
+import {
+  MobileFormActions,
+  mobileFormActionButtonClass,
+} from "@/components/ui/MobileFormActions";
 import type { PickerIngredient, GlobalIngredientBasePrefillData } from "@/actions/ingredients";
 import { PURCHASE_UNITS, VOLUME_UNITS, type IngredientDisplayUnit, type PurchaseUnit } from "@/db/schema/enums";
 import { ingredientCreateSchema, OPTIONAL_FIELD_CLEAR_SENTINEL, PURCHASE_GROUP_ERROR, VOLUME_GROUP_ERROR } from "@/features/ingredients/ingredients.schemas";
@@ -462,17 +466,32 @@ export default function IngredientForm(props: IngredientFormProps) {
         </div>
       </fieldset>
 
-      <div className="ingredient-actions">
-        <p className="ingredient-save-note" role="status" aria-atomic="true">{submitted && hasOtherErrors ? "Check the highlighted fields before saving." : ""}</p>
-        <div className="ingredient-buttons">
-          <Button type="submit" disabled={submitting}>{submitting ? "Saving…" : isEdit ? "Save changes" : "Create ingredient"}</Button>
-          {isEdit ? (
-            <Button variant="secondary" disabled={submitting} onClick={() => {
+      <p className="ingredient-save-note" role="status" aria-atomic="true">{submitted && hasOtherErrors ? "Check the highlighted fields before saving." : ""}</p>
+      <MobileFormActions className="flex-row-reverse sm:flex-row sm:justify-start sm:gap-3">
+        <Button
+          type="submit"
+          disabled={submitting}
+          className={mobileFormActionButtonClass}
+        >
+          {submitting ? "Saving…" : isEdit ? "Save changes" : "Create ingredient"}
+        </Button>
+        {isEdit ? (
+          <Button
+            variant="secondary"
+            disabled={submitting}
+            className={mobileFormActionButtonClass}
+            onClick={() => {
               setValues(initialValues); setTouched({}); setServerErrors({}); setSubmitted(false); setError(null);
-            }}>Reset changes</Button>
-          ) : <Button variant="secondary" href="/ingredients">Cancel</Button>}
-        </div>
-      </div>
+            }}
+          >
+            Reset changes
+          </Button>
+        ) : (
+          <Button variant="secondary" href="/ingredients" className={mobileFormActionButtonClass}>
+            Cancel
+          </Button>
+        )}
+      </MobileFormActions>
     </form>
   );
 }

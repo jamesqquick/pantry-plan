@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { actions } from "astro:actions";
 import OrderForm from "./OrderForm";
@@ -39,6 +39,25 @@ beforeEach(() => {
   document.body.dataset.accountId = "cook";
 });
 
+const editProps = {
+  mode: "edit" as const,
+  orderId: "order-123",
+  recipeOptions: [{
+    id: "recipe-123", title: "Chocolate chip cookies", availability: { status: "checked", notices: [] },
+  }] satisfies RecipeOption[],
+  initialName: "Order",
+  initialNotes: "",
+  initialTotalCostCents: 2000,
+  initialCustomerName: "",
+  initialCustomerContact: "",
+  initialDueDate: "2026-11-04",
+  initialDueTime: "09:00",
+  initialFulfillmentMethod: "PICKUP" as const,
+  initialDeliveryAddress: "",
+  initialStatus: "DRAFT" as const,
+  initialItems: [{ recipeId: "recipe-123", batches: 1 }],
+};
+
 describe("OrderForm", () => {
   it("defaults new orders to seven days from today at 9:00 AM", () => {
     vi.useFakeTimers();
@@ -46,8 +65,26 @@ describe("OrderForm", () => {
 
     render(<OrderForm mode="create" recipeOptions={[]} />);
 
+    expect(screen.getByLabelText<HTMLInputElement>(/Order total/).value).toBe("0");
     expect(screen.getByLabelText("Due date")).toHaveProperty("value", "2026-11-04");
     expect(screen.getByLabelText(/Time/)).toHaveProperty("value", "09:00");
+  });
+
+  it("submits the default zero total for a new order", async () => {
+    vi.mocked(actions.orders.create).mockResolvedValue({
+      data: undefined,
+      error: { message: "Preview test stopped before navigation." },
+    } as never);
+    const user = userEvent.setup();
+    render(<OrderForm mode="create" recipeOptions={editProps.recipeOptions} />);
+
+    await user.click(screen.getByRole("combobox", { name: "Recipe 1" }));
+    await user.keyboard("{Enter}");
+    await user.click(screen.getByRole("button", { name: "Create order" }));
+
+    await waitFor(() => expect(actions.orders.create).toHaveBeenCalledWith(
+      expect.objectContaining({ totalCostCents: 0 }),
+    ));
   });
 
   it("submits customer and fulfillment details with the existing recipe batches", async () => {
@@ -60,6 +97,9 @@ describe("OrderForm", () => {
 
     await user.clear(screen.getByRole("textbox", { name: /^Name/ }));
     await user.type(screen.getByRole("textbox", { name: /^Name/ }), "Sarah's birthday cookies");
+    const total = screen.getByLabelText(/Order total/);
+    await user.clear(total);
+    await user.type(total, "20.50");
     await user.type(screen.getByLabelText("Customer name"), "Sarah Morgan");
     await user.type(screen.getByLabelText("Phone or email"), "sarah@example.com");
     await user.clear(screen.getByLabelText("Due date"));
@@ -77,6 +117,7 @@ describe("OrderForm", () => {
 
     await waitFor(() => expect(actions.orders.create).toHaveBeenCalledWith(expect.objectContaining({
       name: "Sarah's birthday cookies",
+      totalCostCents: 2050,
       customerName: "Sarah Morgan",
       customerContact: "sarah@example.com",
       dueDate: "2026-10-24",
@@ -183,6 +224,7 @@ describe("OrderForm", () => {
     expect(screen.getByRole("link", { name: /Flour has no saved price/ }).getAttribute("href")).toBe("/ingredients/flour");
     await user.click(screen.getByRole("button", { name: "Create order" }));
     await waitFor(() => expect(actions.orders.create).toHaveBeenCalledWith(expect.objectContaining({
+      totalCostCents: 0,
       items: [{ recipeId: "bread", batches: 1 }],
     })));
     const payload = vi.mocked(actions.orders.create).mock.calls[0]?.[0] as Record<string, unknown>;
@@ -196,6 +238,7 @@ describe("OrderForm", () => {
       orderId="order-1"
       initialName="Friday"
       initialNotes=""
+      initialTotalCostCents={0}
       initialCustomerName=""
       initialCustomerContact=""
       initialDueDate=""
@@ -260,6 +303,7 @@ describe("OrderForm", () => {
       orderId="order-1"
       initialName="Friday"
       initialNotes=""
+      initialTotalCostCents={0}
       initialCustomerName=""
       initialCustomerContact=""
       initialDueDate=""
@@ -306,5 +350,94 @@ describe("OrderForm", () => {
     expect(status.textContent).toMatch(/could not be checked/i);
     expect(status.textContent).toMatch(/may be incomplete/i);
     expect(status.textContent).not.toMatch(/\bis complete\b/i);
+  });
+
+  it.each([
+    ["20", 2000],
+    ["0", 0],
+    ["0.29", 29],
+    ["70368744177664.01", 7036874417766401],
+  ])("submits a dollar total of %s as integer cents", async (dollars, totalCostCents) => {
+    vi.mocked(actions.orders.create).mockResolvedValue({
+      data: undefined,
+      error: { message: "Preview test stopped before navigation." },
+    } as never);
+    const user = userEvent.setup();
+    render(<OrderForm mode="create" recipeOptions={editProps.recipeOptions} />);
+
+    fireEvent.change(screen.getByLabelText(/Order total/), { target: { value: dollars } });
+    await user.click(screen.getByRole("combobox", { name: "Recipe 1" }));
+    await user.keyboard("{Enter}");
+    await user.click(screen.getByRole("button", { name: "Create order" }));
+
+    await waitFor(() => expect(actions.orders.create).toHaveBeenCalledWith(expect.objectContaining({ totalCostCents })));
+  });
+
+  it.each(["", "-1", "20.001"])("blocks a blank or invalid dollar total of '%s'", async (dollars) => {
+    const user = userEvent.setup();
+    render(<OrderForm mode="create" recipeOptions={editProps.recipeOptions} />);
+    const total = screen.getByLabelText<HTMLInputElement>(/Order total/);
+
+    await user.clear(total);
+    if (dollars) await user.type(total, dollars);
+    await user.click(screen.getByRole("combobox", { name: "Recipe 1" }));
+    await user.keyboard("{Enter}");
+    await user.click(screen.getByRole("button", { name: "Create order" }));
+
+    expect(total.checkValidity()).toBe(false);
+    expect(actions.orders.create).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["25.50", 2550],
+    ["0", 0],
+  ])("prefills the saved total and updates it to $%s", async (dollars, totalCostCents) => {
+    vi.mocked(actions.orders.update).mockResolvedValue({
+      data: undefined,
+      error: { message: "Preview test stopped before navigation." },
+    } as never);
+    const user = userEvent.setup();
+    render(<OrderForm {...editProps} />);
+    const total = screen.getByLabelText<HTMLInputElement>(/Order total/);
+    expect(total.value).toBe("20");
+
+    await user.clear(total);
+    await user.type(total, String(dollars));
+    await user.click(screen.getByRole("button", { name: "Save order" }));
+
+    await waitFor(() => expect(actions.orders.update).toHaveBeenCalledWith(expect.objectContaining({
+      id: "order-123", totalCostCents,
+    })));
+  });
+
+  it("defaults a legacy order with no total to zero when editing", async () => {
+    vi.mocked(actions.orders.update).mockResolvedValue({
+      data: undefined,
+      error: { message: "Preview test stopped before navigation." },
+    } as never);
+    const user = userEvent.setup();
+    render(<OrderForm {...editProps} initialTotalCostCents={null} />);
+    const total = screen.getByLabelText<HTMLInputElement>(/Order total/);
+    expect(total.value).toBe("0");
+
+    await user.click(screen.getByRole("button", { name: "Save order" }));
+
+    await waitFor(() => expect(actions.orders.update).toHaveBeenCalledWith(expect.objectContaining({ totalCostCents: 0 })));
+  });
+
+  it("preserves a large saved total when editing without changing it", async () => {
+    vi.mocked(actions.orders.update).mockResolvedValue({
+      data: undefined,
+      error: { message: "Preview test stopped before navigation." },
+    } as never);
+    const user = userEvent.setup();
+    render(<OrderForm {...editProps} initialTotalCostCents={9007199254740990} />);
+
+    expect(screen.getByLabelText<HTMLInputElement>(/Order total/).value).toBe("90071992547409.9");
+    await user.click(screen.getByRole("button", { name: "Save order" }));
+
+    await waitFor(() => expect(actions.orders.update).toHaveBeenCalledWith(expect.objectContaining({
+      totalCostCents: 9007199254740990,
+    })));
   });
 });

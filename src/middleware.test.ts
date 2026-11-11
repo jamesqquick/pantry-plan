@@ -111,7 +111,7 @@ describe("browser session middleware", () => {
   );
 
   it.each([
-    "analytics=visitor; theme=dark",
+    "analytics=visitor",
     "better-auth.session_data=cached-data; better-auth.dont_remember=true",
     "other.better-auth.session_token=unrelated",
     "better-auth.session_token=",

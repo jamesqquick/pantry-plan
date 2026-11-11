@@ -6,7 +6,6 @@ import userEvent from "@testing-library/user-event";
 import { AppHeader } from "./AppHeader";
 
 vi.mock("./AppNav", () => ({ AppNav: () => null }));
-vi.mock("./ThemeToggle", () => ({ ThemeToggle: () => null }));
 vi.mock("./UserMenu", () => ({ UserMenu: () => null }));
 
 afterEach(cleanup);
