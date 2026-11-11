@@ -6,7 +6,9 @@
  */
 
 import { ActionError, defineAction } from "astro:actions";
+import { createId } from "@paralleldrive/cuid2";
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import {
   saveImportedRecipeSchema,
   saveImportedRecipeTextOnlySchema,
@@ -34,7 +36,7 @@ import {
 } from "@/features/recipes/create-text-recipe";
 import { IngredientMeasurementValidationError } from "@/features/recipes/ingredient-measurements";
 import { mutationInputSchema } from "@/features/mutations/mutations.schemas";
-import { assertMutationAccount } from "@/features/mutations/server";
+import { assertMutationAccount, prepareCreate } from "@/features/mutations/server";
 
 export const recipeImport = {
   /**
@@ -43,35 +45,26 @@ export const recipeImport = {
    * a new ingredient via createName.
    */
   saveWithMappings: defineAction({
-    input: saveImportedRecipeSchema,
+    input: saveImportedRecipeSchema.extend(mutationInputSchema.shape),
     handler: async (input, ctx) => {
       const user = requireUser(ctx);
       const db = getDb();
-
-      const { recipe: recipeData, ingredientLines } = input;
-
-      // Create recipe
-      const [row] = await db
-        .insert(recipe)
-        .values({
-          userId: user.id,
-          title: recipeData.title,
-          sourceUrl: recipeData.sourceUrl || null,
-          imageUrl: recipeData.imageUrl || null,
-          servings: recipeData.servings ?? null,
-          prepTimeMinutes: recipeData.prepTimeMinutes ?? null,
-          cookTimeMinutes: recipeData.cookTimeMinutes ?? null,
-          totalTimeMinutes: recipeData.totalTimeMinutes ?? null,
-          notes: recipeData.notes ?? null,
-        })
-        .returning({ id: recipe.id });
-      if (!row) {
-        throw new ActionError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create recipe",
-        });
+      const { operationId, accountId, ...payload } = input;
+      assertMutationAccount(user.id, accountId);
+      const operation = await prepareCreate(
+        db,
+        user.id,
+        "recipeImport.saveWithMappings",
+        operationId,
+        payload,
+      );
+      if (operation.resourceId) {
+        await queueSearchSync(ctx, db, [operation.resourceId]);
+        return { recipeId: operation.resourceId };
       }
-      const recipeId = row.id;
+
+      const { recipe: recipeData, ingredientLines } = payload;
+      const recipeId = createId();
 
       // ── Batch-process ingredient lines ──
       // Pre-compute structured parse data for every line so we can build
@@ -151,24 +144,18 @@ export const recipeImport = {
         existingByName.map((i) => [i.normalizedName, i.id]),
       );
       const namesToCreate = normalizedNames.filter((n) => !existingNameToId.has(n));
-      const createdIngredients = namesToCreate.length
-        ? await db
-            .insert(ingredient)
-            .values(
-              namesToCreate.map((normalizedName) => {
-                const createName = [...nameMap.entries()].find(
-                  ([, n]) => n === normalizedName,
-                )![0];
-                return {
-                  userId: user.id,
-                  name: createName,
-                  normalizedName,
-                  costBasisUnit: "G" as const,
-                };
-              }),
-            )
-            .returning({ id: ingredient.id, normalizedName: ingredient.normalizedName })
-        : [];
+      const createdIngredients = namesToCreate.map((normalizedName) => {
+        const createName = [...nameMap.entries()].find(
+          ([, normalized]) => normalized === normalizedName,
+        )![0];
+        return {
+          id: createId(),
+          userId: user.id,
+          name: createName,
+          normalizedName,
+          costBasisUnit: "G" as const,
+        };
+      });
       const nameToIngredientId = new Map([
         ...existingNameToId,
         ...createdIngredients.map((i) => [i.normalizedName, i.id] as const),
@@ -266,15 +253,29 @@ export const recipeImport = {
           db.insert(recipeTag).values(chunk),
         ),
       ];
-      if (batchQueries.length > 0) {
-        await db.batch(
-          batchQueries as [
-            (typeof batchQueries)[0],
-            ...typeof batchQueries,
-          ],
-        );
-      }
-      await queueSearchSync(ctx, db, [recipeId]);
+      const createStatements: BatchItem<"sqlite">[] = [
+        db.insert(recipe).values({
+          id: recipeId,
+          userId: user.id,
+          title: recipeData.title,
+          sourceUrl: recipeData.sourceUrl || null,
+          imageUrl: recipeData.imageUrl || null,
+          servings: recipeData.servings ?? null,
+          prepTimeMinutes: recipeData.prepTimeMinutes ?? null,
+          cookTimeMinutes: recipeData.cookTimeMinutes ?? null,
+          totalTimeMinutes: recipeData.totalTimeMinutes ?? null,
+          notes: recipeData.notes ?? null,
+        }),
+        ...chunkRows(createdIngredients, 5).map((chunk) =>
+          db.insert(ingredient).values(chunk),
+        ),
+        ...batchQueries,
+      ];
+      const savedRecipeId = await operation.commit(
+        recipeId,
+        createStatements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
+      );
+      await queueSearchSync(ctx, db, [savedRecipeId]);
 
       // 9. Upsert aliases (best-effort; not tied to recipe atomicity)
       const aliasEntries = parsedLines
@@ -324,7 +325,7 @@ export const recipeImport = {
         await db.insert(ingredientAlias).values(chunk);
       }
 
-      return { recipeId };
+      return { recipeId: savedRecipeId };
     },
   }),
 

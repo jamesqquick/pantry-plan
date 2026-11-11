@@ -26,6 +26,7 @@ export const server = {
   mealPlan,
   parse,
   recipeImport: {
+    saveWithMappings: recipeImport.saveWithMappings,
     saveTextOnly: recipeImport.saveTextOnly,
   },
   ingredientMapping,

@@ -245,6 +245,8 @@ describe("recipe measurement actions", () => {
       ingredients: [{ displayText: "salt to taste", rawText: "Salt to taste", ...amount }],
     } as never);
     const mapped = await recipeImport.saveWithMappings.bind(ctx)({
+      accountId: "cook",
+      operationId: crypto.randomUUID(),
       recipe: recipeData,
       ingredientLines: [{ originalLine: "1 tsp salt", createName: "Salt", sortOrder: 0, ...amount }],
     } as never);
@@ -266,6 +268,69 @@ describe("recipe measurement actions", () => {
     expect(await test.db.select().from(recipeIngredient)).toMatchObject([{
       ingredientId: null, quantity: 1, unit: "TSP", displayText: "salt to taste", rawText: "  Salt to taste  ",
     }]);
+  });
+
+  it("saves imported catalog selections and new catalog ingredients with their reviewed fields", async () => {
+    await test.db.insert(ingredient).values({
+      id: "flour-id",
+      userId: null,
+      name: "Flour",
+      normalizedName: "flour",
+      costBasisUnit: "G",
+    });
+    const result = await recipeImport.saveWithMappings.orThrow.call(ctx, {
+      accountId: "cook",
+      operationId: crypto.randomUUID(),
+      recipe: { title: "Pasta", instructions: ["Mix and cook."] },
+      ingredientLines: [
+        {
+          originalLine: "2 cups flour",
+          displayText: "bread flour",
+          ingredientId: "flour-id",
+          quantity: 2,
+          unit: "CUP",
+          sortOrder: 0,
+        },
+        {
+          originalLine: "1 tbsp fresh herbs",
+          displayText: "fresh herbs",
+          createName: "Fresh herbs",
+          quantity: 1,
+          unit: "TBSP",
+          sortOrder: 1,
+        },
+      ],
+    });
+
+    const savedRows = await test.db
+      .select()
+      .from(recipeIngredient)
+      .where(eq(recipeIngredient.recipeId, result.recipeId))
+      .orderBy(recipeIngredient.sortOrder);
+    expect(savedRows).toMatchObject([
+      {
+        ingredientId: "flour-id",
+        displayText: "bread flour",
+        rawText: "2 cups flour",
+        quantity: 2,
+        unit: "CUP",
+        originalQuantity: 2,
+        originalUnit: "CUP",
+        sortOrder: 0,
+      },
+      {
+        displayText: "fresh herbs",
+        rawText: "1 tbsp fresh herbs",
+        quantity: 1,
+        unit: "TBSP",
+        originalQuantity: 1,
+        originalUnit: "TBSP",
+        sortOrder: 1,
+      },
+    ]);
+    expect(savedRows[1]!.ingredientId).toBeTruthy();
+    expect(test.sqlite.prepare('SELECT normalizedName FROM "Ingredient" WHERE normalizedName = ?').get("fresh herbs"))
+      .toEqual({ normalizedName: "fresh herbs" });
   });
 
   it.each([

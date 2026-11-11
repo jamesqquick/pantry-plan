@@ -6,16 +6,19 @@ import userEvent from "@testing-library/user-event";
 
 import { RecipeDraftEditor, type RecipeDraft } from "./RecipeDraftEditor";
 
-const { ingredientLines, saveTextOnly, softNavigate } = vi.hoisted(() => ({
+const { ingredientLines, saveTextOnly, saveWithMappings, searchForPicker, softNavigate } = vi.hoisted(() => ({
   ingredientLines: vi.fn(),
   saveTextOnly: vi.fn(),
+  saveWithMappings: vi.fn(),
+  searchForPicker: vi.fn(),
   softNavigate: vi.fn(),
 }));
 
 vi.mock("astro:actions", () => ({
   actions: {
     enhance: { ingredientLines },
-    recipeImport: { saveTextOnly },
+    recipeImport: { saveTextOnly, saveWithMappings },
+    ingredients: { searchForPicker },
     mutations: { outcome: vi.fn(async () => ({ data: { status: "unknown" } })) },
   },
 }));
@@ -49,6 +52,14 @@ beforeEach(() => {
     data: { recipeId: "recipe-123" },
     error: undefined,
   });
+  saveWithMappings.mockResolvedValue({
+    data: { recipeId: "recipe-123" },
+    error: undefined,
+  });
+  searchForPicker.mockResolvedValue({
+    data: [{ id: "ingredient-flour", name: "Flour", source: "global" }],
+    error: undefined,
+  });
 });
 
 afterEach(() => {
@@ -63,21 +74,91 @@ describe("RecipeDraftEditor", () => {
     expect(ingredientLines).not.toHaveBeenCalled();
   });
 
-  it("starts without mapping UI and enables the save actions", () => {
+  it("shows a catalog picker for each imported ingredient", () => {
     renderEditor();
 
-    expect(screen.queryByText(/mapping ingredients/i)).toBeNull();
     expect(screen.queryByText(/\d+\/\d+ mapped/i)).toBeNull();
-    expect(
-      screen.queryByRole("button", { name: /re-map ingredients/i }),
-    ).toBeNull();
     expect(screen.queryByText(/auto-map/i)).toBeNull();
+    expect(screen.getAllByRole("button", { name: "Choose an ingredient" })).toHaveLength(2);
     expect(
       screen.getByRole("button", { name: "Save recipe" }),
     ).toHaveProperty("disabled", false);
     expect(
       screen.getByRole("button", { name: "Save and map" }),
     ).toHaveProperty("disabled", false);
+  });
+
+  it("saves a selected catalog ingredient alongside the reviewed import fields", async () => {
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.click(screen.getAllByRole("button", { name: "Choose an ingredient" })[0]!);
+    await user.type(screen.getByRole("combobox", { name: "Search catalog ingredients" }), "flour");
+    await user.click(await screen.findByRole("option", { name: /Flour.*Global/ }));
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+
+    await waitFor(() => {
+      expect(saveWithMappings).toHaveBeenCalledWith(expect.objectContaining({
+        ingredientLines: [
+          {
+            originalLine: "2 cups flour",
+            displayText: "flour",
+            ingredientId: "ingredient-flour",
+            quantity: 2,
+            unit: "CUP",
+            sortOrder: 0,
+          },
+          {
+            originalLine: "3 eggs",
+            displayText: "eggs",
+            quantity: 3,
+            unit: "COUNT",
+            sortOrder: 1,
+          },
+        ],
+      }));
+      expect(saveTextOnly).not.toHaveBeenCalled();
+      expect(softNavigate).toHaveBeenCalledWith("/recipes/recipe-123");
+    });
+  });
+
+  it("stages a new catalog ingredient while preserving the imported text and measurements", async () => {
+    const user = userEvent.setup();
+    searchForPicker.mockResolvedValue({ data: [], error: undefined });
+    renderEditor();
+
+    await user.click(screen.getAllByRole("button", { name: "Choose an ingredient" })[0]!);
+    await user.type(
+      screen.getByRole("combobox", { name: "Search catalog ingredients" }),
+      "Wild fennel",
+    );
+    await user.click(await screen.findByRole("option", { name: /Add .*Wild fennel.*catalog/i }));
+    expect(screen.getByRole("button", { name: /Wild fennel, new catalog ingredient/i })).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+
+    await waitFor(() => {
+      expect(saveWithMappings).toHaveBeenCalledWith(expect.objectContaining({
+        ingredientLines: [
+          {
+            originalLine: "2 cups flour",
+            displayText: "flour",
+            createName: "Wild fennel",
+            quantity: 2,
+            unit: "CUP",
+            sortOrder: 0,
+          },
+          {
+            originalLine: "3 eggs",
+            displayText: "eggs",
+            quantity: 3,
+            unit: "COUNT",
+            sortOrder: 1,
+          },
+        ],
+      }));
+      expect(saveTextOnly).not.toHaveBeenCalled();
+    });
   });
 
   it("orders imported ingredient inputs as quantity, unit, then ingredient text", () => {
