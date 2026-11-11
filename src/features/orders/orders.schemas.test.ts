@@ -8,8 +8,9 @@ import {
 const item = { recipeId: "recipe-123", batches: 2 };
 
 describe("order schemas", () => {
-  it("defaults new orders to draft and pickup", () => {
+  it("defaults new orders to zero, draft, and pickup", () => {
     expect(orderCreateSchema.parse({ name: "Birthday cookies", items: [item] })).toMatchObject({
+      totalCostCents: 0,
       status: "DRAFT",
       fulfillmentMethod: "PICKUP",
     });
@@ -18,6 +19,7 @@ describe("order schemas", () => {
   it("trims and accepts optional customer and fulfillment details", () => {
     const result = orderCreateSchema.parse({
       name: "  Birthday cookies  ",
+      totalCostCents: 2000,
       customerName: "  Sarah Morgan  ",
       customerContact: "  sarah@example.com  ",
       dueDate: "2026-10-24",
@@ -43,6 +45,7 @@ describe("order schemas", () => {
   it("treats empty optional form fields as unset", () => {
     const result = orderCreateSchema.parse({
       name: "Order",
+      totalCostCents: 0,
       customerName: "   ",
       customerContact: "",
       dueDate: "",
@@ -59,7 +62,7 @@ describe("order schemas", () => {
   });
 
   it("rejects whitespace-only names and invalid dates, times, and fulfillment values", () => {
-    const valid = { name: "Order", items: [item] };
+    const valid = { name: "Order", totalCostCents: 0, items: [item] };
 
     expect(orderCreateSchema.safeParse({ ...valid, name: "   " }).success).toBe(false);
     expect(orderCreateSchema.safeParse({ ...valid, dueDate: "2026-02-31" }).success).toBe(false);
@@ -80,6 +83,7 @@ describe("order schemas", () => {
     expect(orderUpdateSchema.parse({
       id: "order-123",
       name: "Order",
+      totalCostCents: 0,
       customerName: "Taylor",
       fulfillmentMethod: "PICKUP",
       status: "COMPLETED",
@@ -91,4 +95,42 @@ describe("order schemas", () => {
       status: "COMPLETED",
     });
   });
+});
+
+describe("create order total", () => {
+  const valid = { name: "Order", items: [item] };
+
+  it.each([0, 1, 2000, 2050])("accepts an explicit total of %i cents", (totalCostCents) => {
+    expect(orderCreateSchema.parse({ ...valid, totalCostCents }).totalCostCents).toBe(totalCostCents);
+  });
+
+  it.each([null, "", "2000", -1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
+    "rejects an invalid total of %s",
+    (totalCostCents) => {
+      expect(orderCreateSchema.safeParse({ ...valid, totalCostCents }).success).toBe(false);
+    },
+  );
+
+  it("defaults an omitted total to zero", () => {
+    expect(orderCreateSchema.parse(valid).totalCostCents).toBe(0);
+  });
+});
+
+describe("update order total", () => {
+  const valid = { id: "order-123", name: "Order", items: [item] };
+
+  it.each([0, 1, 2000, 2050])("accepts an explicit total of %i cents", (totalCostCents) => {
+    expect(orderUpdateSchema.parse({ ...valid, totalCostCents }).totalCostCents).toBe(totalCostCents);
+  });
+
+  it("leaves an omitted total unset", () => {
+    expect(orderUpdateSchema.parse(valid).totalCostCents).toBeUndefined();
+  });
+
+  it.each([null, "", "2000", -1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
+    "rejects an invalid total of %s",
+    (totalCostCents) => {
+      expect(orderUpdateSchema.safeParse({ ...valid, totalCostCents }).success).toBe(false);
+    },
+  );
 });

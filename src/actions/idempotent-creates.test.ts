@@ -233,6 +233,7 @@ describe.each(paths)("idempotent %s", (path) => {
 it("creates an order in one request without storing a pending mutation receipt", async () => {
   const result = await orders.create.orThrow.call(context(), {
     name: "Weekend order",
+    totalCostCents: 0,
     items: [{ recipeId: "source", batches: 1 }],
   });
 

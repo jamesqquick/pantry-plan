@@ -7,6 +7,7 @@ import { GroceryListDisplay } from "@/components/orders/GroceryListDisplay";
 import { DeleteOrderButton } from "@/components/orders/DeleteOrderButton";
 import { OrderStatusSelect } from "@/components/orders/OrderStatusSelect";
 import { formatDueDate, formatDueTime } from "@/components/orders/formatDue";
+import { formatDollars } from "@/lib/money";
 import { renderMarkdownToHtml } from "@/features/markdown/render-markdown";
 import { buildGroceryList, type GroceryListResult } from "@/lib/grocery/aggregate";
 import {
@@ -195,7 +196,7 @@ const dueTimeLabel = formatDueTime(o.dueTime);
       </a>
     </PageHeader>
 
-    <section class="grid gap-6 border-b border-border pb-7 md:grid-cols-3 md:items-start">
+    <section class="grid gap-6 border-b border-border pb-7 md:grid-cols-4 md:items-start">
       <section aria-labelledby="order-customer-heading">
         <h2 id="order-customer-heading" class="font-display text-xl text-foreground">
           Customer
@@ -231,6 +232,15 @@ const dueTimeLabel = formatDueTime(o.dueTime);
         )}
       </section>
 
+      <section aria-labelledby="order-total-heading">
+        <h2 id="order-total-heading" class="font-display text-xl text-foreground">
+          Order total
+        </h2>
+        <p class="mt-2 text-sm font-medium tabular-nums text-foreground">
+          {o.totalCostCents != null ? formatDollars(o.totalCostCents) : "Not set"}
+        </p>
+      </section>
+
       <section aria-labelledby="order-status-heading">
         <h2 id="order-status-heading" class="font-display text-xl text-foreground">
           Order Status
@@ -249,7 +259,7 @@ const dueTimeLabel = formatDueTime(o.dueTime);
     {notesHtml && (
       <section class="rounded-lg border border-border bg-card p-6">
         <div
-          class="prose max-w-none text-card-foreground dark:prose-invert sm:prose-sm"
+          class="prose max-w-none text-card-foreground sm:prose-sm"
           set:html={notesHtml}
         />
       </section>
@@ -295,12 +305,12 @@ const dueTimeLabel = formatDueTime(o.dueTime);
 
     {/* Issues */}
     {issueCount > 0 && (
-      <section class="rounded-lg border border-amber-200 bg-amber-50 p-6 dark:border-amber-800/30 dark:bg-amber-900/10">
-        <h2 class="font-display text-lg text-amber-800 dark:text-amber-300 mb-3">
+      <section class="rounded-lg border border-amber-200 bg-amber-50 p-6">
+        <h2 class="font-display text-lg text-amber-800 mb-3">
           Issues
           <span class="ml-2 text-sm font-normal">({issueCount})</span>
         </h2>
-        <div class="space-y-3 text-body text-amber-700 dark:text-amber-300/80">
+        <div class="space-y-3 text-body text-amber-700">
           {groceryResult.issues.unmapped.length > 0 && (
             <div>
               <p class="font-medium">Unmapped ingredients ({groceryResult.issues.unmapped.length})</p>

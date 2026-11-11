@@ -20,7 +20,7 @@ const sizes = {
 
 /**
  * Toggleable filter/tag chip. Outlined pill at rest; selected state fills
- * with the foreground ink so it reads as "on" in both themes.
+ * with the foreground ink so it reads as "on".
  */
 export function TagToggle({
   selected,

@@ -2,17 +2,17 @@ const LEGEND_ITEMS = [
   {
     slot: "BREAKFAST",
     label: "Breakfast",
-    swatchClassName: "bg-amber-200 dark:bg-amber-600",
+    swatchClassName: "bg-amber-200",
   },
   {
     slot: "LUNCH",
     label: "Lunch",
-    swatchClassName: "bg-sky-200 dark:bg-sky-600",
+    swatchClassName: "bg-sky-200",
   },
   {
     slot: "DINNER",
     label: "Dinner",
-    swatchClassName: "bg-violet-200 dark:bg-violet-600",
+    swatchClassName: "bg-violet-200",
   },
 ] as const;
 
@@ -42,7 +42,7 @@ export function MealTypeLegend() {
 }
 
 export const MEAL_SLOT_SWATCH: Record<string, string> = {
-  BREAKFAST: "bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-100",
-  LUNCH: "bg-sky-100 text-sky-900 dark:bg-sky-900/50 dark:text-sky-100",
-  DINNER: "bg-violet-100 text-violet-900 dark:bg-violet-900/50 dark:text-violet-100",
+  BREAKFAST: "bg-amber-100 text-amber-900",
+  LUNCH: "bg-sky-100 text-sky-900",
+  DINNER: "bg-violet-100 text-violet-900",
 };

@@ -138,7 +138,7 @@ export function ImportImageTab({
       )}
 
       {parseError && (
-        <div role="alert" className="rounded-input bg-red-50 p-3 text-body text-red-700 dark:bg-red-900/20 dark:text-red-300">
+        <div role="alert" className="rounded-input bg-red-50 p-3 text-body text-red-700">
           <p className="font-medium">Could not extract recipe from image</p>
           <p className="mt-1">{parseError}</p>
           <p className="mt-2 text-meta opacity-80">

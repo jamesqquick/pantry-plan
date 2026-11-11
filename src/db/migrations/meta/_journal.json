@@ -71,6 +71,20 @@
       "when": 1793656188579,
       "tag": "0009_mutation_cancellation",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1794324564131,
+      "tag": "0010_order_total_cost",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1794332601367,
+      "tag": "0011_order_total_default_zero",
+      "breakpoints": true
     }
   ]
 }

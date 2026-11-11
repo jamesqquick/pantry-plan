@@ -58,6 +58,7 @@ export const orders = {
               userId: user.id,
               name: input.name,
               notes: input.notes?.trim() || null,
+              totalCostCents: input.totalCostCents,
               customerName: input.customerName ?? null,
               customerContact: input.customerContact ?? null,
               dueDate: input.dueDate ?? null,
@@ -111,6 +112,9 @@ export const orders = {
             name: input.name,
             notes: input.notes?.trim() || null,
           };
+          if (input.totalCostCents !== undefined) {
+            patch.totalCostCents = input.totalCostCents;
+          }
           if (input.customerName !== undefined) patch.customerName = input.customerName;
           if (input.customerContact !== undefined) patch.customerContact = input.customerContact;
           if (input.dueDate !== undefined) patch.dueDate = input.dueDate;
