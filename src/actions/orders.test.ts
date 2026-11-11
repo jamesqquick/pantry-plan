@@ -39,7 +39,10 @@ beforeEach(() => {
   `);
 });
 
-afterEach(() => test.sqlite.close());
+afterEach(() => {
+  vi.restoreAllMocks();
+  test.sqlite.close();
+});
 
 function savedTotal(id: string) {
   return test.sqlite.prepare('SELECT totalCostCents FROM "Order" WHERE id = ?').get(id);
@@ -84,5 +87,21 @@ describe("order totals", () => {
     })).rejects.toMatchObject({ code: "NOT_FOUND" });
 
     expect(savedTotal("legacy-order")).toEqual({ totalCostCents: 0 });
+  });
+
+  it("returns a safe error and rolls back an order when an item write fails", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    test.sqlite.exec(`CREATE TRIGGER fail_order BEFORE INSERT ON OrderItem
+      BEGIN SELECT RAISE(ABORT, 'injected write failure'); END;`);
+
+    await expect(orders.create.orThrow.call(context(), {
+      name: "Failed order",
+      items,
+    })).rejects.toMatchObject({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Couldn't save the order. Check your connection and try again.",
+    });
+    expect(test.sqlite.prepare('SELECT * FROM "Order" WHERE name = ?').all("Failed order")).toEqual([]);
+    expect(console.error).toHaveBeenCalledWith("Unexpected error in orders.create", expect.anything());
   });
 });

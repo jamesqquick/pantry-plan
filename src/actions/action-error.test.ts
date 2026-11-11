@@ -12,7 +12,7 @@ afterEach(() => vi.restoreAllMocks());
 
 describe("withSafeActionError", () => {
   it("replaces unexpected internal failures with a safe message", async () => {
-    const databaseError = new Error("D1_ERROR: no such table: MutationOperation");
+    const databaseError = new Error("D1_ERROR: failed query");
     vi.spyOn(console, "error").mockImplementation(() => undefined);
 
     await expect(withSafeActionError("orders.create", "Couldn't save the order.", async () => {
@@ -25,7 +25,7 @@ describe("withSafeActionError", () => {
   });
 
   it("preserves actionable Astro action errors", async () => {
-    const conflict = new ActionError({ code: "CONFLICT", message: "This submission was cancelled." });
+    const conflict = new ActionError({ code: "BAD_REQUEST", message: "Invalid order items." });
 
     await expect(withSafeActionError("orders.create", "Couldn't save the order.", async () => {
       throw conflict;
@@ -35,15 +35,15 @@ describe("withSafeActionError", () => {
   it("sanitizes internal Astro action errors too", async () => {
     const internal = new ActionError({
       code: "INTERNAL_SERVER_ERROR",
-      message: "SQLITE_ERROR: no such table: MutationOperation",
+      message: "SQLITE_ERROR: failed query",
     });
     vi.spyOn(console, "error").mockImplementation(() => undefined);
 
-    await expect(withSafeActionError("mutations.outcome", "Couldn't check this save.", async () => {
+    await expect(withSafeActionError("orders.update", "Couldn't save the order.", async () => {
       throw internal;
     })).rejects.toMatchObject({
       code: "INTERNAL_SERVER_ERROR",
-      message: "Couldn't check this save.",
+      message: "Couldn't save the order.",
     });
   });
 });

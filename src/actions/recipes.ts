@@ -25,8 +25,6 @@ import {
 import { chunkRows } from "@/db/chunked-insert";
 import { chunkInValues } from "@/db/chunked-read";
 import { getDb, queueSearchSync, requireUser } from "./_shared";
-import { mutationInputSchema } from "@/features/mutations/mutations.schemas";
-import { assertMutationAccount, prepareCreate } from "@/features/mutations/server";
 
 /**
  * Recipes submit complex nested data (ingredients + instructions + tags).
@@ -103,19 +101,12 @@ export const recipes = {
   /**
    * Create a recipe with structured ingredients, instructions, and tags.
    * Returns the new id; the client is expected to navigate to it.
-   */
+  */
   create: defineAction({
-    input: recipeCreateInputSchema.extend(mutationInputSchema.shape),
+    input: recipeCreateInputSchema,
     handler: async (input, ctx) => {
       const user = requireUser(ctx);
       const db = getDb();
-      const { operationId, accountId, ...payload } = input;
-      assertMutationAccount(user.id, accountId);
-      const operation = await prepareCreate(db, user.id, "recipes.create", operationId, payload);
-      if (operation.resourceId) {
-        await queueSearchSync(ctx, db, [operation.resourceId]);
-        return { id: operation.resourceId };
-      }
 
       await validateIngredientReferences(db, user.id, input.ingredientsStructured);
       const validTagIds = await filterOwnedTagIds(db, user.id, input.tagIds);
@@ -142,7 +133,7 @@ export const recipes = {
       }));
       const tagRows = validTagIds.map((tagId) => ({ recipeId, tagId }));
 
-      const savedId = await operation.commit(recipeId, [
+      await db.batch([
         db.insert(recipe).values({
           id: recipeId,
           userId: user.id,
@@ -164,8 +155,8 @@ export const recipes = {
         ...chunkRows(tagRows, 3).map((chunk) => db.insert(recipeTag).values(chunk)),
       ]);
 
-      await queueSearchSync(ctx, db, [savedId]);
-      return { id: savedId };
+      await queueSearchSync(ctx, db, [recipeId]);
+      return { id: recipeId };
     },
   }),
 
@@ -329,17 +320,10 @@ export const recipes = {
    */
   duplicate: defineAction({
     accept: "form",
-    input: duplicateRecipeSchema.extend(mutationInputSchema.shape),
+    input: duplicateRecipeSchema,
     handler: async (input, ctx) => {
       const user = requireUser(ctx);
       const db = getDb();
-
-      assertMutationAccount(user.id, input.accountId);
-      const operation = await prepareCreate(db, user.id, "recipes.duplicate", input.operationId, { recipeId: input.recipeId });
-      if (operation.resourceId) {
-        await queueSearchSync(ctx, db, [operation.resourceId]);
-        return { id: operation.resourceId };
-      }
 
       const sourceRows = await db
         .select()
@@ -396,7 +380,7 @@ export const recipes = {
       }));
       const validTagIds = await filterOwnedTagIds(db, user.id, rtags.map((r) => r.tagId));
       const tagRows = validTagIds.map((tagId) => ({ recipeId: copyId, tagId }));
-      const savedId = await operation.commit(copyId, [
+      await db.batch([
         db.insert(recipe).values({
           id: copyId,
           userId: user.id,
@@ -414,8 +398,8 @@ export const recipes = {
         ...chunkRows(tagRows, 3).map((chunk) => db.insert(recipeTag).values(chunk)),
       ]);
 
-      await queueSearchSync(ctx, db, [savedId]);
-      return { id: savedId };
+      await queueSearchSync(ctx, db, [copyId]);
+      return { id: copyId };
     },
   }),
 };

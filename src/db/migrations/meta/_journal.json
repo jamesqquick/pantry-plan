@@ -85,6 +85,13 @@
       "when": 1794332601367,
       "tag": "0011_order_total_default_zero",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1794413748561,
+      "tag": "0012_drop_mutation_operations",
+      "breakpoints": true
     }
   ]
 }

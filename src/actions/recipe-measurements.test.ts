@@ -107,8 +107,6 @@ describe("recipe measurement actions", () => {
     const before = snapshot();
     const item = { displayText: "salt to taste", sortOrder: 0, ...amount };
     const create = await recipes.create.bind(ctx)({
-      accountId: "cook",
-      operationId: crypto.randomUUID(),
       title: "Rejected soup",
       instructions: ["New instruction"],
       ingredientsStructured: [item],
@@ -143,8 +141,6 @@ describe("recipe measurement actions", () => {
     });
     const form = new FormData();
     form.set("recipeId", "legacy");
-    form.set("operationId", crypto.randomUUID());
-    form.set("accountId", "cook");
     const duplicate = await recipes.duplicate.bind(ctx)(form);
 
     expect(result.error).toBeUndefined();
@@ -159,8 +155,6 @@ describe("recipe measurement actions", () => {
       id: "salt", userId: "cook", name: "Salt", normalizedName: "salt", costBasisUnit: "G",
     });
     const result = await recipes.create.bind(ctx)({
-      accountId: "cook",
-      operationId: crypto.randomUUID(),
       title: "Soup",
       instructions: ["Season."],
       ingredientsStructured: [
@@ -188,8 +182,6 @@ describe("recipe measurement actions", () => {
     expect((await recipes.update.bind(ctx)({ id: "legacy", notes: "Measured." })).error).toBeUndefined();
     const form = new FormData();
     form.set("recipeId", "legacy");
-    form.set("operationId", crypto.randomUUID());
-    form.set("accountId", "cook");
     const duplicate = await recipes.duplicate.bind(ctx)(form);
     expect(duplicate.error).toBeUndefined();
     expect(await test.db.select().from(recipeIngredient).where(eq(recipeIngredient.recipeId, duplicate.data!.id)))
@@ -222,8 +214,6 @@ describe("recipe measurement actions", () => {
   it("returns BAD_REQUEST for unresolved raw imports without creating a partial recipe", async () => {
     const before = snapshot();
     const result = await recipeImport.saveTextOnly.bind(ctx)({
-      accountId: "cook",
-      operationId: crypto.randomUUID(),
       recipe: { title: "Soup", instructions: ["Season."] },
       ingredients: ["1 cup stock", "Salt to taste"],
     });
@@ -239,8 +229,6 @@ describe("recipe measurement actions", () => {
     const before = snapshot();
     const recipeData = { title: "Soup", instructions: ["Season."] };
     const textOnly = await recipeImport.saveTextOnly.bind(ctx)({
-      accountId: "cook",
-      operationId: crypto.randomUUID(),
       recipe: recipeData,
       ingredients: [{ displayText: "salt to taste", rawText: "Salt to taste", ...amount }],
     } as never);
@@ -257,8 +245,6 @@ describe("recipe measurement actions", () => {
 
   it("saves reviewed URL or photo import measurements without reparsing them", async () => {
     const result = await recipeImport.saveTextOnly.bind(ctx)({
-      accountId: "cook",
-      operationId: crypto.randomUUID(),
       recipe: { title: "Soup", instructions: ["Season."] },
       ingredients: [{ displayText: "salt to taste", rawText: "  Salt to taste  ", quantity: 1, unit: "TSP" }],
     });

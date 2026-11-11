@@ -12,7 +12,6 @@ vi.mock("astro:actions", () => ({
       create: vi.fn(),
       update: vi.fn(),
     },
-    mutations: { outcome: vi.fn(async () => ({ data: { status: "unknown" } })) },
   },
 }));
 
@@ -186,7 +185,7 @@ describe("OrderForm", () => {
       data: undefined,
       error: {
         code: "INTERNAL_SERVER_ERROR",
-        message: "D1_ERROR: no such table: MutationOperation",
+        message: "D1_ERROR: failed query",
       },
     } as never);
     const user = userEvent.setup();
@@ -198,7 +197,7 @@ describe("OrderForm", () => {
 
     await waitFor(() => expect(actions.orders.create).toHaveBeenCalledOnce());
     expect((await screen.findByRole("alert")).textContent).toContain("Couldn't save the order. Check your connection and try again.");
-    expect(screen.queryByText(/D1_ERROR|MutationOperation/)).toBeNull();
+    expect(screen.queryByText(/D1_ERROR/)).toBeNull();
   });
 
   it("selects recipes by keyboard and keeps the remaining recipe when a row is removed", async () => {
