@@ -51,7 +51,7 @@ afterEach(() => {
   test.sqlite.close();
 });
 
-const paths = ["recipes.create", "recipes.duplicate", "recipeImport.saveTextOnly", "orders.create"] as const;
+const paths = ["recipes.create", "recipes.duplicate", "recipeImport.saveTextOnly"] as const;
 type CreatePath = (typeof paths)[number];
 async function create(path: CreatePath, operationId: string, changed = false, userId = "cook", accountId = userId) {
   const ctx = context(userId);
@@ -72,10 +72,6 @@ async function create(path: CreatePath, operationId: string, changed = false, us
         operationId, accountId, recipe: { title: changed ? "Other soup" : "Soup", instructions: ["Cook."] },
         ingredients: ["1 tsp salt"],
       })).recipeId;
-    case "orders.create":
-      return (await orders.create.orThrow.call(ctx, {
-        operationId, accountId, name: changed ? "Other order" : "Order", items: [{ recipeId: "source", batches: 1 }],
-      })).id;
   }
 }
 function outcome(operationId: string, userId = "cook") {
@@ -123,7 +119,6 @@ describe.each(paths)("idempotent %s", (path) => {
     await assertion;
     expect(await outcome(operationId)).toEqual({ status: "cancelled" });
     expect(test.sqlite.prepare("SELECT * FROM Recipe").all()).toHaveLength(1);
-    expect(test.sqlite.prepare('SELECT * FROM "Order"').all()).toHaveLength(0);
   });
 
   it("returns the original resource on retry and confirms it from a fresh request", async () => {
@@ -141,8 +136,7 @@ describe.each(paths)("idempotent %s", (path) => {
     const ids = await Promise.all(Array.from({ length: 4 }, () => create(path, operationId)));
     expect(new Set(ids).size).toBe(1);
     expect(test.sqlite.prepare("SELECT * FROM MutationOperation").all()).toHaveLength(1);
-    const table = path === "orders.create" ? '"Order"' : "Recipe";
-    expect(test.sqlite.prepare(`SELECT * FROM ${table}`).all()).toHaveLength(path === "orders.create" ? 1 : 2);
+    expect(test.sqlite.prepare("SELECT * FROM Recipe").all()).toHaveLength(2);
   });
 
   it("rejects changed input for the same operation ID", async () => {
@@ -154,13 +148,12 @@ describe.each(paths)("idempotent %s", (path) => {
 
   it("rolls back the receipt and resource on failure, allowing the same submission to retry", async () => {
     const operationId = crypto.randomUUID();
-    const table = path === "orders.create" ? "OrderItem" : "RecipeInstruction";
+    const table = "RecipeInstruction";
     test.sqlite.exec(`CREATE TRIGGER fail_create BEFORE INSERT ON ${table}
       BEGIN SELECT RAISE(ABORT, 'injected write failure'); END;`);
     await expect(create(path, operationId)).rejects.toThrow(/injected write failure/);
     expect(await outcome(operationId)).toEqual({ status: "unknown" });
     expect(test.sqlite.prepare("SELECT * FROM Recipe").all()).toHaveLength(1);
-    expect(test.sqlite.prepare('SELECT * FROM "Order"').all()).toHaveLength(0);
     test.sqlite.exec("DROP TRIGGER fail_create");
     const id = await create(path, operationId);
     expect(await outcome(operationId)).toMatchObject({ status: "completed", id });
@@ -193,8 +186,7 @@ describe.each(paths)("idempotent %s", (path) => {
     expect(await outcome(operationId)).toEqual({ status: "completed", id, kind: path });
     expect(spy).toHaveBeenCalledTimes(2);
     expect(test.sqlite.prepare("SELECT * FROM MutationOperation").all()).toHaveLength(1);
-    const table = path === "orders.create" ? '"Order"' : "Recipe";
-    expect(test.sqlite.prepare(`SELECT * FROM ${table}`).all()).toHaveLength(path === "orders.create" ? 1 : 2);
+    expect(test.sqlite.prepare("SELECT * FROM Recipe").all()).toHaveLength(2);
   });
 
   it.each(["commit", "rollback"] as const)("resolves a late %s after a timeout without retrying automatically", async (completion) => {
@@ -202,7 +194,7 @@ describe.each(paths)("idempotent %s", (path) => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const operationId = crypto.randomUUID();
     if (completion === "rollback") {
-      const table = path === "orders.create" ? "OrderItem" : "RecipeInstruction";
+      const table = "RecipeInstruction";
       test.sqlite.exec(`CREATE TRIGGER fail_create BEFORE INSERT ON ${table}
         BEGIN SELECT RAISE(ABORT, 'late write failure'); END;`);
     }
@@ -238,6 +230,34 @@ describe.each(paths)("idempotent %s", (path) => {
   });
 });
 
+it("creates an order in one request without storing a pending mutation receipt", async () => {
+  const result = await orders.create.orThrow.call(context(), {
+    name: "Weekend order",
+    items: [{ recipeId: "source", batches: 1 }],
+  });
+
+  expect(result.id).toBeTruthy();
+  expect(test.sqlite.prepare('SELECT * FROM "Order"').all()).toHaveLength(1);
+  expect(test.sqlite.prepare("SELECT * FROM OrderItem").all()).toHaveLength(1);
+  expect(test.sqlite.prepare("SELECT * FROM MutationOperation").all()).toHaveLength(0);
+});
+
+it("returns a safe error when an order write fails", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  test.sqlite.exec(`CREATE TRIGGER fail_order BEFORE INSERT ON OrderItem
+    BEGIN SELECT RAISE(ABORT, 'injected write failure'); END;`);
+
+  await expect(orders.create.orThrow.call(context(), {
+    name: "Weekend order",
+    items: [{ recipeId: "source", batches: 1 }],
+  })).rejects.toMatchObject({
+    code: "INTERNAL_SERVER_ERROR",
+    message: "Couldn't save the order. Check your connection and try again.",
+  });
+  expect(test.sqlite.prepare('SELECT * FROM "Order"').all()).toHaveLength(0);
+  expect(console.error).toHaveBeenCalledWith("Unexpected error in orders.create", expect.anything());
+});
+
 it("isolates outcomes and uniqueness by account", async () => {
   const operationId = crypto.randomUUID();
   const first = await create("recipes.create", operationId);
@@ -250,7 +270,7 @@ it("isolates outcomes and uniqueness by account", async () => {
 it("rejects reuse across create types", async () => {
   const operationId = crypto.randomUUID();
   await create("recipes.create", operationId);
-  await expect(create("orders.create", operationId)).rejects.toMatchObject({ code: "CONFLICT" });
+  await expect(create("recipeImport.saveTextOnly", operationId)).rejects.toMatchObject({ code: "CONFLICT" });
 });
 
 it("rejects outcome and cancellation requests from a stale account page", async () => {

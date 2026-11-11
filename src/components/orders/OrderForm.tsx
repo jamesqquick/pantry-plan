@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { actions } from "astro:actions";
-import { submitCreate, SubmissionStorageError } from "@/features/mutations/client";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
+import { ErrorToast } from "@/components/ui/ErrorToast";
+import { getSafeActionErrorMessage } from "@/lib/safe-action-error";
 import type {
   OrderFulfillmentMethod,
   OrderStatus,
@@ -39,6 +40,7 @@ interface EditProps {
 }
 
 type OrderFormProps = CreateProps | EditProps;
+const SAVE_ERROR_FALLBACK = "Couldn't save the order. Check your connection and try again.";
 
 function defaultOrderName(): string {
   return new Date().toLocaleDateString("en-US", {
@@ -54,6 +56,10 @@ function defaultDueDate(): string {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function isBadRequestActionError(error: unknown) {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "BAD_REQUEST";
 }
 
 export default function OrderForm(props: OrderFormProps) {
@@ -73,28 +79,31 @@ export default function OrderForm(props: OrderFormProps) {
     isEdit ? props.initialItems : [{ recipeId: "", batches: 1 }],
   );
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const errorRef = useRef<HTMLDivElement>(null);
+  const dismissToast = useCallback(() => setToastMessage(null), []);
 
   const validItems = items.filter((i) => i.recipeId);
 
   useEffect(() => {
-    if (error) errorRef.current?.focus();
-  }, [error]);
+    if (validationError) errorRef.current?.focus();
+  }, [validationError]);
 
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     if (submitting) return;
     if (validItems.length === 0) {
-      setError("Add at least one recipe.");
+      setValidationError("Add at least one recipe.");
       return;
     }
     if (validItems.length !== items.length) {
-      setError("Select a recipe in each row, or remove the empty row.");
+      setValidationError("Select a recipe in each row, or remove the empty row.");
       return;
     }
     setSubmitting(true);
-    setError(null);
+    setValidationError(null);
+    setToastMessage(null);
 
     const payload = {
       name,
@@ -117,31 +126,35 @@ export default function OrderForm(props: OrderFormProps) {
           ...payload,
         });
         if (err) {
-          setError(err.message);
+          const message = getSafeActionErrorMessage(err, SAVE_ERROR_FALLBACK);
+          if (isBadRequestActionError(err)) setValidationError(message);
+          else setToastMessage(message);
           setSubmitting(false);
           return;
         }
         window.location.href = `/orders/${props.orderId}`;
       } else {
-        const { data, error: err } = await submitCreate("orders.create", payload);
+        const { data, error: err } = await actions.orders.create(payload);
         if (err) {
-          setError(err.message);
+          const message = getSafeActionErrorMessage(err, SAVE_ERROR_FALLBACK);
+          if (isBadRequestActionError(err)) setValidationError(message);
+          else setToastMessage(message);
           setSubmitting(false);
           return;
         }
         window.location.href = `/orders/${data!.id}`;
       }
-    } catch (cause) {
-      setError(cause instanceof SubmissionStorageError ? cause.message : "Couldn't save the order. Check your connection and try again.");
+    } catch {
+      setToastMessage(SAVE_ERROR_FALLBACK);
       setSubmitting(false);
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="w-full min-w-0 space-y-6">
-      {error && (
+      {validationError && (
         <div ref={errorRef} tabIndex={-1} role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-body text-destructive">
-          {error}
+          {validationError}
         </div>
       )}
 
@@ -158,7 +171,7 @@ export default function OrderForm(props: OrderFormProps) {
         items={items}
         onChange={(nextItems) => {
           setItems(nextItems);
-          setError(null);
+          setValidationError(null);
         }}
       />
 
@@ -195,6 +208,7 @@ export default function OrderForm(props: OrderFormProps) {
           Cancel
         </Button>
       </div>
+      <ErrorToast message={toastMessage} onDismiss={dismissToast} />
     </form>
   );
 }

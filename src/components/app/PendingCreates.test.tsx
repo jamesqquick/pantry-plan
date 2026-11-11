@@ -67,9 +67,39 @@ it("keeps recovery controls usable after a network exception", async () => {
   const user = userEvent.setup();
   render(<PendingCreates />);
   await user.click(screen.getByRole("button", { name: "Check save status" }));
-  expect((await screen.findByRole("status")).textContent).toMatch(/original submission is still remembered/);
+  expect((await screen.findByRole("alert")).textContent).toMatch(/original submission is still remembered/);
+  expect(screen.queryByText("Offline")).toBeNull();
   expect(screen.getByRole("button", { name: "Retry original save" })).toHaveProperty("disabled", false);
   expect(sessionStorage.length).toBe(1);
+});
+
+it("shows a safe toast for a recovery action's internal error", async () => {
+  runtime.outcome.mockResolvedValueOnce({
+    error: {
+      code: "INTERNAL_SERVER_ERROR",
+      message: "SQLITE_ERROR: no such table: MutationOperation",
+    },
+  });
+  const user = userEvent.setup();
+  render(<PendingCreates />);
+  await user.click(screen.getByRole("button", { name: "Check save status" }));
+
+  expect((await screen.findByRole("alert")).textContent).toMatch(/Couldn't check this save/);
+  expect(screen.queryByText(/SQLITE_ERROR|MutationOperation/)).toBeNull();
+  expect(screen.getByRole("button", { name: "Retry original save" })).toHaveProperty("disabled", false);
+  expect(sessionStorage.length).toBe(1);
+});
+
+it("shows a recovery validation error inline", async () => {
+  runtime.outcome.mockResolvedValueOnce({
+    error: { code: "BAD_REQUEST", message: "Ingredient quantity is invalid." },
+  });
+  const user = userEvent.setup();
+  render(<PendingCreates />);
+  await user.click(screen.getByRole("button", { name: "Check save status" }));
+
+  expect(await screen.findByText("Ingredient quantity is invalid.")).toBeTruthy();
+  expect(screen.queryByRole("alert")).toBeNull();
 });
 
 it("settles an unresolved save before releasing the form for corrected input", async () => {

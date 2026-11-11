@@ -42,6 +42,10 @@ function changed() {
   window.dispatchEvent(new Event(PENDING_CREATES_CHANGED));
 }
 
+function clientStateError(message: string): CreateResult {
+  return { error: { code: "CLIENT_STATE", message } };
+}
+
 export function readPendingCreates(): PendingCreate[] {
   const id = accountId();
   const entries: PendingCreate[] = [];
@@ -74,8 +78,6 @@ async function invoke(entry: PendingCreate): Promise<CreateResult> {
   switch (entry.kind) {
     case "recipes.create":
       return actions.recipes.create(input as Parameters<typeof actions.recipes.create>[0]);
-    case "orders.create":
-      return actions.orders.create(input as Parameters<typeof actions.orders.create>[0]);
     case "recipes.duplicate": {
       const form = new FormData();
       form.set("recipeId", String(entry.payload.recipeId));
@@ -95,11 +97,11 @@ async function lookupOutcome(entry: PendingCreate): Promise<CreateResult> {
   if (result.error) return { error: result.error };
   if (result.data.status === "cancelled") {
     clear(entry);
-    return { error: { message: "The original submission was cancelled. You can now save your changes as a new submission." } };
+    return clientStateError("The original submission was cancelled. You can now save your changes as a new submission.");
   }
   if (result.data.status !== "completed") return {};
   if (result.data.kind !== entry.kind) {
-    return { error: { message: "This submission belongs to a different action. Its original tracking key has been retained." } };
+    return clientStateError("This submission belongs to a different action. Its original tracking key has been retained.");
   }
   clear(entry);
   return { data: { id: result.data.id } };
@@ -108,7 +110,7 @@ async function lookupOutcome(entry: PendingCreate): Promise<CreateResult> {
 async function withActive(entry: PendingCreate, run: () => Promise<CreateResult>): Promise<CreateResult> {
   if (entry.accountId !== accountId()) throw new SubmissionStorageError();
   const key = storageKey(entry);
-  if (active.has(key)) return { error: { message: "This submission is already being saved." } };
+  if (active.has(key)) return clientStateError("This submission is already being saved.");
   active.add(key);
   changed();
   try {
@@ -130,12 +132,12 @@ export function cancelCreate(entry: PendingCreate) {
     });
     if (result.error) return { error: result.error };
     if (result.data.status === "completed" && result.data.kind !== entry.kind) {
-      return { error: { message: "This submission belongs to a different action. Its original tracking key has been retained." } };
+      return clientStateError("This submission belongs to a different action. Its original tracking key has been retained.");
     }
     clear(entry);
     return result.data.status === "completed"
       ? { data: { id: result.data.id } }
-      : { error: { message: "The original submission was cancelled. You can now save your changes as a new submission." } };
+      : clientStateError("The original submission was cancelled. You can now save your changes as a new submission.");
   });
 }
 
@@ -177,7 +179,7 @@ export async function submitCreate(
   if (existing) {
     // Never turn an uncertain submission into a new create, even after edits.
     if (canonicalInput(existing.payload) !== canonicalInput(payload)) {
-      return { error: { message: "Your earlier save has an unknown outcome. Use Check save status or Retry original save before saving these changes." } };
+      return clientStateError("Your earlier save has an unknown outcome. Use Check save status or Retry original save before saving these changes.");
     }
     return send(existing, true);
   }
@@ -198,6 +200,5 @@ export function retryCreate(entry: PendingCreate) {
 }
 
 export function createdResourcePath(entry: Pick<PendingCreate, "kind" | "destination">, id: string) {
-  if (entry.kind === "orders.create") return `/orders/${id}`;
   return `/recipes/${id}${entry.destination === "map" ? "/map-ingredients" : ""}`;
 }
