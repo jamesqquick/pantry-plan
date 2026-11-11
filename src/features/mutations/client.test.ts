@@ -175,7 +175,7 @@ describe("durable client submissions", () => {
 
   it("does not discard a receipt with an unexpected action kind", async () => {
     const entry = await interruptedCreate();
-    runtime.outcome.mockResolvedValueOnce({ data: { status: "completed", kind: "orders.create", id: "order-1" } });
+    runtime.outcome.mockResolvedValueOnce({ data: { status: "completed", kind: "recipes.duplicate", id: "recipe-1" } });
     expect((await confirmCreate(entry)).error?.message).toMatch(/different action/);
     expect(readPendingCreates()).toEqual([entry]);
   });

@@ -112,9 +112,6 @@ describe("OrderForm", () => {
       notes: "Two gift boxes",
       items: [{ recipeId: "recipe-123", batches: 1 }],
     })));
-    const [submittedOrder] = vi.mocked(actions.orders.create).mock.calls[0]!;
-    expect(submittedOrder).not.toHaveProperty("operationId");
-    expect(submittedOrder).not.toHaveProperty("accountId");
     expect(await screen.findByText("Preview test stopped before navigation.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Dismiss error message" })).toBeNull();
   });

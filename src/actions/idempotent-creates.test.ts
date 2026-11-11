@@ -230,19 +230,6 @@ describe.each(paths)("idempotent %s", (path) => {
   });
 });
 
-it("creates an order in one request without storing a pending mutation receipt", async () => {
-  const result = await orders.create.orThrow.call(context(), {
-    name: "Weekend order",
-    totalCostCents: 0,
-    items: [{ recipeId: "source", batches: 1 }],
-  });
-
-  expect(result.id).toBeTruthy();
-  expect(test.sqlite.prepare('SELECT * FROM "Order"').all()).toHaveLength(1);
-  expect(test.sqlite.prepare("SELECT * FROM OrderItem").all()).toHaveLength(1);
-  expect(test.sqlite.prepare("SELECT * FROM MutationOperation").all()).toHaveLength(0);
-});
-
 it("returns a safe error when an order write fails", async () => {
   vi.spyOn(console, "error").mockImplementation(() => {});
   test.sqlite.exec(`CREATE TRIGGER fail_order BEFORE INSERT ON OrderItem

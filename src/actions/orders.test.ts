@@ -78,14 +78,6 @@ describe("order totals", () => {
     expect(savedTotal("legacy-order")).toEqual({ totalCostCents: 1250 });
   });
 
-  it("creates orders directly without a mutation receipt", async () => {
-    await orders.create.orThrow.call(context(), {
-      name: "Order", totalCostCents: 2000, items,
-    });
-
-    expect(test.sqlite.prepare("SELECT * FROM MutationOperation").all()).toHaveLength(0);
-  });
-
   it("does not allow another user to change an order's total", async () => {
     await expect(orders.update.orThrow.call(context("other"), {
       id: "legacy-order", name: "Order", totalCostCents: 2000, items,
