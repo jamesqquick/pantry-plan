@@ -1,4 +1,4 @@
-import type { IngredientUnit } from "@/db/schema/enums";
+import type { IngredientDisplayUnit, IngredientUnit } from "@/db/schema/enums";
 
 export type { IngredientUnit };
 
@@ -24,6 +24,18 @@ export const UNIT_LABELS: Record<IngredientUnit, string> = {
   G: "g",
   KG: "kg",
   PINCH: "pinch",
+};
+
+export const DISPLAY_UNIT_LABELS: Record<IngredientDisplayUnit, string> = {
+  AUTO: "Auto",
+  EACH: "count",
+  GRAM: "g",
+  KG: "kg",
+  OZ: "oz",
+  LB: "lb",
+  CUP: "cup",
+  TBSP: "tbsp",
+  TSP: "tsp",
 };
 
 /** Map normalized unit label to enum for import/parsing. */

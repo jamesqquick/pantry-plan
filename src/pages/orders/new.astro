@@ -5,6 +5,7 @@ import { asc, eq } from "drizzle-orm";
 import AppLayout from "@/layouts/AppLayout.astro";
 import OrderForm from "@/components/orders/OrderForm";
 import { createDb, recipe } from "@/db";
+import { loadOwnedRecipeAvailability } from "@/lib/grocery/recipes";
 
 export const prerender = false;
 
@@ -16,6 +17,11 @@ const recipes = await db
   .from(recipe)
   .where(eq(recipe.userId, user.id))
   .orderBy(asc(recipe.title));
+const availabilityByRecipe = await loadOwnedRecipeAvailability(db, user.id, recipes.map(({ id }) => id));
+const recipeOptions = recipes.map((item) => ({
+  ...item,
+  availability: availabilityByRecipe[item.id] ?? { status: "unavailable" as const, notices: [] },
+}));
 ---
 
 <AppLayout title="New order — Quick Pantry">
@@ -64,13 +70,7 @@ const recipes = await db
       </div>
     ) : (
       <div class="space-y-4">
-        <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-body text-blue-800">
-          <strong>Tip:</strong> Ingredients with cost estimates and unit conversions produce better grocery lists.
-          <a href="/ingredients" class="ml-1 underline underline-offset-2 hover:text-blue-600">
-            Review your ingredient catalog
-          </a> to fill in missing data.
-        </div>
-        <OrderForm client:load mode="create" recipeOptions={recipes} />
+        <OrderForm client:load mode="create" recipeOptions={recipeOptions} />
       </div>
     )}
   </div>

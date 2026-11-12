@@ -5,6 +5,7 @@ import { and, asc, eq } from "drizzle-orm";
 import AppLayout from "@/layouts/AppLayout.astro";
 import OrderForm from "@/components/orders/OrderForm";
 import { createDb, order, orderItem, recipe } from "@/db";
+import { loadOwnedRecipeAvailability } from "@/lib/grocery/recipes";
 
 export const prerender = false;
 
@@ -41,6 +42,11 @@ const [existingItems, recipes] = await Promise.all([
     .where(eq(recipe.userId, user.id))
     .orderBy(asc(recipe.title)),
 ]);
+const availabilityByRecipe = await loadOwnedRecipeAvailability(db, user.id, recipes.map(({ id }) => id));
+const recipeOptions = recipes.map((item) => ({
+  ...item,
+  availability: availabilityByRecipe[item.id] ?? { status: "unavailable" as const, notices: [] },
+}));
 ---
 
 <AppLayout title={`Edit ${o.name || "order"} — Quick Pantry`}>
@@ -79,7 +85,7 @@ const [existingItems, recipes] = await Promise.all([
       client:load
       mode="edit"
       orderId={id}
-      recipeOptions={recipes}
+      recipeOptions={recipeOptions}
       initialName={o.name ?? ""}
       initialNotes={o.notes ?? ""}
       initialTotalCostCents={o.totalCostCents}

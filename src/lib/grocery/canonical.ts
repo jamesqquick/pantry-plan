@@ -57,13 +57,16 @@ export type BasisUnitLabel = string;
 
 export type IngredientConversion = {
   gramsPerCup?: number | null;
+  gramsPerEach?: number | null;
   cupsPerEach?: number | null;
 };
 
 function lineToGrams(
   quantity: number,
   unit: IngredientUnit,
-  gramsPerCup: number | null | undefined
+  gramsPerCup: number | null | undefined,
+  gramsPerEach: number | null | undefined,
+  cupsPerEach: number | null | undefined
 ): number | null {
   const g = toGrams(quantity, unit);
   if (g != null) return g;
@@ -71,16 +74,37 @@ function lineToGrams(
   if (cups != null && gramsPerCup != null) {
     return cups * gramsPerCup;
   }
+  const resolvedGramsPerEach =
+    gramsPerEach ??
+    (gramsPerCup != null && cupsPerEach != null && cupsPerEach > 0
+      ? gramsPerCup * cupsPerEach
+      : null);
+  if (unit === "COUNT" && resolvedGramsPerEach != null && resolvedGramsPerEach > 0) {
+    return quantity * resolvedGramsPerEach;
+  }
   return null;
 }
 
 function lineToCups(
   quantity: number,
   unit: IngredientUnit,
-  gramsPerCup: number | null | undefined
+  gramsPerCup: number | null | undefined,
+  gramsPerEach: number | null | undefined,
+  cupsPerEach: number | null | undefined
 ): number | null {
   const c = lineVolumeToCups(quantity, unit);
   if (c != null) return c;
+  if (unit === "COUNT") {
+    if (
+      gramsPerEach != null &&
+      gramsPerEach > 0 &&
+      gramsPerCup != null &&
+      gramsPerCup > 0
+    ) {
+      return (quantity * gramsPerEach) / gramsPerCup;
+    }
+    if (cupsPerEach != null && cupsPerEach > 0) return quantity * cupsPerEach;
+  }
   const g = toGrams(quantity, unit);
   if (g != null && gramsPerCup != null && gramsPerCup > 0) {
     return g / gramsPerCup;
@@ -88,9 +112,42 @@ function lineToCups(
   return null;
 }
 
+function lineToCount(
+  quantity: number,
+  unit: IngredientUnit,
+  gramsPerCup: number | null | undefined,
+  gramsPerEach: number | null | undefined,
+  cupsPerEach: number | null | undefined
+): number | null {
+  if (unit === "COUNT") return quantity;
+
+  const grams = lineToGrams(
+    quantity,
+    unit,
+    gramsPerCup,
+    gramsPerEach,
+    cupsPerEach,
+  );
+  const resolvedGramsPerEach =
+    gramsPerEach ??
+    (gramsPerCup != null && cupsPerEach != null && cupsPerEach > 0
+      ? gramsPerCup * cupsPerEach
+      : null);
+  if (grams != null && resolvedGramsPerEach != null && resolvedGramsPerEach > 0) {
+    return grams / resolvedGramsPerEach;
+  }
+
+  if (cupsPerEach != null && cupsPerEach > 0) {
+    const cups = lineToCups(quantity, unit, gramsPerCup, gramsPerEach, cupsPerEach);
+    if (cups != null) return cups / cupsPerEach;
+  }
+
+  return null;
+}
+
 /**
  * Convert quantity+unit to the ingredient's cost basis unit.
- * Cross-dimensional: uses gramsPerCup and cupsPerEach when set.
+ * Cross-dimensional: uses gramsPerCup, gramsPerEach, and cupsPerEach when set.
  */
 export function convertToBasis(params: {
   quantity: number;
@@ -101,55 +158,50 @@ export function convertToBasis(params: {
   const { quantity, unit, basisUnit, ingredientConversion } = params;
   const u = unit ?? "COUNT";
   const gpc = ingredientConversion?.gramsPerCup ?? null;
+  const gpe = ingredientConversion?.gramsPerEach ?? null;
   const cpe = ingredientConversion?.cupsPerEach ?? null;
   const label = (k: CostBasisUnit) => COST_BASIS_SHORT_LABELS[k];
 
   switch (basisUnit) {
     case "G": {
-      const grams = lineToGrams(quantity, u, gpc);
+      const grams = lineToGrams(quantity, u, gpc, gpe, cpe);
       if (grams == null) return null;
       return { basisQty: grams, basisUnitLabel: label("G") };
     }
     case "KG": {
-      const grams = lineToGrams(quantity, u, gpc);
+      const grams = lineToGrams(quantity, u, gpc, gpe, cpe);
       if (grams == null) return null;
       return { basisQty: grams / G_PER_KG, basisUnitLabel: label("KG") };
     }
     case "LB": {
-      const grams = lineToGrams(quantity, u, gpc);
+      const grams = lineToGrams(quantity, u, gpc, gpe, cpe);
       if (grams == null) return null;
       return { basisQty: grams / G_PER_LB, basisUnitLabel: label("LB") };
     }
     case "OZ": {
-      const grams = lineToGrams(quantity, u, gpc);
+      const grams = lineToGrams(quantity, u, gpc, gpe, cpe);
       if (grams == null) return null;
       return { basisQty: grams / G_PER_OZ, basisUnitLabel: label("OZ") };
     }
     case "CUP": {
-      const cups = lineToCups(quantity, u, gpc);
+      const cups = lineToCups(quantity, u, gpc, gpe, cpe);
       if (cups == null) return null;
       return { basisQty: cups, basisUnitLabel: label("CUP") };
     }
     case "TSP": {
-      const cups = lineToCups(quantity, u, gpc);
+      const cups = lineToCups(quantity, u, gpc, gpe, cpe);
       if (cups == null) return null;
       return { basisQty: cups / CUPS_PER_TSP, basisUnitLabel: label("TSP") };
     }
     case "TBSP": {
-      const cups = lineToCups(quantity, u, gpc);
+      const cups = lineToCups(quantity, u, gpc, gpe, cpe);
       if (cups == null) return null;
       return { basisQty: cups / CUPS_PER_TBSP, basisUnitLabel: label("TBSP") };
     }
     case "COUNT": {
-      const count = toEach(quantity, u);
+      const count = lineToCount(quantity, u, gpc, gpe, cpe);
       if (count != null) {
         return { basisQty: count, basisUnitLabel: label("COUNT") };
-      }
-      if (cpe != null && cpe > 0) {
-        const cups = lineToCups(quantity, u, gpc);
-        if (cups != null) {
-          return { basisQty: cups / cpe, basisUnitLabel: label("COUNT") };
-        }
       }
       return null;
     }

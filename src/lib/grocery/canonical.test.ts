@@ -52,6 +52,54 @@ describe("convertToBasis", () => {
     expect(r?.basisQty).toBe(240);
   });
 
+  it("G basis: COUNT line with gramsPerEach", () => {
+    const r = convertToBasis({
+      quantity: 2,
+      unit: "COUNT",
+      basisUnit: "G",
+      ingredientConversion: { gramsPerEach: 120 },
+    });
+    expect(r?.basisQty).toBe(240);
+    expect(r?.basisUnitLabel).toBe("g");
+  });
+
+  it("COUNT basis: mass line with gramsPerEach", () => {
+    const r = convertToBasis({
+      quantity: 240,
+      unit: "G",
+      basisUnit: "COUNT",
+      ingredientConversion: { gramsPerEach: 120 },
+    });
+    expect(r?.basisQty).toBe(2);
+    expect(r?.basisUnitLabel).toBe("ea");
+  });
+
+  it("COUNT basis: volume line can use gramsPerCup and gramsPerEach", () => {
+    const r = convertToBasis({
+      quantity: 0.5,
+      unit: "CUP",
+      basisUnit: "COUNT",
+      ingredientConversion: { gramsPerCup: 160, gramsPerEach: 120 },
+    });
+    expect(r?.basisQty).toBeCloseTo(2 / 3, 5);
+  });
+
+  it("COUNT basis: weight line keeps using cupsPerEach as a legacy fallback", () => {
+    const r = convertToBasis({
+      quantity: 240,
+      unit: "G",
+      basisUnit: "COUNT",
+      ingredientConversion: { gramsPerCup: 240, cupsPerEach: 1 },
+    });
+    expect(r?.basisQty).toBe(1);
+  });
+
+  it("uses an explicitly measured item weight ahead of legacy cupsPerEach", () => {
+    const ingredientConversion = { gramsPerCup: 100, gramsPerEach: 50, cupsPerEach: 1 };
+    expect(convertToBasis({ quantity: 100, unit: "G", basisUnit: "COUNT", ingredientConversion })?.basisQty).toBe(2);
+    expect(convertToBasis({ quantity: 1, unit: "COUNT", basisUnit: "CUP", ingredientConversion })?.basisQty).toBe(0.5);
+  });
+
   it("COUNT basis: COUNT line", () => {
     const r = convertToBasis({
       quantity: 3,

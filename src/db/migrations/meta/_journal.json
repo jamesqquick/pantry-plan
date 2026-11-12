@@ -85,6 +85,20 @@
       "when": 1794332601367,
       "tag": "0011_order_total_default_zero",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1794346936000,
+      "tag": "0012_ingredient_item_weight",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1794346936001,
+      "tag": "0013_ingredient_package_pricing",
+      "breakpoints": true
     }
   ]
 }

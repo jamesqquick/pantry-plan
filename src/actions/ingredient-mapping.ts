@@ -82,7 +82,7 @@ function prepareIngredientInsert(
     userId: string;
     name: string;
     normalizedName: string;
-    costBasisUnit: "G";
+    costBasisUnit: "G" | "CUP" | "COUNT";
   }>,
 ) {
   const placeholders = rows.map(() => "(?, ?, ?, ?, ?)").join(", ");
@@ -426,6 +426,8 @@ export const ingredientMapping = {
         id: string;
         normalizedName: string;
         gramsPerCup: number | null;
+        gramsPerEach: number | null;
+        cupsPerEach: number | null;
       }> = [];
       for (const ingredientIds of chunkInValues(existingIngredientIds, 1)) {
         const rows = await db
@@ -433,6 +435,8 @@ export const ingredientMapping = {
             id: ingredient.id,
             normalizedName: ingredient.normalizedName,
             gramsPerCup: ingredient.gramsPerCup,
+            gramsPerEach: ingredient.gramsPerEach,
+            cupsPerEach: ingredient.cupsPerEach,
           })
           .from(ingredient)
           .where(
@@ -473,6 +477,8 @@ export const ingredientMapping = {
         normalizedName: string;
         userId: string | null;
         gramsPerCup: number | null;
+        gramsPerEach: number | null;
+        cupsPerEach: number | null;
       }> = [];
       for (const names of chunkInValues(normalizedNames, 1)) {
         const rows = await db
@@ -481,6 +487,8 @@ export const ingredientMapping = {
             normalizedName: ingredient.normalizedName,
             userId: ingredient.userId,
             gramsPerCup: ingredient.gramsPerCup,
+            gramsPerEach: ingredient.gramsPerEach,
+            cupsPerEach: ingredient.cupsPerEach,
           })
           .from(ingredient)
           .where(
@@ -497,13 +505,30 @@ export const ingredientMapping = {
       );
       const newIngredients = normalizedNames
         .filter((normalizedName) => !preferredIngredients.has(normalizedName))
-        .map((normalizedName) => ({
-          id: createId(),
-          userId: user.id,
-          name: createNames.get(normalizedName)!,
-          normalizedName,
-          costBasisUnit: "G" as const,
-        }));
+        .map((normalizedName) => {
+          const units = input.items
+            .filter(
+              (item) =>
+                item.mapping.kind === "create" &&
+                normalizeIngredientName(item.mapping.name) === normalizedName,
+            )
+            .map((item) => item.unit)
+            .filter((unit): unit is NonNullable<typeof unit> => unit != null);
+          const costBasisUnit =
+            units.length > 0 && units.every((unit) => unit === "COUNT")
+              ? ("COUNT" as const)
+              : units.length > 0 &&
+                  units.every((unit) => ["TSP", "TBSP", "CUP", "PINCH"].includes(unit))
+                ? ("CUP" as const)
+                : ("G" as const);
+          return {
+            id: createId(),
+            userId: user.id,
+            name: createNames.get(normalizedName)!,
+            normalizedName,
+            costBasisUnit,
+          };
+        });
       const ingredientIdByNormalizedName = new Map(
         [...preferredIngredients].map(([normalizedName, row]) => [
           normalizedName,
@@ -521,6 +546,8 @@ export const ingredientMapping = {
             id: row.id,
             normalizedName: row.normalizedName,
             gramsPerCup: null,
+            gramsPerEach: null,
+            cupsPerEach: null,
           })),
         ].map((row) => [row.id, row]),
       );
@@ -558,6 +585,8 @@ export const ingredientMapping = {
                 ingredient: conversionIngredientById.get(ingredientId) ?? {
                   normalizedName: null,
                   gramsPerCup: null,
+                  gramsPerEach: null,
+                  cupsPerEach: null,
                 },
                 originalLine: currentRow.rawText ?? item.displayText,
               })

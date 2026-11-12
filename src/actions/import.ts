@@ -148,12 +148,26 @@ export const recipeImport = {
         const createName = [...nameMap.entries()].find(
           ([, normalized]) => normalized === normalizedName,
         )![0];
+        const units = mappedByName
+          .filter(
+            ({ line }) =>
+              normalizeIngredientName(line.createName!.trim()) === normalizedName,
+          )
+          .map(({ line }) => line.unit)
+          .filter((unit): unit is NonNullable<typeof unit> => unit != null);
+        const costBasisUnit =
+          units.length > 0 && units.every((unit) => unit === "COUNT")
+            ? ("COUNT" as const)
+            : units.length > 0 &&
+                units.every((unit) => ["TSP", "TBSP", "CUP", "PINCH"].includes(unit))
+              ? ("CUP" as const)
+              : ("G" as const);
         return {
           id: createId(),
           userId: user.id,
           name: createName,
           normalizedName,
-          costBasisUnit: "G" as const,
+          costBasisUnit,
         };
       });
       const nameToIngredientId = new Map([
@@ -164,6 +178,7 @@ export const recipeImport = {
       // 4. Collect every ingredientId we need conversion data for
       const allIngredientIds = [
         ...verifiedById.map((i) => i.id),
+        ...existingByName.map((i) => i.id),
         ...createdIngredients.map((i) => i.id),
       ];
       const convertData = allIngredientIds.length
@@ -172,6 +187,8 @@ export const recipeImport = {
               id: ingredient.id,
               normalizedName: ingredient.normalizedName,
               gramsPerCup: ingredient.gramsPerCup,
+              gramsPerEach: ingredient.gramsPerEach,
+              cupsPerEach: ingredient.cupsPerEach,
             })
             .from(ingredient)
             .where(inArray(ingredient.id, allIngredientIds))
@@ -191,7 +208,12 @@ export const recipeImport = {
           const converted = autoConvert({
             quantity,
             unit: unitEnum,
-            ingredient: ing ?? { normalizedName: null, gramsPerCup: null },
+            ingredient: ing ?? {
+              normalizedName: null,
+              gramsPerCup: null,
+              gramsPerEach: null,
+              cupsPerEach: null,
+            },
             originalLine: line.originalLine,
           });
           return {

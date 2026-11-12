@@ -35,16 +35,25 @@ export function normalizeIngredientName(line: string): string {
   }
   s = words.join(" ");
 
+  if (/^(?:ground )?cloves?$/.test(s)) {
+    return "clove";
+  }
+
   // Remove trailing stopwords that are quantity/unit/prep (keep core name)
   const stopwordList = Array.from(INGREDIENT_STOPWORDS);
   for (const stop of stopwordList) {
     const re = new RegExp(`\\b${escapeRe(stop)}\\s*$`, "i");
-    s = s.replace(re, "").trim();
+    const withoutStopword = s.replace(re, "").trim();
+    if (withoutStopword || (stop !== "clove" && stop !== "cloves")) {
+      s = withoutStopword;
+    }
   }
   s = s.replace(/\s+/g, " ").trim();
 
-  // Conservative singularization: trailing 's' only when it's a whole word (e.g. "cloves" already removed)
-  if (s.endsWith("s") && s.length > 3 && !s.endsWith("ss")) {
+  // Conservative singularization: trailing 's' only for whole-word plurals.
+  if (s === "cloves") {
+    s = "clove";
+  } else if (s.endsWith("s") && s.length > 3 && !s.endsWith("ss")) {
     const withoutS = s.slice(0, -1);
     if (!INGREDIENT_SYNONYMS[withoutS] && !INGREDIENT_SYNONYMS[s]) {
       // Prefer existing synonym form

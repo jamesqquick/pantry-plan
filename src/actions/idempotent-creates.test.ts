@@ -175,6 +175,7 @@ describe.each(paths)("idempotent %s", (path) => {
     await expect(create(path, operationId)).rejects.toThrow(/injected write failure/);
     expect(await outcome(operationId)).toEqual({ status: "unknown" });
     expect(test.sqlite.prepare("SELECT * FROM Recipe").all()).toHaveLength(1);
+    expect(test.sqlite.prepare("SELECT * FROM Ingredient").all()).toHaveLength(0);
     expect(test.sqlite.prepare('SELECT * FROM "Order"').all()).toHaveLength(0);
     test.sqlite.exec("DROP TRIGGER fail_create");
     const id = await create(path, operationId);

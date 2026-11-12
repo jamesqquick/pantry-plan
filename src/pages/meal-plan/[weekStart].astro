@@ -93,7 +93,7 @@ const recipeMeals = meals.filter((m) => m.recipeId != null);
 let grocery: GroceryListResult = {
   totals: [],
   issues: { unmapped: [], missingQuantityOrUnit: [], cannotConvert: [], missingCost: [] },
-  totalEstimatedCostCents: 0,
+  totalEstimatedCostCents: null,
 };
 
 if (recipeMeals.length > 0) {
@@ -121,9 +121,13 @@ if (recipeMeals.length > 0) {
       ingName: ingredient.name,
       ingCostBasisUnit: ingredient.costBasisUnit,
       ingEstimatedCentsPerBasisUnit: ingredient.estimatedCentsPerBasisUnit,
+      ingPurchasePriceCents: ingredient.purchasePriceCents,
+      ingPurchaseQuantity: ingredient.purchaseQuantity,
       ingGramsPerCup: ingredient.gramsPerCup,
+      ingGramsPerEach: ingredient.gramsPerEach,
       ingCupsPerEach: ingredient.cupsPerEach,
       ingPreferredDisplayUnit: ingredient.preferredDisplayUnit,
+      ingPurchaseUnit: ingredient.purchaseUnit,
     })
     .from(recipeIngredient)
     .leftJoin(ingredient, eq(recipeIngredient.ingredientId, ingredient.id))
@@ -142,7 +146,11 @@ if (recipeMeals.length > 0) {
         name: string;
         costBasisUnit: string;
         estimatedCentsPerBasisUnit: number | null;
+        purchasePriceCents: number | null;
+        purchaseQuantity: number | null;
+        purchaseUnit: string | null;
         gramsPerCup: number | null;
+        gramsPerEach: number | null;
         cupsPerEach: number | null;
         preferredDisplayUnit: string | null;
       } | null;
@@ -174,9 +182,13 @@ if (recipeMeals.length > 0) {
             name: ri.ingName!,
             costBasisUnit: ri.ingCostBasisUnit!,
             estimatedCentsPerBasisUnit: ri.ingEstimatedCentsPerBasisUnit ?? null,
+            purchasePriceCents: ri.ingPurchasePriceCents ?? null,
+            purchaseQuantity: ri.ingPurchaseQuantity ?? null,
             gramsPerCup: ri.ingGramsPerCup ?? null,
+            gramsPerEach: ri.ingGramsPerEach ?? null,
             cupsPerEach: ri.ingCupsPerEach ?? null,
             preferredDisplayUnit: ri.ingPreferredDisplayUnit ?? null,
+            purchaseUnit: ri.ingPurchaseUnit ?? null,
           }
         : null,
       quantity: ri.quantity,
