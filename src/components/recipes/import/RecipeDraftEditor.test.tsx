@@ -83,9 +83,7 @@ describe("RecipeDraftEditor", () => {
     expect(
       screen.getByRole("button", { name: "Save recipe" }),
     ).toHaveProperty("disabled", false);
-    expect(
-      screen.getByRole("button", { name: "Save and map" }),
-    ).toHaveProperty("disabled", false);
+    expect(screen.queryByRole("button", { name: "Save and map" })).toBeNull();
   });
 
   it("saves a selected catalog ingredient alongside the reviewed import fields", async () => {
@@ -159,6 +157,29 @@ describe("RecipeDraftEditor", () => {
       }));
       expect(saveTextOnly).not.toHaveBeenCalled();
     });
+  });
+
+  it("clears a selected mapping without changing the imported line or its measurements", async () => {
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.click(screen.getAllByRole("button", { name: "Choose an ingredient" })[0]!);
+    await user.type(screen.getByRole("combobox", { name: "Search catalog ingredients" }), "flour");
+    await user.click(await screen.findByRole("option", { name: /Flour.*Global/ }));
+    await user.click(screen.getByRole("button", { name: "Flour" }));
+    await user.click(screen.getByRole("button", { name: "Clear mapping" }));
+    expect(screen.getByLabelText("Quantity for ingredient 1")).toHaveProperty("value", "2");
+    expect(screen.getByLabelText("Unit for ingredient 1")).toHaveProperty("value", "CUP");
+    expect(screen.getByLabelText("Ingredient text for ingredient 1")).toHaveProperty("value", "flour");
+
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+    await waitFor(() => expect(saveTextOnly).toHaveBeenCalledWith(expect.objectContaining({
+      ingredients: [
+        { rawText: " 2 cups flour ", displayText: "flour", quantity: 2, unit: "CUP" },
+        { rawText: "3 eggs", displayText: "eggs", quantity: 3, unit: "COUNT" },
+      ],
+    })));
+    expect(saveWithMappings).not.toHaveBeenCalled();
   });
 
   it("orders imported ingredient inputs as quantity, unit, then ingredient text", () => {
@@ -336,14 +357,12 @@ describe("RecipeDraftEditor", () => {
     });
   });
 
-  it.each(["Save recipe", "Save and map"])(
-    "requires a reviewed measurement for salt to taste before %s",
-    async (saveAction) => {
+  it("requires a reviewed measurement for salt to taste before saving", async () => {
       const user = userEvent.setup();
       renderEditor({ ...validDraft, ingredients: ["Salt to taste"] });
       const quantity = screen.getByLabelText("Quantity for ingredient 1");
       const unit = screen.getByLabelText("Unit for ingredient 1");
-      const save = screen.getByRole("button", { name: saveAction });
+      const save = screen.getByRole("button", { name: "Save recipe" });
 
       expect(screen.getByText("No quantity was detected automatically. Enter a quantity and choose a unit before saving.")).toBeTruthy();
       expect(screen.getByLabelText("Ingredient text for ingredient 1")).toHaveProperty("value", "Salt to taste");
@@ -385,11 +404,8 @@ describe("RecipeDraftEditor", () => {
       expect(saveTextOnly).toHaveBeenCalledWith(expect.objectContaining({
         ingredients: [{ rawText: "Salt to taste", displayText: "salt to taste", quantity: 1, unit: "TSP" }],
       }));
-      expect(softNavigate).toHaveBeenCalledWith(
-        saveAction === "Save and map" ? "/recipes/recipe-123/map-ingredients" : "/recipes/recipe-123",
-      );
-    },
-  );
+      expect(softNavigate).toHaveBeenCalledWith("/recipes/recipe-123");
+  });
 
   it("requires a measurement for an unresolved line and preserves its reviewed text", async () => {
     const user = userEvent.setup();
@@ -498,17 +514,6 @@ describe("RecipeDraftEditor", () => {
     ]);
   });
 
-  it("explains the save and map action in a tooltip", async () => {
-    const user = userEvent.setup();
-    renderEditor();
-
-    await user.hover(screen.getByRole("button", { name: "Save and map" }));
-
-    expect((await screen.findByRole("tooltip")).textContent).toBe(
-      "Save the recipe, then review and map its ingredients to items in your pantry.",
-    );
-  });
-
   it("saves text-only ingredients and navigates to the recipe detail", async () => {
     const user = userEvent.setup();
     renderEditor();
@@ -528,31 +533,7 @@ describe("RecipeDraftEditor", () => {
     });
   });
 
-  it("saves text-only ingredients and navigates to ingredient mapping", async () => {
-    const user = userEvent.setup();
-    renderEditor();
-
-    await user.click(screen.getByRole("button", { name: "Save and map" }));
-
-    await waitFor(() => {
-      expect(saveTextOnly).toHaveBeenCalledWith(
-        expect.objectContaining({
-          ingredients: [
-            { rawText: " 2 cups flour ", displayText: "flour", quantity: 2, unit: "CUP" },
-            { rawText: "3 eggs", displayText: "eggs", quantity: 3, unit: "COUNT" },
-          ],
-        }),
-      );
-      expect(softNavigate).toHaveBeenCalledWith(
-        "/recipes/recipe-123/map-ingredients",
-      );
-    });
-  });
-
-  it.each([
-    ["Save recipe", "/recipes/recipe-123"],
-    ["Save and map", "/recipes/recipe-123/map-ingredients"],
-  ])("preserves the reordered draft when using %s", async (button, destination) => {
+  it("preserves the reordered draft when saving", async () => {
     const user = userEvent.setup();
     renderEditor();
     const eggs = screen.getByRole("textbox", { name: "Ingredient text for ingredient 2" });
@@ -562,7 +543,7 @@ describe("RecipeDraftEditor", () => {
 
     expect(screen.getByRole("textbox", { name: "Ingredient text for ingredient 1" })).toBe(eggs);
     expect(screen.getByRole("textbox", { name: "Step 1" })).toHaveProperty("value", "Cook until tender.");
-    await user.click(screen.getByRole("button", { name: button }));
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
 
     await waitFor(() => {
       expect(saveTextOnly).toHaveBeenCalledWith({
@@ -577,7 +558,7 @@ describe("RecipeDraftEditor", () => {
           { rawText: " 2 cups flour ", displayText: "flour", quantity: 2, unit: "CUP" },
         ],
       });
-      expect(softNavigate).toHaveBeenCalledWith(destination);
+      expect(softNavigate).toHaveBeenCalledWith("/recipes/recipe-123");
     });
   });
 
@@ -591,14 +572,12 @@ describe("RecipeDraftEditor", () => {
     );
     renderEditor();
     const saveRecipe = screen.getByRole("button", { name: "Save recipe" });
-    const saveAndMap = screen.getByRole("button", { name: "Save and map" });
     const cancel = screen.getByRole("button", { name: "Cancel" });
 
     await user.click(saveRecipe);
 
     expect(saveTextOnly).toHaveBeenCalledTimes(1);
     expect(saveRecipe).toHaveProperty("disabled", true);
-    expect(saveAndMap).toHaveProperty("disabled", true);
     expect(cancel).toHaveProperty("disabled", true);
     for (const name of ["Ingredients", "Instructions"]) {
       for (const button of within(screen.getByRole("list", { name })).getAllByRole("button")) {
@@ -609,14 +588,12 @@ describe("RecipeDraftEditor", () => {
     expect(screen.getByRole("button", { name: "Add step" })).toHaveProperty("disabled", true);
 
     await user.click(saveRecipe);
-    await user.click(saveAndMap);
     expect(saveTextOnly).toHaveBeenCalledTimes(1);
 
     resolveSave?.({ data: { recipeId: "recipe-123" }, error: undefined });
     await waitFor(() => {
       expect(softNavigate).toHaveBeenCalledWith("/recipes/recipe-123");
       expect(saveRecipe).toHaveProperty("disabled", true);
-      expect(saveAndMap).toHaveProperty("disabled", true);
       expect(cancel).toHaveProperty("disabled", true);
     });
   });
@@ -634,9 +611,6 @@ describe("RecipeDraftEditor", () => {
     expect(
       screen.getByRole("button", { name: "Save recipe" }),
     ).toHaveProperty("disabled", false);
-    expect(
-      screen.getByRole("button", { name: "Save and map" }),
-    ).toHaveProperty("disabled", false);
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveProperty(
       "disabled",
       false,
@@ -650,9 +624,6 @@ describe("RecipeDraftEditor", () => {
       expect(softNavigate).toHaveBeenCalledWith("/recipes/recipe-123");
       expect(
         screen.getByRole("button", { name: "Saving..." }),
-      ).toHaveProperty("disabled", true);
-      expect(
-        screen.getByRole("button", { name: "Save and map" }),
       ).toHaveProperty("disabled", true);
       expect(screen.getByRole("button", { name: "Cancel" })).toHaveProperty(
         "disabled",
@@ -677,9 +648,6 @@ describe("RecipeDraftEditor", () => {
     expect(
       screen.getByRole("button", { name: "Save recipe" }),
     ).toHaveProperty("disabled", false);
-    expect(
-      screen.getByRole("button", { name: "Save and map" }),
-    ).toHaveProperty("disabled", false);
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveProperty(
       "disabled",
       false,
@@ -703,10 +671,6 @@ describe("RecipeDraftEditor", () => {
 
     await user.click(screen.getByRole("button", { name: "Save recipe" }));
     expect(screen.getByText("Title is required.")).toBeTruthy();
-
-    await user.click(screen.getByRole("button", { name: "Save and map" }));
-    expect(saveTextOnly).not.toHaveBeenCalled();
-    expect(softNavigate).not.toHaveBeenCalled();
   });
 
   it("does not save a draft without instructions", async () => {
@@ -726,7 +690,7 @@ describe("RecipeDraftEditor", () => {
     const user = userEvent.setup();
     renderEditor({ ...validDraft, ingredients: [] });
 
-    await user.click(screen.getByRole("button", { name: "Save and map" }));
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
 
     expect(
       screen.getByText("At least one ingredient is required."),

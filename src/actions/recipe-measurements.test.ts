@@ -1,11 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ActionAPIContext } from "astro:actions";
 import { eq } from "drizzle-orm";
-import { createDb, ingredient, recipe, recipeIngredient, recipeInstruction, recipeTag, tag, type Db } from "@/db";
-import { DatabaseBudget, DatabaseTimeoutError, withDatabaseBudget } from "@/lib/database-timeout";
+import { ingredient, recipe, recipeIngredient, recipeInstruction, recipeTag, tag, type Db } from "@/db";
 import type { IngredientUnit } from "@/db/schema/enums";
 import { createTestDb } from "@/test/d1";
-import { ingredientMapping } from "./ingredient-mapping";
 import { recipeImport } from "./import";
 import { recipeIngredients } from "./recipe-ingredients";
 import { recipes } from "./recipes";
@@ -362,112 +360,4 @@ describe("recipe measurement actions", () => {
     expect(await test.db.select().from(recipeIngredient)).toMatchObject([{ ingredientId: "eggs", weightGrams: 100, conversionSource: "AUTO" }]);
   });
 
-  it.each(["COUNT", "CUP", "G"] as const)("keeps %s as the appropriate basis for new mapped ingredients", async (unit) => {
-    const row = await seedRecipe({ quantity: 1, unit });
-    const result = await ingredientMapping.applyRecipe.bind(ctx)({
-      recipeId: "legacy",
-      items: [{ recipeIngredientId: row.id, recipeIngredientUpdatedAt: row.updatedAt.getTime(), displayText: "New ingredient", quantity: 1, unit, mapping: { kind: "create", name: "New ingredient" } }],
-    });
-    expect(result.error).toBeUndefined();
-    expect(await test.db.select().from(ingredient)).toMatchObject([{ costBasisUnit: unit, purchasePriceCents: null }]);
-  });
-
-  it.each([
-    { kind: "existing", ingredientId: "salt" },
-    { kind: "create", name: "Salt" },
-    { kind: "unmapped" },
-  ])("rejects incomplete or invalid measurements on $kind mapping Apply before writes", async (mapping) => {
-    const row = await seedRecipe({ quantity: 1, unit: "TSP" });
-    const before = snapshot();
-    const batch = vi.spyOn(test.binding, "batch");
-
-    for (const amount of invalidMeasurements) {
-      const result = await ingredientMapping.applyRecipe.bind(ctx)({
-        recipeId: "legacy",
-        items: [{ recipeIngredientId: row.id, recipeIngredientUpdatedAt: row.updatedAt.getTime(), displayText: "salt to taste", mapping, ...amount }],
-      } as never);
-      expect(result.error).toMatchObject({ code: "BAD_REQUEST" });
-      expect(result.error?.message).toMatch(/quantity|unit/i);
-    }
-
-    expect(batch).not.toHaveBeenCalled();
-    expect(snapshot()).toEqual(before);
-    expect(runtime.queueSearchSync).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    { kind: "existing", ingredientId: "salt" },
-    { kind: "create", name: "Salt" },
-    { kind: "unmapped" },
-  ] as const)("updates measurements with $kind mapping Apply", async (mapping) => {
-    const row = await seedRecipe({ quantity: 1, unit: "TSP" });
-    if (mapping.kind === "existing") {
-      await test.db.insert(ingredient).values({ id: "salt", userId: "cook", name: "Salt", normalizedName: "salt", costBasisUnit: "G" });
-    }
-    const result = await ingredientMapping.applyRecipe.bind(ctx)({
-      recipeId: "legacy",
-      items: [{
-        recipeIngredientId: row.id,
-        recipeIngredientUpdatedAt: row.updatedAt.getTime(),
-        displayText: "salt to taste",
-        quantity: 1 / 3,
-        unit: "TSP",
-        mapping,
-      }],
-    });
-
-    expect(result.error).toBeUndefined();
-    const [updated] = await test.db.select().from(recipeIngredient);
-    expect(updated).toMatchObject({ quantity: 1 / 3, unit: "TSP", displayText: "salt to taste", rawText: "  Salt to taste  " });
-    expect(updated!.ingredientId).toEqual(mapping.kind === "unmapped" ? null : expect.any(String));
-    expect(updated!.updatedAt.getTime()).toBeGreaterThan(row.updatedAt.getTime());
-  });
-
-  it("keeps mapping version checks before any catalog or recipe changes", async () => {
-    const row = await seedRecipe({ quantity: 1, unit: "TSP" });
-    const before = snapshot();
-    const result = await ingredientMapping.applyRecipe.bind(ctx)({
-      recipeId: "legacy",
-      items: [{
-        recipeIngredientId: row.id,
-        recipeIngredientUpdatedAt: row.updatedAt.getTime() - 1,
-        displayText: "salt to taste",
-        quantity: 1,
-        unit: "TSP",
-        mapping: { kind: "create", name: "Salt" },
-      }],
-    });
-    expect(result.error).toMatchObject({ code: "CONFLICT" });
-    expect(snapshot()).toEqual(before);
-  });
-
-  it("bounds the native mapping batch and does not start recovery reads after timeout", async () => {
-    const row = await seedRecipe({ quantity: 1, unit: "TSP" });
-    vi.useFakeTimers();
-    vi.spyOn(console, "error").mockImplementation(() => {});
-    const batch = vi.spyOn(test.binding, "batch").mockImplementationOnce(() => new Promise(() => {}));
-    const raw = vi.spyOn(Object.getPrototypeOf(test.binding.prepare("SELECT 1")), "raw");
-    const budget = new DatabaseBudget({}, 100);
-    const operation = withDatabaseBudget(budget, () => {
-      runtime.db = createDb(test.binding);
-      return ingredientMapping.applyRecipe.orThrow.call(ctx, {
-        recipeId: "legacy",
-        items: [{
-          recipeIngredientId: row.id,
-          recipeIngredientUpdatedAt: row.updatedAt.getTime(),
-          displayText: "salt to taste", quantity: 2, unit: "TSP", mapping: { kind: "unmapped" },
-        }],
-      });
-    });
-    const assertion = expect(operation).rejects.toBeInstanceOf(DatabaseTimeoutError);
-    await vi.advanceTimersByTimeAsync(0);
-    const initialReads = raw.mock.calls.length;
-    expect(batch).toHaveBeenCalledOnce();
-    await vi.advanceTimersByTimeAsync(100);
-    await assertion;
-    expect(raw).toHaveBeenCalledTimes(initialReads);
-    expect(budget.error).toBeInstanceOf(DatabaseTimeoutError);
-    expect(budget.writeStarted).toBe(true);
-    expect(runtime.queueSearchSync).not.toHaveBeenCalled();
-  });
 });

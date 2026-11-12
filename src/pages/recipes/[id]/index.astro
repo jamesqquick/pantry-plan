@@ -82,8 +82,6 @@ const notesHtml = r.notes?.trim()
   ? await renderMarkdownToHtml(r.notes)
   : null;
 
-const hasUnmappedIngredients = ingredients.some((i) => !i.ingredientId);
-
 const meta: { label: string; value: string }[] = [];
 if (r.prepTimeMinutes != null) meta.push({ label: "Prep", value: `${r.prepTimeMinutes}m` });
 if (r.cookTimeMinutes != null) meta.push({ label: "Cook", value: `${r.cookTimeMinutes}m` });
@@ -186,7 +184,7 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
             ingredients={ingredients}
             instructions={instructions.map((instruction) => instruction.text)}
           />
-          <RecipeActions client:load recipeId={r.id} hasUnmappedIngredients={hasUnmappedIngredients} />
+          <RecipeActions client:load recipeId={r.id} />
         </div>
       </PageHeader>
     </div>
@@ -201,12 +199,6 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
                 {ingredients.filter((i) => i.ingredientId).length}/{ingredients.length} mapped
               </span>
             )}
-            <a
-              href={`/recipes/${r.id}/map-ingredients`}
-              class="inline-flex min-h-11 items-center rounded-input px-2 text-meta font-semibold text-primary-on-card underline-offset-4 hover:underline"
-            >
-              {hasUnmappedIngredients ? "Map ingredients" : "Edit mappings"}
-            </a>
           </div>
         </div>
         {ingredients.length === 0 ? (

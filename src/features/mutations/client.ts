@@ -11,6 +11,7 @@ const pendingCreateSchema = z.object({
   operationId: z.uuid(),
   kind: z.enum(MUTATION_KINDS),
   payload: z.record(z.string(), z.unknown()),
+  // Accept previously stored mapping destinations so interrupted saves remain recoverable.
   destination: z.enum(["detail", "map"]),
 });
 export type PendingCreate = z.infer<typeof pendingCreateSchema>;
@@ -161,7 +162,6 @@ async function send(entry: PendingCreate, confirmFirst: boolean): Promise<Create
 export async function submitCreate(
   kind: MutationKind,
   payload: Record<string, unknown>,
-  destination: PendingCreate["destination"] = "detail",
 ): Promise<CreateResult> {
   const id = accountId();
   const key = storageKey({ accountId: id, kind, payload });
@@ -187,7 +187,7 @@ export async function submitCreate(
   }
   const entry: PendingCreate = {
     accountId: id, operationId: crypto.randomUUID(), kind,
-    payload: JSON.parse(JSON.stringify(payload)), destination,
+    payload: JSON.parse(JSON.stringify(payload)), destination: "detail",
   };
   try {
     sessionStorage.setItem(key, JSON.stringify(entry));
@@ -201,7 +201,7 @@ export function retryCreate(entry: PendingCreate) {
   return send(entry, true);
 }
 
-export function createdResourcePath(entry: Pick<PendingCreate, "kind" | "destination">, id: string) {
+export function createdResourcePath(entry: Pick<PendingCreate, "kind">, id: string) {
   if (entry.kind === "orders.create") return `/orders/${id}`;
-  return `/recipes/${id}${entry.destination === "map" ? "/map-ingredients" : ""}`;
+  return `/recipes/${id}`;
 }

@@ -8,15 +8,10 @@ import { submitCreate, SubmissionStorageError } from "@/features/mutations/clien
 
 export interface RecipeActionsProps {
   recipeId: string;
-  /** True when the recipe has ingredient lines without an ingredientId mapping. */
-  hasUnmappedIngredients?: boolean;
 }
 
 /** Detail-page recipe management actions, kept behind a compact More menu. */
-export default function RecipeActions({
-  recipeId,
-  hasUnmappedIngredients = false,
-}: RecipeActionsProps) {
+export default function RecipeActions({ recipeId }: RecipeActionsProps) {
   const [pending, setPending] = useState<"duplicate" | "delete" | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -115,14 +110,6 @@ export default function RecipeActions({
               className="flex cursor-pointer whitespace-nowrap rounded px-3 py-2 text-sm text-popover-foreground hover:bg-accent"
             >
               Edit
-            </a>
-            <a
-              role="menuitem"
-              href={`/recipes/${recipeId}/map-ingredients`}
-              onClick={() => setMenuOpen(false)}
-              className="flex cursor-pointer whitespace-nowrap rounded px-3 py-2 text-sm text-popover-foreground hover:bg-accent"
-            >
-              {hasUnmappedIngredients ? "Map ingredients" : "Edit mappings"}
             </a>
             <button
               type="button"

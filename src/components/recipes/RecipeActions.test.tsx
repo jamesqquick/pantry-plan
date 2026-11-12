@@ -18,22 +18,14 @@ vi.mock("astro:actions", () => ({
 afterEach(cleanup);
 
 describe("RecipeActions", () => {
-  it.each([
-    [true, "Map ingredients"],
-    [false, "Edit mappings"],
-  ])("links to mapping review when hasUnmappedIngredients is %s", async (hasUnmappedIngredients, label) => {
+  it("links to the editor for ingredient mapping without a separate mapping action", async () => {
     const user = userEvent.setup();
-    render(
-      <RecipeActions
-        recipeId="recipe-123"
-        hasUnmappedIngredients={hasUnmappedIngredients}
-      />,
-    );
+    render(<RecipeActions recipeId="recipe-123" />);
 
     await user.click(screen.getByRole("button", { name: "More recipe actions" }));
 
-    expect(
-      screen.getByRole("menuitem", { name: label }).getAttribute("href"),
-    ).toBe("/recipes/recipe-123/map-ingredients");
+    expect(screen.getByRole("menuitem", { name: "Edit" }).getAttribute("href"))
+      .toBe("/recipes/recipe-123/edit");
+    expect(screen.queryByRole("menuitem", { name: /map ingredients|edit mappings/i })).toBeNull();
   });
 });
