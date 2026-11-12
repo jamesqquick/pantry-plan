@@ -7,13 +7,13 @@ import {
 } from "./client";
 
 const runtime = vi.hoisted(() => ({
-  create: vi.fn(), order: vi.fn(), duplicate: vi.fn(), importRecipe: vi.fn(), outcome: vi.fn(), cancel: vi.fn(),
+  create: vi.fn(), order: vi.fn(), duplicate: vi.fn(), importRecipe: vi.fn(), mappedImport: vi.fn(), outcome: vi.fn(), cancel: vi.fn(),
 }));
 vi.mock("astro:actions", () => ({
   actions: {
     recipes: { create: runtime.create, duplicate: runtime.duplicate },
     orders: { create: runtime.order },
-    recipeImport: { saveTextOnly: runtime.importRecipe },
+    recipeImport: { saveTextOnly: runtime.importRecipe, saveWithMappings: runtime.mappedImport },
     mutations: { outcome: runtime.outcome, cancel: runtime.cancel },
   },
 }));
@@ -27,6 +27,7 @@ beforeEach(() => {
   runtime.order.mockResolvedValue({ data: { id: "order-1" } });
   runtime.duplicate.mockResolvedValue({ data: { id: "copy-1" } });
   runtime.importRecipe.mockResolvedValue({ data: { recipeId: "import-1" } });
+  runtime.mappedImport.mockResolvedValue({ data: { recipeId: "mapped-import-1" } });
   runtime.outcome.mockResolvedValue({ data: { status: "unknown" } });
 });
 
@@ -222,6 +223,27 @@ describe("durable client submissions", () => {
     expect(entry.destination).toBe("map");
     expect(await retryCreate(entry)).toEqual({ data: { id: "import-1" } });
     expect(createdResourcePath(entry, "import-1")).toBe("/recipes/import-1/map-ingredients");
+  });
+
+  it("sends mapped imports through the durable create flow", async () => {
+    const payload = {
+      recipe: { title: "Soup", instructions: ["Cook."] },
+      ingredientLines: [{
+        originalLine: "1 tsp salt",
+        displayText: "salt",
+        quantity: 1,
+        unit: "TSP",
+        ingredientId: "salt-id",
+        sortOrder: 0,
+      }],
+    };
+    runtime.mappedImport.mockRejectedValueOnce(new TypeError("Connection lost"));
+    await expect(submitCreate("recipeImport.saveWithMappings", payload)).rejects.toThrow();
+    const entry = readPendingCreates()[0]!;
+    expect(entry.kind).toBe("recipeImport.saveWithMappings");
+    expect(await retryCreate(entry)).toEqual({ data: { id: "mapped-import-1" } });
+    expect(runtime.mappedImport).toHaveBeenCalledTimes(2);
+    expect(runtime.mappedImport.mock.calls[1][0]).toEqual(runtime.mappedImport.mock.calls[0][0]);
   });
 
   it("sends a stable operation ID with duplicate FormData", async () => {

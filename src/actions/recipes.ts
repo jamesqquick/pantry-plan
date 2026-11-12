@@ -24,6 +24,11 @@ import {
 } from "@/db";
 import { chunkRows } from "@/db/chunked-insert";
 import { chunkInValues } from "@/db/chunked-read";
+import {
+  buildPreferredIngredientMap,
+  NEW_INGREDIENT_INSERT_PARAMS_PER_ROW,
+} from "@/lib/ingredients/recipe-mapping";
+import { normalizeIngredientName } from "@/lib/ingredients/normalize";
 import { getDb, queueSearchSync, requireUser } from "./_shared";
 import { mutationInputSchema } from "@/features/mutations/mutations.schemas";
 import { assertMutationAccount, prepareCreate } from "@/features/mutations/server";
@@ -37,11 +42,29 @@ import { assertMutationAccount, prepareCreate } from "@/features/mutations/serve
 
 // Input schema for create/update includes the nested structured ingredients
 // (unlike the raw Zod schema which only covers the recipe core fields).
+const recipeEditorIngredientSchema = setRecipeIngredientsSchema.shape.items.element
+  .extend({
+    createIngredientName: z.string().trim().min(1).max(500).optional(),
+  })
+  .superRefine((item, context) => {
+    if (item.createIngredientName && item.ingredientId) {
+      context.addIssue({
+        code: "custom",
+        path: ["createIngredientName"],
+        message: "Choose an existing ingredient or create a new one, not both.",
+      });
+    }
+  });
+
+type RecipeEditorIngredientInput = z.infer<typeof recipeEditorIngredientSchema>;
+type ResolvedRecipeIngredientInput = Omit<
+  RecipeEditorIngredientInput,
+  "createIngredientName"
+>;
+
 const recipeCreateInputSchema = recipeCreateSchema.extend({
   ingredientsStructured: z
-    .array(
-      setRecipeIngredientsSchema.shape.items.element // single item schema
-    )
+    .array(recipeEditorIngredientSchema)
     .optional()
     .default([]),
 });
@@ -49,9 +72,7 @@ const recipeCreateInputSchema = recipeCreateSchema.extend({
 const recipeUpdateInputSchema = recipeUpdateSchema.extend({
   // Omitted tags must not inherit the create schema's empty-array default.
   tagIds: recipeCreateSchema.shape.tagIds.unwrap(),
-  ingredientsStructured: z
-    .array(setRecipeIngredientsSchema.shape.items.element)
-    .optional(),
+  ingredientsStructured: z.array(recipeEditorIngredientSchema).optional(),
 });
 
 /**
@@ -99,6 +120,100 @@ async function validateIngredientReferences(
   }
 }
 
+async function resolveRecipeIngredientCreates(
+  db: ReturnType<typeof getDb>,
+  userId: string,
+  items: readonly RecipeEditorIngredientInput[],
+): Promise<{
+  items: ResolvedRecipeIngredientInput[];
+  insertStatements: BatchItem<"sqlite">[];
+}> {
+  const createNames = new Map<string, string>();
+  for (const item of items) {
+    if (!item.createIngredientName) continue;
+    const normalizedName = normalizeIngredientName(item.createIngredientName);
+    if (!normalizedName) {
+      throw new ActionError({
+        code: "BAD_REQUEST",
+        message: "Ingredient name must contain letters or numbers.",
+      });
+    }
+    if (!createNames.has(normalizedName)) {
+      createNames.set(normalizedName, item.createIngredientName);
+    }
+  }
+
+  const normalizedNames = [...createNames.keys()];
+  const matchingIngredients: Array<{
+    id: string;
+    normalizedName: string;
+    userId: string | null;
+  }> = [];
+  for (const names of chunkInValues(normalizedNames, 1)) {
+    const rows = await db
+      .select({
+        id: ingredient.id,
+        normalizedName: ingredient.normalizedName,
+        userId: ingredient.userId,
+      })
+      .from(ingredient)
+      .where(
+        and(
+          inArray(ingredient.normalizedName, names),
+          or(isNull(ingredient.userId), eq(ingredient.userId, userId)),
+        ),
+      );
+    matchingIngredients.push(...rows);
+  }
+
+  const preferredIngredients = buildPreferredIngredientMap(
+    matchingIngredients,
+    userId,
+  );
+  const newIngredients = normalizedNames
+    .filter((normalizedName) => !preferredIngredients.has(normalizedName))
+    .map((normalizedName) => ({
+      id: createId(),
+      userId,
+      name: createNames.get(normalizedName)!,
+      normalizedName,
+      costBasisUnit: "G" as const,
+    }));
+  const ingredientIdByNormalizedName = new Map(
+    [...preferredIngredients].map(([normalizedName, row]) => [
+      normalizedName,
+      row.id,
+    ]),
+  );
+  for (const row of newIngredients) {
+    ingredientIdByNormalizedName.set(row.normalizedName, row.id);
+  }
+
+  const resolvedItems = items.map((item): ResolvedRecipeIngredientInput => {
+    const { createIngredientName, ...resolvedItem } = item;
+    if (!createIngredientName) return resolvedItem;
+
+    const ingredientId = ingredientIdByNormalizedName.get(
+      normalizeIngredientName(createIngredientName),
+    );
+    if (!ingredientId) {
+      throw new ActionError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to resolve the new catalog ingredient.",
+      });
+    }
+    return { ...resolvedItem, ingredientId };
+  });
+
+  return {
+    items: resolvedItems,
+    insertStatements: chunkRows(
+      newIngredients,
+      NEW_INGREDIENT_INSERT_PARAMS_PER_ROW,
+    ).map((rows) => db.insert(ingredient).values(rows)),
+  };
+}
+
 export const recipes = {
   /**
    * Create a recipe with structured ingredients, instructions, and tags.
@@ -117,7 +232,16 @@ export const recipes = {
         return { id: operation.resourceId };
       }
 
-      await validateIngredientReferences(db, user.id, input.ingredientsStructured);
+      await validateIngredientReferences(
+        db,
+        user.id,
+        input.ingredientsStructured.filter((item) => !item.createIngredientName),
+      );
+      const ingredientResolution = await resolveRecipeIngredientCreates(
+        db,
+        user.id,
+        input.ingredientsStructured,
+      );
       const validTagIds = await filterOwnedTagIds(db, user.id, input.tagIds);
       const recipeId = createId();
 
@@ -128,7 +252,7 @@ export const recipes = {
         sortOrder,
         text: text.trim() || "—",
       }));
-      const ingredientRows = input.ingredientsStructured.map((item) => ({
+      const ingredientRows = ingredientResolution.items.map((item) => ({
         recipeId,
         ingredientId:
           item.ingredientId && item.ingredientId !== ""
@@ -155,6 +279,7 @@ export const recipes = {
           totalTimeMinutes: input.totalTimeMinutes ?? null,
           notes: input.notes ?? null,
         }),
+        ...ingredientResolution.insertStatements,
         ...chunkRows(instructionRows, 4).map((chunk) =>
           db.insert(recipeInstruction).values(chunk)
         ),
@@ -210,8 +335,21 @@ export const recipes = {
         throw new ActionError({ code: "BAD_REQUEST", message: error.message });
       }
 
+      let ingredientResolution: {
+        items: ResolvedRecipeIngredientInput[];
+        insertStatements: BatchItem<"sqlite">[];
+      } | null = null;
       if (input.ingredientsStructured !== undefined) {
-        await validateIngredientReferences(db, user.id, input.ingredientsStructured);
+        await validateIngredientReferences(
+          db,
+          user.id,
+          input.ingredientsStructured.filter((item) => !item.createIngredientName),
+        );
+        ingredientResolution = await resolveRecipeIngredientCreates(
+          db,
+          user.id,
+          input.ingredientsStructured,
+        );
       }
       const validTagIds = input.tagIds !== undefined
         ? await filterOwnedTagIds(db, user.id, input.tagIds)
@@ -231,7 +369,9 @@ export const recipes = {
         patch.totalTimeMinutes = input.totalTimeMinutes ?? null;
       if (input.notes !== undefined) patch.notes = input.notes ?? null;
 
-      const statements: BatchItem<"sqlite">[] = [];
+      const statements: BatchItem<"sqlite">[] = [
+        ...(ingredientResolution?.insertStatements ?? []),
+      ];
       if (Object.keys(patch).length > 0) {
         statements.push(
           db.update(recipe).set(patch)
@@ -254,12 +394,12 @@ export const recipes = {
         }
       }
 
-      if (input.ingredientsStructured !== undefined) {
+      if (ingredientResolution) {
         statements.push(
           db.delete(recipeIngredient)
             .where(eq(recipeIngredient.recipeId, input.id))
         );
-        const ingredientRows = input.ingredientsStructured.map((item) => ({
+        const ingredientRows = ingredientResolution.items.map((item) => ({
           recipeId: input.id,
           ingredientId:
             item.ingredientId && item.ingredientId !== ""

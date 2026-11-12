@@ -71,6 +71,7 @@ function snapshot() {
     recipes: test.sqlite.prepare("SELECT * FROM Recipe ORDER BY id").all(),
     instructions: test.sqlite.prepare("SELECT * FROM RecipeInstruction ORDER BY id").all(),
     ingredients: test.sqlite.prepare("SELECT * FROM RecipeIngredient ORDER BY id").all(),
+    catalogIngredients: test.sqlite.prepare("SELECT * FROM Ingredient ORDER BY id").all(),
     tags: test.sqlite.prepare("SELECT * FROM RecipeTag ORDER BY id").all(),
   };
 }
@@ -92,7 +93,15 @@ function submittedRecipe() {
   };
 }
 
-function mutate(method: "create" | "update", input = submittedRecipe()) {
+type SubmittedRecipe = ReturnType<typeof submittedRecipe> & {
+  ingredientsStructured: Array<
+    ReturnType<typeof submittedRecipe>["ingredientsStructured"][number] & {
+      createIngredientName?: string;
+    }
+  >;
+};
+
+function mutate(method: "create" | "update", input: SubmittedRecipe = submittedRecipe()) {
   return method === "create"
     ? recipes.create.orThrow.call(ctx, { ...input, accountId: "cook", operationId: crypto.randomUUID() })
     : recipes.update.orThrow.call(ctx, { id: "existing", ...input });
@@ -205,6 +214,60 @@ describe.each(["create", "update"] as const)("atomic recipe %s", (method) => {
 
     expect(test.sqlite.prepare("SELECT ingredientId FROM RecipeIngredient WHERE recipeId = ?").all(result.id))
       .toEqual(Array.from({ length: 100 }, () => ({ ingredientId: "ingredient-0" })));
+  });
+
+  it("creates staged catalog ingredients in the recipe batch and preserves recipe line text", async () => {
+    const input: SubmittedRecipe = submittedRecipe();
+    input.ingredientsStructured[0] = {
+      ...input.ingredientsStructured[0]!,
+      ingredientId: "",
+      createIngredientName: "Wild fennel",
+    };
+    input.ingredientsStructured[1] = {
+      ...input.ingredientsStructured[1]!,
+      ingredientId: "",
+      createIngredientName: " WILD FENNEL ",
+    };
+    const batch = vi.spyOn(test.binding, "batch");
+
+    const result = await mutate(method, input);
+
+    const created = test.sqlite.prepare(
+      "SELECT id, userId, name, normalizedName, costBasisUnit FROM Ingredient WHERE normalizedName = 'wild fennel'",
+    ).all();
+    expect(created).toHaveLength(1);
+    expect(created[0]).toMatchObject({
+      userId: "cook",
+      name: "Wild fennel",
+      normalizedName: "wild fennel",
+      costBasisUnit: "G",
+    });
+    const recipeLines = test.sqlite.prepare(
+      "SELECT ingredientId, displayText FROM RecipeIngredient WHERE recipeId = ? ORDER BY sortOrder LIMIT 2",
+    ).all(result.id);
+    expect(recipeLines).toEqual([
+      { ingredientId: created[0]!.id, displayText: "Ingredient 0" },
+      { ingredientId: created[0]!.id, displayText: "Ingredient 1" },
+    ]);
+    expect(batch).toHaveBeenCalledOnce();
+    expect(runtime.queueSearchSync).toHaveBeenCalledOnce();
+  });
+
+  it("rolls back staged catalog ingredients when a later recipe write fails", async () => {
+    const before = snapshot();
+    const input: SubmittedRecipe = submittedRecipe();
+    input.ingredientsStructured[0] = {
+      ...input.ingredientsStructured[0]!,
+      ingredientId: "",
+      createIngredientName: "Wild fennel",
+    };
+    test.sqlite.exec(`CREATE TRIGGER fail_staged_ingredient BEFORE INSERT ON Ingredient
+      WHEN NEW.normalizedName = 'wild fennel' BEGIN SELECT RAISE(ABORT, 'injected ingredient failure'); END;`);
+
+    await expect(mutate(method, input)).rejects.toThrow(/injected ingredient failure/);
+
+    expect(snapshot()).toEqual(before);
+    expect(runtime.queueSearchSync).not.toHaveBeenCalled();
   });
 
   it("does not submit any writes when validation reads time out", async () => {

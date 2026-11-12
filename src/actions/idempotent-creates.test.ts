@@ -51,7 +51,7 @@ afterEach(() => {
   test.sqlite.close();
 });
 
-const paths = ["recipes.create", "recipes.duplicate", "recipeImport.saveTextOnly", "orders.create"] as const;
+const paths = ["recipes.create", "recipes.duplicate", "recipeImport.saveWithMappings", "recipeImport.saveTextOnly", "orders.create"] as const;
 type CreatePath = (typeof paths)[number];
 async function create(path: CreatePath, operationId: string, changed = false, userId = "cook", accountId = userId) {
   const ctx = context(userId);
@@ -71,6 +71,20 @@ async function create(path: CreatePath, operationId: string, changed = false, us
       return (await recipeImport.saveTextOnly.orThrow.call(ctx, {
         operationId, accountId, recipe: { title: changed ? "Other soup" : "Soup", instructions: ["Cook."] },
         ingredients: ["1 tsp salt"],
+      })).recipeId;
+    case "recipeImport.saveWithMappings":
+      return (await recipeImport.saveWithMappings.orThrow.call(ctx, {
+        operationId,
+        accountId,
+        recipe: { title: changed ? "Other soup" : "Soup", instructions: ["Cook."] },
+        ingredientLines: [{
+          originalLine: "1 tsp salt",
+          displayText: "salt",
+          quantity: 1,
+          unit: "TSP",
+          createName: "Salt",
+          sortOrder: 0,
+        }],
       })).recipeId;
     case "orders.create":
       return (await orders.create.orThrow.call(ctx, {
@@ -161,6 +175,7 @@ describe.each(paths)("idempotent %s", (path) => {
     await expect(create(path, operationId)).rejects.toThrow(/injected write failure/);
     expect(await outcome(operationId)).toEqual({ status: "unknown" });
     expect(test.sqlite.prepare("SELECT * FROM Recipe").all()).toHaveLength(1);
+    expect(test.sqlite.prepare("SELECT * FROM Ingredient").all()).toHaveLength(0);
     expect(test.sqlite.prepare('SELECT * FROM "Order"').all()).toHaveLength(0);
     test.sqlite.exec("DROP TRIGGER fail_create");
     const id = await create(path, operationId);

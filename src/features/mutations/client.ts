@@ -87,6 +87,10 @@ async function invoke(entry: PendingCreate): Promise<CreateResult> {
       const result = await actions.recipeImport.saveTextOnly(input as Parameters<typeof actions.recipeImport.saveTextOnly>[0]);
       return result.error ? { error: result.error } : { data: { id: result.data.recipeId } };
     }
+    case "recipeImport.saveWithMappings": {
+      const result = await actions.recipeImport.saveWithMappings(input as Parameters<typeof actions.recipeImport.saveWithMappings>[0]);
+      return result.error ? { error: result.error } : { data: { id: result.data.recipeId } };
+    }
   }
 }
 
