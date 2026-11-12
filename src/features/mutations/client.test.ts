@@ -215,14 +215,25 @@ describe("durable client submissions", () => {
     expect(runtime.create).not.toHaveBeenCalled();
   });
 
-  it("persists import destinations and normalizes the import result", async () => {
+  it("recovers imported recipes at their detail page", async () => {
     runtime.importRecipe.mockRejectedValueOnce(new TypeError("Connection lost"));
-    await expect(submitCreate("recipeImport.saveTextOnly", { recipe: { title: "Soup" }, ingredients: ["1 tsp salt"] }, "map"))
+    await expect(submitCreate("recipeImport.saveTextOnly", { recipe: { title: "Soup" }, ingredients: ["1 tsp salt"] }))
       .rejects.toThrow();
     const entry = readPendingCreates()[0]!;
-    expect(entry.destination).toBe("map");
+    expect(entry.destination).toBe("detail");
     expect(await retryCreate(entry)).toEqual({ data: { id: "import-1" } });
-    expect(createdResourcePath(entry, "import-1")).toBe("/recipes/import-1/map-ingredients");
+    expect(createdResourcePath(entry, "import-1")).toBe("/recipes/import-1");
+  });
+
+  it("recovers an older save destined for the removed mapper at the recipe detail page", async () => {
+    runtime.importRecipe.mockRejectedValueOnce(new TypeError("Connection lost"));
+    await expect(submitCreate("recipeImport.saveTextOnly", { recipe: { title: "Soup" }, ingredients: ["1 tsp salt"] }))
+      .rejects.toThrow();
+    const key = sessionStorage.key(0)!;
+    sessionStorage.setItem(key, JSON.stringify({ ...readPendingCreates()[0], destination: "map" }));
+    const entry = readPendingCreates()[0]!;
+    expect(createdResourcePath(entry, "import-1")).toBe("/recipes/import-1");
+    expect(await retryCreate(entry)).toEqual({ data: { id: "import-1" } });
   });
 
   it("sends mapped imports through the durable create flow", async () => {

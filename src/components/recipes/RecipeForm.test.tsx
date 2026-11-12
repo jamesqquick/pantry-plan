@@ -247,9 +247,9 @@ it("requires correction of an existing completely empty row instead of silently 
   await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Quantity")));
 });
 
-it("keeps measurement requirements when a catalog mapping is selected or cleared", async () => {
+it.each<RecipeFormMode>(["create", "edit"])("keeps recipe line text and measurement requirements when a catalog mapping is selected or cleared in %s mode", async (mode) => {
   const user = userEvent.setup();
-  renderForm("create", {
+  renderForm(mode, {
     ...validInitial,
     ingredients: [{ ...validInitial.ingredients[0], quantityText: "" }],
   });
@@ -257,21 +257,39 @@ it("keeps measurement requirements when a catalog mapping is selected or cleared
   await user.type(screen.getByPlaceholderText("Search catalog ingredients"), "flour");
   await user.click(await screen.findByRole("option", { name: /Flour.*global/i }));
   expect(screen.getByLabelText("Ingredient name")).toHaveProperty("value", "flour");
-  await user.click(screen.getByRole("button", { name: "Create recipe" }));
+  expect(screen.getByLabelText("Quantity")).toHaveProperty("value", "");
+  expect(screen.getByRole("combobox", { name: "Unit" }).getAttribute("aria-required")).toBe("true");
+  const save = screen.getByRole("button", { name: mode === "create" ? "Create recipe" : "Save changes" });
+  await user.click(save);
   expect(screen.getByRole("alert").textContent).toBe('Quantity is required for "flour".');
-  expect(create).not.toHaveBeenCalled();
+  const action = mode === "create" ? create : update;
+  expect(action).not.toHaveBeenCalled();
 
   await user.click(screen.getByRole("button", { name: "Flour" }));
   await user.click(screen.getByRole("button", { name: "Clear mapping" }));
   expect(screen.getByLabelText("Ingredient name")).toHaveProperty("value", "flour");
   expect(screen.queryByRole("alert")).toBeNull();
-  await user.click(screen.getByRole("button", { name: "Create recipe" }));
+  await user.click(save);
   expect(screen.getByRole("alert").textContent).toBe('Quantity is required for "flour".');
-  expect(create).not.toHaveBeenCalled();
+  expect(action).not.toHaveBeenCalled();
   await user.type(screen.getByLabelText("Quantity"), "1/2");
-  await user.click(screen.getByRole("button", { name: "Create recipe" }));
-  expect(create.mock.calls[0][0].ingredientsStructured[0]).toMatchObject({
+  await user.click(save);
+  expect(action.mock.calls[0][0].ingredientsStructured[0]).toMatchObject({
     ingredientId: "", quantity: 0.5, unit: "CUP", rawText: " 2 cups flour ", displayText: "flour",
+  });
+});
+
+it("maps an existing recipe line inline without changing its text, quantity, or unit", async () => {
+  const user = userEvent.setup();
+  renderForm("edit", validInitial);
+
+  await user.click(screen.getByRole("button", { name: "Choose an ingredient" }));
+  await user.type(screen.getByPlaceholderText("Search catalog ingredients"), "flour");
+  await user.click(await screen.findByRole("option", { name: /Flour.*global/i }));
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+  expect(update.mock.calls[0][0].ingredientsStructured[0]).toMatchObject({
+    ingredientId: "ingredient-flour", quantity: 2, unit: "CUP", rawText: " 2 cups flour ", displayText: "flour",
   });
 });
 

@@ -342,6 +342,25 @@ describe.each(["create", "update"] as const)("atomic recipe %s", (method) => {
 });
 
 describe("partial recipe mutations", () => {
+  it("maps and clears an existing recipe ingredient without changing its recipe line", async () => {
+    const line = {
+      ingredientId: "ingredient-0",
+      quantity: 1 / 3,
+      unit: "TSP" as const,
+      displayText: "seasoning salt",
+      rawText: " 1/3 tsp seasoning salt ",
+      sortOrder: 0,
+    };
+
+    await recipes.update.orThrow.call(ctx, { id: "existing", ingredientsStructured: [line] });
+    expect(test.sqlite.prepare("SELECT ingredientId, quantity, unit, displayText, rawText FROM RecipeIngredient WHERE recipeId = 'existing'").get())
+      .toEqual({ ingredientId: "ingredient-0", quantity: 1 / 3, unit: "TSP", displayText: "seasoning salt", rawText: " 1/3 tsp seasoning salt " });
+
+    await recipes.update.orThrow.call(ctx, { id: "existing", ingredientsStructured: [{ ...line, ingredientId: "" }] });
+    expect(test.sqlite.prepare("SELECT ingredientId, quantity, unit, displayText, rawText FROM RecipeIngredient WHERE recipeId = 'existing'").get())
+      .toEqual({ ingredientId: null, quantity: 1 / 3, unit: "TSP", displayText: "seasoning salt", rawText: " 1/3 tsp seasoning salt " });
+  });
+
   it("creates a recipe without optional children", async () => {
     const { id } = await recipes.create.orThrow.call(ctx, { accountId: "cook", operationId: crypto.randomUUID(), title: "Simple soup", instructions: ["  Cook.  "] });
 

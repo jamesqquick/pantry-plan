@@ -1,6 +1,6 @@
 /**
  * Editable draft editor for imported recipes. Shows parsed data and lets the
- * user review/modify before saving or continuing to ingredient mapping.
+ * user review/modify before saving.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -24,12 +24,6 @@ import { INGREDIENT_UNITS, UNIT_LABELS } from "@/lib/ingredients/units";
 import { parseScalableIngredientLine } from "@/lib/ingredients/parse-ingredient-line-structured";
 import { formatQuantityForInput, parseQuantityText } from "@/lib/quantity/quantity";
 import { IngredientMapper } from "@/components/recipes/IngredientMapper";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/Tooltip";
 import { softNavigate } from "@/lib/navigate";
 import { SortableRecipeList } from "../SortableRecipeList";
 import { useRecipeEditorRows } from "../useRecipeEditorRows";
@@ -154,12 +148,9 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
   const instructionsSectionRef = useRef<HTMLElement | null>(null);
   const instructions = useRecipeEditorRows(draft.instructions, () => "");
   const [tagIds, setTagIds] = useState<Set<string>>(new Set());
-  const [savingDestination, setSavingDestination] = useState<
-    "detail" | "map" | null
-  >(null);
+  const [saving, setSaving] = useState(false);
   const [invalidFieldId, setInvalidFieldId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const saving = savingDestination !== null;
 
   useEffect(() => {
     instructionsSectionRef.current
@@ -187,7 +178,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
     return Number.isFinite(n) && n >= 0 ? n : undefined;
   }
 
-  async function handleSave(destination: "detail" | "map") {
+  async function handleSave() {
     if (saving) return;
 
     setError(null);
@@ -273,7 +264,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
       return;
     }
 
-    setSavingDestination(destination);
+    setSaving(true);
     let savedRecipeId: string | null = null;
     try {
       const hasMappings = ingredientLines.some(
@@ -283,11 +274,11 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
         ? await submitCreate("recipeImport.saveWithMappings", {
             recipe: recipePayload,
             ingredientLines,
-          }, destination)
+          })
         : await submitCreate("recipeImport.saveTextOnly", {
             recipe: recipePayload,
             ingredients: cleanIngredients,
-          }, destination);
+          });
 
       if (saveError) {
         setError(saveError.message || "Failed to save recipe.");
@@ -302,15 +293,12 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
           : "Failed to save recipe. Please try again.",
       );
     } finally {
-      if (savedRecipeId === null) setSavingDestination(null);
+      if (savedRecipeId === null) setSaving(false);
     }
 
     if (savedRecipeId === null) return;
 
-    const recipePath = `/recipes/${savedRecipeId}`;
-    softNavigate(
-      destination === "map" ? `${recipePath}/map-ingredients` : recipePath,
-    );
+    softNavigate(`/recipes/${savedRecipeId}`);
   }
 
   function toggleTag(id: string) {
@@ -651,30 +639,12 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
         className="flex-row-reverse gap-2 sm:flex-row sm:justify-start sm:gap-3"
       >
         <Button
-          onClick={() => handleSave("detail")}
+          onClick={handleSave}
           disabled={saving}
           className={`${mobileFormActionButtonClass} w-full sm:w-auto`}
         >
-          {savingDestination === "detail" ? "Saving..." : "Save recipe"}
+          {saving ? "Saving..." : "Save recipe"}
         </Button>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="secondary"
-                onClick={() => handleSave("map")}
-                disabled={saving}
-                className={`${mobileFormActionButtonClass} w-full sm:w-auto`}
-              >
-                {savingDestination === "map" ? "Saving..." : "Save and map"}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              Save the recipe, then review and map its ingredients to items in
-              your pantry.
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
         <Button
           variant="secondary"
           onClick={onBack}
