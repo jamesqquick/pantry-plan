@@ -13,8 +13,12 @@ import { RecipeDraftEditor, type RecipeDraft } from "./RecipeDraftEditor";
 
 export function ImportImageTab({
   allTags,
+  stagedTagNames,
+  onStagedTagNamesChange,
 }: {
   allTags: { id: string; name: string }[];
+  stagedTagNames: string[];
+  onStagedTagNamesChange: (names: string[]) => void;
 }) {
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
@@ -75,6 +79,8 @@ export function ImportImageTab({
         draft={draft}
         onBack={() => setDraft(null)}
         allTags={allTags}
+        stagedTagNames={stagedTagNames}
+        onStagedTagNamesChange={onStagedTagNamesChange}
       />
     );
   }

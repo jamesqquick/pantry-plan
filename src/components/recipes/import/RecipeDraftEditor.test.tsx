@@ -83,6 +83,37 @@ describe("RecipeDraftEditor", () => {
     expect(screen.queryByRole("button", { name: "Save and map" })).toBeNull();
   });
 
+  it("stages a tag with a text-only import and removes it without a server write", async () => {
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.type(screen.getByRole("combobox", { name: "Search tags" }), "Family favorite");
+    await user.click(screen.getByRole("option", { name: "Create “Family favorite”" }));
+    await user.click(screen.getByRole("button", { name: "Remove Family favorite from recipe" }));
+    await user.type(screen.getByRole("combobox", { name: "Search tags" }), "Weeknight");
+    await user.click(screen.getByRole("option", { name: "Create “Weeknight”" }));
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+
+    await waitFor(() => expect(saveTextOnly).toHaveBeenCalledWith(expect.objectContaining({
+      recipe: expect.objectContaining({ newTagNames: ["Weeknight"] }),
+    })));
+  });
+
+  it("passes staged tags through a mapped import", async () => {
+    const user = userEvent.setup();
+    renderEditor();
+    await user.type(screen.getByRole("combobox", { name: "Search tags" }), "Baking");
+    await user.click(screen.getByRole("option", { name: "Create “Baking”" }));
+    await user.click(screen.getAllByRole("button", { name: "Choose an ingredient" })[0]!);
+    await user.type(screen.getByRole("combobox", { name: "Search catalog ingredients" }), "flour");
+    await user.click(await screen.findByRole("option", { name: /Flour.*Global/ }));
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+
+    await waitFor(() => expect(saveWithMappings).toHaveBeenCalledWith(expect.objectContaining({
+      recipe: expect.objectContaining({ newTagNames: ["Baking"] }),
+    })));
+  });
+
   it("saves a selected catalog ingredient alongside the reviewed import fields", async () => {
     const user = userEvent.setup();
     renderEditor();

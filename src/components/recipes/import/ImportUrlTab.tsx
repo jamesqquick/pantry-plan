@@ -11,8 +11,12 @@ import { RecipeDraftEditor, type RecipeDraft } from "./RecipeDraftEditor";
 
 export function ImportUrlTab({
   allTags,
+  stagedTagNames,
+  onStagedTagNamesChange,
 }: {
   allTags: { id: string; name: string }[];
+  stagedTagNames: string[];
+  onStagedTagNamesChange: (names: string[]) => void;
 }) {
   const [url, setUrl] = useState("");
   const [parsing, setParsing] = useState(false);
@@ -53,6 +57,8 @@ export function ImportUrlTab({
         draft={draft}
         onBack={() => setDraft(null)}
         allTags={allTags}
+        stagedTagNames={stagedTagNames}
+        onStagedTagNamesChange={onStagedTagNamesChange}
       />
     );
   }

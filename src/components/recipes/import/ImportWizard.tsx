@@ -4,6 +4,7 @@
  * Manual renders the full RecipeForm inline under the same tab bar.
  */
 
+import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
 import { ImportUrlTab } from "./ImportUrlTab";
 import { ImportImageTab } from "./ImportImageTab";
@@ -31,6 +32,7 @@ export interface ImportWizardProps {
 }
 
 export function ImportWizard({ allTags, imageUploadEnabled }: ImportWizardProps) {
+  const [stagedTagNames, setStagedTagNames] = useState<string[]>([]);
   return (
     <Tabs defaultValue="url" className="space-y-6">
       <TabsList aria-label="Recipe import method" className="gap-1">
@@ -42,12 +44,12 @@ export function ImportWizard({ allTags, imageUploadEnabled }: ImportWizardProps)
       </TabsList>
 
       <TabsContent value="url">
-        <ImportUrlTab allTags={allTags} />
+        <ImportUrlTab allTags={allTags} stagedTagNames={stagedTagNames} onStagedTagNamesChange={setStagedTagNames} />
       </TabsContent>
 
       {imageUploadEnabled && (
         <TabsContent value="photo">
-          <ImportImageTab allTags={allTags} />
+          <ImportImageTab allTags={allTags} stagedTagNames={stagedTagNames} onStagedTagNamesChange={setStagedTagNames} />
         </TabsContent>
       )}
 
@@ -56,6 +58,8 @@ export function ImportWizard({ allTags, imageUploadEnabled }: ImportWizardProps)
           mode="create"
           initial={EMPTY_INITIAL}
           allTags={allTags}
+          stagedTagNames={stagedTagNames}
+          onStagedTagNamesChange={setStagedTagNames}
         />
       </TabsContent>
     </Tabs>

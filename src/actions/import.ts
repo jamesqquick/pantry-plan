@@ -35,6 +35,7 @@ import {
   RecipeCreationError,
 } from "@/features/recipes/create-text-recipe";
 import { IngredientMeasurementValidationError } from "@/features/recipes/ingredient-measurements";
+import { newRecipeTagStatements } from "@/features/recipes/recipe-tag-creation";
 
 export const recipeImport = {
   /**
@@ -276,6 +277,7 @@ export const recipeImport = {
           db.insert(ingredient).values(chunk),
         ),
         ...batchQueries,
+        ...newRecipeTagStatements(db, user.id, recipeId, recipeData.newTagNames ?? []),
       ];
       await db.batch(
         createStatements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
@@ -283,51 +285,55 @@ export const recipeImport = {
       await queueSearchSync(ctx, db, [recipeId]);
 
       // 9. Upsert aliases (best-effort; not tied to recipe atomicity)
-      const aliasEntries = parsedLines
-        .map(({ line }) => {
-          const key = normalizeIngredientName(
-            line.originalLine.trim() || line.createName?.trim() || "",
-          ).trim();
-          if (!key) return null;
-          const ingredientId = line.ingredientId?.trim()
-            ? idToIngredientId.get(line.ingredientId.trim())!
-            : line.createName?.trim()
-              ? nameToIngredientId.get(normalizeIngredientName(line.createName.trim()))!
-              : null;
-          if (!ingredientId) return null;
-          return { key, ingredientId };
-        })
-        .filter((e): e is { key: string; ingredientId: string } => e !== null);
+      try {
+        const aliasEntries = parsedLines
+          .map(({ line }) => {
+            const key = normalizeIngredientName(
+              line.originalLine.trim() || line.createName?.trim() || "",
+            ).trim();
+            if (!key) return null;
+            const ingredientId = line.ingredientId?.trim()
+              ? idToIngredientId.get(line.ingredientId.trim())!
+              : line.createName?.trim()
+                ? nameToIngredientId.get(normalizeIngredientName(line.createName.trim()))!
+                : null;
+            if (!ingredientId) return null;
+            return { key, ingredientId };
+          })
+          .filter((e): e is { key: string; ingredientId: string } => e !== null);
 
-      const aliasKeys = [...new Set(aliasEntries.map((e) => e.key))];
-      const existingAliases = aliasKeys.length
-        ? await db
-            .select({ id: ingredientAlias.id, aliasNormalized: ingredientAlias.aliasNormalized })
-            .from(ingredientAlias)
-            .where(inArray(ingredientAlias.aliasNormalized, aliasKeys))
-        : [];
-      const existingAliasSet = new Set(existingAliases.map((a) => a.aliasNormalized));
+        const aliasKeys = [...new Set(aliasEntries.map((e) => e.key))];
+        const existingAliases = aliasKeys.length
+          ? await db
+              .select({ id: ingredientAlias.id, aliasNormalized: ingredientAlias.aliasNormalized })
+              .from(ingredientAlias)
+              .where(inArray(ingredientAlias.aliasNormalized, aliasKeys))
+          : [];
+        const existingAliasSet = new Set(existingAliases.map((a) => a.aliasNormalized));
 
-      const aliasUpdates = existingAliases.map((alias) => ({
-        id: alias.id,
-        ingredientId: aliasEntries.find((e) => e.key === alias.aliasNormalized)!.ingredientId,
-      }));
-      for (const { id, ingredientId } of aliasUpdates) {
-        await db
-          .update(ingredientAlias)
-          .set({ ingredientId })
-          .where(eq(ingredientAlias.id, id));
-      }
-
-      const aliasInserts = aliasEntries
-        .filter((e) => !existingAliasSet.has(e.key))
-        .map((e) => ({
-          ingredientId: e.ingredientId,
-          aliasNormalized: e.key,
+        const aliasUpdates = existingAliases.map((alias) => ({
+          id: alias.id,
+          ingredientId: aliasEntries.find((e) => e.key === alias.aliasNormalized)!.ingredientId,
         }));
-      // ingredientAlias: 3 params/row (id, ingredientId, aliasNormalized)
-      for (const chunk of chunkRows(aliasInserts, 3)) {
-        await db.insert(ingredientAlias).values(chunk);
+        for (const { id, ingredientId } of aliasUpdates) {
+          await db
+            .update(ingredientAlias)
+            .set({ ingredientId })
+            .where(eq(ingredientAlias.id, id));
+        }
+
+        const aliasInserts = aliasKeys
+          .filter((key) => !existingAliasSet.has(key))
+          .map((key) => ({
+            ingredientId: aliasEntries.find((entry) => entry.key === key)!.ingredientId,
+            aliasNormalized: key,
+          }));
+        // ingredientAlias: 3 params/row (id, ingredientId, aliasNormalized)
+        for (const chunk of chunkRows(aliasInserts, 3)) {
+          await db.insert(ingredientAlias).values(chunk);
+        }
+      } catch (error) {
+        console.error("Failed to save ingredient aliases after recipe import", error);
       }
 
       return { recipeId };

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/MobileFormActions";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
-import { TagToggle } from "@/components/ui/TagToggle";
+import { RecipeTags } from "@/components/recipes/RecipeTags";
 import type {
   SaveImportedRecipeInput,
   SaveImportedRecipeTextOnlyInput,
@@ -45,6 +45,8 @@ interface Props {
   draft: RecipeDraft;
   onBack: () => void;
   allTags: { id: string; name: string }[];
+  stagedTagNames?: string[];
+  onStagedTagNamesChange?: (names: string[]) => void;
 }
 
 type IngredientReviewStatus = "parsed" | "unquantified" | "needs-review" | "empty";
@@ -121,7 +123,7 @@ function createIngredientReviewRow(rawText: string): IngredientReviewRow {
   };
 }
 
-export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
+export function RecipeDraftEditor({ draft, onBack, allTags, stagedTagNames, onStagedTagNamesChange }: Props) {
   const [title, setTitle] = useState(draft.title);
   const [sourceUrl, setSourceUrl] = useState(draft.sourceUrl);
   const [imageUrl, setImageUrl] = useState(draft.imageUrl);
@@ -148,6 +150,9 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
   const instructionsSectionRef = useRef<HTMLElement | null>(null);
   const instructions = useRecipeEditorRows(draft.instructions, () => "");
   const [tagIds, setTagIds] = useState<Set<string>>(new Set());
+  const [localTagNames, setLocalTagNames] = useState<string[]>([]);
+  const newTagNames = stagedTagNames ?? localTagNames;
+  const setNewTagNames = onStagedTagNamesChange ?? setLocalTagNames;
   const [saving, setSaving] = useState(false);
   const [invalidFieldId, setInvalidFieldId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -197,6 +202,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
         .filter(Boolean),
       notes: notes.trim() || undefined,
       tagIds: Array.from(tagIds),
+      newTagNames,
     };
 
     if (!recipePayload.title) {
@@ -615,23 +621,14 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
         />
       </div>
 
-      {/* Tags */}
-      {allTags.length > 0 && (
-        <div>
-          <label className="mb-2 block text-sm font-medium">Tags</label>
-          <div className="flex flex-wrap gap-2">
-            {allTags.map((t) => (
-              <TagToggle
-                key={t.id}
-                selected={tagIds.has(t.id)}
-                onClick={() => toggleTag(t.id)}
-              >
-                {t.name}
-              </TagToggle>
-            ))}
-          </div>
-        </div>
-      )}
+      <RecipeTags
+        allTags={allTags}
+        selectedTagIds={tagIds}
+        newTagNames={newTagNames}
+        onToggleTag={toggleTag}
+        onNewTagNamesChange={setNewTagNames}
+        disabled={saving}
+      />
 
       {/* Actions */}
       <MobileFormActions
