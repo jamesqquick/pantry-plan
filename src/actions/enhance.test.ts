@@ -94,27 +94,3 @@ describe("enhance.recipeIngredients", () => {
     expect(runtime.queueSearchSync).toHaveBeenCalledWith(ctx, test.db, ["soup"]);
   });
 });
-
-describe("enhance.ingredientLines", () => {
-  it("returns existing and proposed catalog mappings without saving a recipe", async () => {
-    runtime.suggestIngredientMappings.mockResolvedValueOnce({
-      suggestions: [
-        { originalLine: "2 cups flour", suggestedIngredient: { id: "flour", name: "Flour", matchType: "exact" } },
-        { originalLine: "3 eggs", suggestedCreateName: "Egg" },
-      ],
-      aiStatus: "succeeded",
-    });
-
-    const result = await enhance.ingredientLines.bind(ctx)({ lines: ["2 cups flour", "3 eggs"] });
-
-    expect(result.error).toBeUndefined();
-    expect(result.data?.items).toMatchObject([
-      { ingredientId: "flour", ingredientName: "Flour", createName: "", matchType: "exact" },
-      { ingredientId: "", ingredientName: "", createName: "Egg" },
-    ]);
-    expect(runtime.suggestIngredientMappings).toHaveBeenCalledWith(test.db, ["2 cups flour", "3 eggs"], "cook", undefined);
-    expect(await test.db.select().from(ingredient)).toEqual([]);
-    expect(await test.db.select().from(recipe)).toEqual([]);
-    expect(await test.db.select().from(recipeIngredient)).toEqual([]);
-  });
-});

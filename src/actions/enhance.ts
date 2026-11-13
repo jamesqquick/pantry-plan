@@ -1,6 +1,5 @@
 /**
- * Enhance actions: re-map ingredient lines for an existing recipe, or enrich
- * raw ingredient lines with structured suggestions (no DB mutation).
+ * Enhance actions: re-map ingredient lines for an existing recipe.
  *
  * LLM pass uses Workers AI.
  */
@@ -10,7 +9,6 @@ import { and, eq, isNull, or } from "drizzle-orm";
 import { env } from "cloudflare:workers";
 import { recipeIdOnlySchema } from "@/features/recipes/recipe-ingredients.schemas";
 import { validateIngredientMeasurements } from "@/features/recipes/ingredient-measurements";
-import { suggestMappingsSchema } from "@/features/import/import.schemas";
 import {
   recipe,
   recipeIngredient,
@@ -35,18 +33,6 @@ export type EnhancedRecipeIngredientResult = {
   sortOrder: number;
 };
 
-export type EnhancedIngredientLineItem = {
-  rawText: string;
-  displayText: string;
-  quantity: number | null;
-  unit: string | null;
-  ingredientId: string;
-  ingredientName: string;
-  createName: string;
-  sortOrder: number;
-  matchType?: "exact" | "alias" | "fuzzy" | "llm";
-};
-
 /** Drizzle WHERE: global OR user-owned ingredients. */
 function userScope(userId: string) {
   return or(isNull(ingredient.userId), eq(ingredient.userId, userId));
@@ -54,7 +40,6 @@ function userScope(userId: string) {
 
 /**
  * Run deterministic + optional LLM suggestion pass and merge results.
- * Shared by both enhance actions.
  */
 async function runSuggestionPasses(
   db: ReturnType<typeof getDb>,
@@ -286,69 +271,6 @@ export const enhance = {
 
       await queueSearchSync(ctx, db, [recipeRow.id]);
       return { items: returnItems };
-    },
-  }),
-
-  /**
-   * Enrich raw ingredient lines with suggestions. Does NOT mutate the DB
-   * (no recipe involved). Used by the import draft editor to show mapping
-   * previews before saving.
-   */
-  ingredientLines: defineAction({
-    input: suggestMappingsSchema,
-    handler: async (
-      input,
-      ctx,
-    ): Promise<{ items: EnhancedIngredientLineItem[] }> => {
-      const user = requireUser(ctx);
-      const db = getDb();
-      const { lines } = input;
-
-      if (lines.length === 0) {
-        throw new ActionError({
-          code: "BAD_REQUEST",
-          message: "At least one ingredient line is required.",
-        });
-      }
-
-      const suggestions = await runSuggestionPasses(db, lines, user.id);
-
-      const items: EnhancedIngredientLineItem[] = [];
-      for (let i = 0; i < lines.length; i++) {
-        const rawLine = lines[i]!;
-        const suggestion = suggestions[i]!;
-        const amount = parseScalableIngredientLine(rawLine);
-        const quantity = amount.kind === "scalable" ? amount.quantity : null;
-        const unit = amount.kind === "scalable" ? amount.unit : null;
-        const displayText = amount.displayText.trim() || rawLine.trim() || "\u2014";
-
-        let ingredientId = "";
-        let ingredientName = "";
-        let createName = "";
-        let matchType: "exact" | "alias" | "fuzzy" | "llm" | undefined;
-
-        if (suggestion.suggestedIngredient) {
-          ingredientId = suggestion.suggestedIngredient.id;
-          ingredientName = suggestion.suggestedIngredient.name;
-          matchType = suggestion.suggestedIngredient.matchType;
-        } else if (suggestion.suggestedCreateName?.trim()) {
-          createName = suggestion.suggestedCreateName.trim();
-        }
-
-        items.push({
-          rawText: rawLine.trim() || rawLine,
-          displayText,
-          quantity,
-          unit,
-          ingredientId,
-          ingredientName,
-          createName,
-          sortOrder: i,
-          matchType,
-        });
-      }
-
-      return { items };
     },
   }),
 };
