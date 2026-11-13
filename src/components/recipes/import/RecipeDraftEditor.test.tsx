@@ -68,10 +68,124 @@ afterEach(() => {
 });
 
 describe("RecipeDraftEditor", () => {
-  it("does not request ingredient mapping on render", () => {
+  it("requests catalog mappings once when the imported draft opens", async () => {
     renderEditor();
 
+    expect(ingredientLines).toHaveBeenCalledExactlyOnceWith({
+      lines: ["2 cups flour", "3 eggs"],
+    });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Save recipe" })).toHaveProperty("disabled", false));
+  });
+
+  it("preselects catalog matches and stages new ingredients for review before saving", async () => {
+    const user = userEvent.setup();
+    ingredientLines.mockResolvedValueOnce({
+      data: { items: [
+        { ingredientId: "ingredient-flour", ingredientName: "Flour", createName: "" },
+        { ingredientId: "", ingredientName: "", createName: "Egg" },
+      ] },
+      error: undefined,
+    });
+    renderEditor();
+
+    expect(await screen.findByRole("button", { name: "Flour" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Egg, new catalog ingredient" })).toBeTruthy();
+    expect(screen.getByLabelText("Ingredient text for ingredient 1")).toHaveProperty("value", "flour");
+    expect(screen.getByLabelText("Quantity for ingredient 2")).toHaveProperty("value", "3");
+
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+    await waitFor(() => expect(saveWithMappings).toHaveBeenCalledWith(expect.objectContaining({
+      ingredientLines: [
+        { originalLine: "2 cups flour", displayText: "flour", quantity: 2, unit: "CUP", sortOrder: 0, ingredientId: "ingredient-flour" },
+        { originalLine: "3 eggs", displayText: "eggs", quantity: 3, unit: "COUNT", sortOrder: 1, createName: "Egg" },
+      ],
+    })));
+    expect(saveTextOnly).not.toHaveBeenCalled();
+  });
+
+  it("lets the user clear an automatic catalog match before saving", async () => {
+    const user = userEvent.setup();
+    ingredientLines.mockResolvedValueOnce({
+      data: { items: [
+        { ingredientId: "ingredient-flour", ingredientName: "Flour", createName: "" },
+        { ingredientId: "", ingredientName: "", createName: "" },
+      ] },
+      error: undefined,
+    });
+    renderEditor();
+
+    await user.click(await screen.findByRole("button", { name: "Flour" }));
+    await user.click(screen.getByRole("button", { name: "Clear mapping" }));
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+
+    await waitFor(() => expect(saveTextOnly).toHaveBeenCalledOnce());
+    expect(saveWithMappings).not.toHaveBeenCalled();
+  });
+
+  it("keeps edits and row identity when suggestions arrive after a reorder", async () => {
+    const user = userEvent.setup();
+    let resolveMappings: ((result: unknown) => void) | undefined;
+    ingredientLines.mockReturnValueOnce(new Promise((resolve) => { resolveMappings = resolve; }));
+    renderEditor();
+
+    expect(screen.getByText("Matching catalog ingredients…")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Save recipe" })).toHaveProperty("disabled", true);
+    await user.click(screen.getByRole("button", { name: "Move ingredient 2 up" }));
+    await user.clear(screen.getByLabelText("Ingredient text for ingredient 1"));
+    await user.type(screen.getByLabelText("Ingredient text for ingredient 1"), "farm eggs");
+
+    resolveMappings?.({
+      data: { items: [
+        { ingredientId: "ingredient-flour", ingredientName: "Flour", createName: "" },
+        { ingredientId: "ingredient-eggs", ingredientName: "Eggs", createName: "" },
+      ] },
+      error: undefined,
+    });
+
+    expect(await screen.findByRole("button", { name: "Flour" })).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Choose an ingredient" })).toHaveLength(1);
+    expect(screen.getByLabelText("Ingredient text for ingredient 1")).toHaveProperty("value", "farm eggs");
+    expect(screen.getByRole("button", { name: "Save recipe" })).toHaveProperty("disabled", false);
+  });
+
+  it("does not replace a manual selection while matching is in flight", async () => {
+    const user = userEvent.setup();
+    let resolveMappings: ((result: unknown) => void) | undefined;
+    ingredientLines.mockReturnValueOnce(new Promise((resolve) => { resolveMappings = resolve; }));
+    renderEditor();
+
+    await user.click(screen.getAllByRole("button", { name: "Choose an ingredient" })[0]!);
+    await user.type(screen.getByRole("combobox", { name: "Search catalog ingredients" }), "flour");
+    await user.click(await screen.findByRole("option", { name: /Flour.*Global/ }));
+    resolveMappings?.({
+      data: { items: [
+        { ingredientId: "ingredient-other", ingredientName: "Other flour", createName: "" },
+        { ingredientId: "", ingredientName: "", createName: "Egg" },
+      ] },
+      error: undefined,
+    });
+
+    expect(await screen.findByRole("button", { name: "Egg, new catalog ingredient" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Flour" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Other flour" })).toBeNull();
+  });
+
+  it("allows manual mapping and saving when suggestions fail", async () => {
+    const user = userEvent.setup();
+    ingredientLines.mockResolvedValueOnce({ data: undefined, error: { message: "Unavailable" } });
+    renderEditor();
+
+    expect((await screen.findByText(/Couldn’t suggest catalog ingredients/)).textContent).toContain("choose them manually");
+    expect(screen.getByRole("button", { name: "Save recipe" })).toHaveProperty("disabled", false);
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+    await waitFor(() => expect(saveTextOnly).toHaveBeenCalledOnce());
+  });
+
+  it("does not request mapping without imported ingredient lines", () => {
+    renderEditor({ ...validDraft, ingredients: [] });
+
     expect(ingredientLines).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Save recipe" })).toHaveProperty("disabled", false);
   });
 
   it("shows a catalog picker for each imported ingredient", () => {
@@ -80,9 +194,6 @@ describe("RecipeDraftEditor", () => {
     expect(screen.queryByText(/\d+\/\d+ mapped/i)).toBeNull();
     expect(screen.queryByText(/auto-map/i)).toBeNull();
     expect(screen.getAllByRole("button", { name: "Choose an ingredient" })).toHaveLength(2);
-    expect(
-      screen.getByRole("button", { name: "Save recipe" }),
-    ).toHaveProperty("disabled", false);
     expect(screen.queryByRole("button", { name: "Save and map" })).toBeNull();
   });
 

@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { actions } from "astro:actions";
 import { submitCreate } from "@/features/mutations/client";
 
 import type { IngredientUnit } from "@/db/schema/enums";
@@ -149,8 +150,61 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
   const instructions = useRecipeEditorRows(draft.instructions, () => "");
   const [tagIds, setTagIds] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
+  const [matching, setMatching] = useState(initialIngredients.length > 0);
+  const [mappingError, setMappingError] = useState(false);
   const [invalidFieldId, setInvalidFieldId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const importedRows = ingredients.rows.filter(({ value }) => value.rawText?.trim());
+    if (importedRows.length === 0) return;
+
+    let cancelled = false;
+    const lines = importedRows.map(({ value }) => value.rawText!.trim());
+
+    async function matchIngredients() {
+      try {
+        const { data, error } = await actions.enhance.ingredientLines({ lines });
+        if (cancelled) return;
+        if (error || !data) {
+          setMappingError(true);
+          return;
+        }
+
+        data.items.forEach((item, index) => {
+          const importedRow = importedRows[index];
+          if (!importedRow) return;
+          ingredients.update(importedRow.id, (row) => {
+            if (row.edited || row.rawText?.trim() !== lines[index]) return row;
+            if (item.ingredientId && item.ingredientName) {
+              return {
+                ...row,
+                ingredientId: item.ingredientId,
+                ingredientName: item.ingredientName,
+                createIngredientName: null,
+              };
+            }
+            if (item.createName?.trim()) {
+              return {
+                ...row,
+                ingredientId: null,
+                ingredientName: item.createName.trim(),
+                createIngredientName: item.createName.trim(),
+              };
+            }
+            return row;
+          });
+        });
+      } catch {
+        if (!cancelled) setMappingError(true);
+      } finally {
+        if (!cancelled) setMatching(false);
+      }
+    }
+
+    void matchIngredients();
+    return () => { cancelled = true; };
+  }, [draft]);
 
   useEffect(() => {
     instructionsSectionRef.current
@@ -179,7 +233,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
   }
 
   async function handleSave() {
-    if (saving) return;
+    if (saving || matching) return;
 
     setError(null);
     setInvalidFieldId(null);
@@ -413,6 +467,16 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
           <p className="mt-1 text-body text-muted-foreground">
             Review how each line was split into an amount, unit, and ingredient before saving.
           </p>
+          {matching && (
+            <p role="status" className="mt-1 text-meta text-muted-foreground">
+              Matching catalog ingredients…
+            </p>
+          )}
+          {mappingError && (
+            <p role="status" className="mt-1 text-meta text-muted-foreground">
+              Couldn’t suggest catalog ingredients. You can choose them manually and save.
+            </p>
+          )}
         </div>
 
         <SortableRecipeList
@@ -640,7 +704,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
       >
         <Button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || matching}
           className={`${mobileFormActionButtonClass} w-full sm:w-auto`}
         >
           {saving ? "Saving..." : "Save recipe"}
