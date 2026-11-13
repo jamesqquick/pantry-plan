@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   importDraftSchema,
   importIngredientLineSchema,
+  saveImportedRecipeSchema,
   saveImportedRecipeTextOnlySchema,
 } from "./import.schemas";
 
@@ -11,6 +12,15 @@ const recipe = {
 };
 
 describe("saveImportedRecipeTextOnlySchema", () => {
+  it.each([saveImportedRecipeSchema, saveImportedRecipeTextOnlySchema])("validates new tag names and the total tag limit", (schema) => {
+    const input = { recipe: { ...recipe, tagIds: Array.from({ length: 50 }, (_, i) => `tag-${i}`), newTagNames: ["New"] },
+      ingredients: ["1 cup flour"],
+      ingredientLines: [{ originalLine: "1 cup flour", quantity: 1, unit: "CUP", sortOrder: 0 }],
+    };
+    expect(schema.safeParse(input).success).toBe(false);
+    expect(schema.safeParse({ ...input, recipe: { ...recipe, newTagNames: ["   "] } }).success).toBe(false);
+    expect(schema.safeParse({ ...input, recipe: { ...recipe, newTagNames: [" New "] } }).success).toBe(true);
+  });
   it("continues to accept raw text ingredient lines", () => {
     expect(
       saveImportedRecipeTextOnlySchema.safeParse({

@@ -95,6 +95,8 @@ describe("unified recipe creation", () => {
     render(<ImportWizard allTags={[]} />);
     await user.type(screen.getByLabelText("Title"), "My draft");
     await user.type(screen.getByLabelText("Step 1"), "My step");
+    await user.type(screen.getByRole("combobox", { name: "Search tags" }), "Lunch");
+    await user.click(screen.getByRole("option", { name: "Create “Lunch”" }));
     fireEvent.change(screen.getByLabelText(/Source URL/), { target: { value: parsed.sourceUrl } });
     parseFromUrl.mockResolvedValueOnce({ data: undefined, error: { message: "Not a recipe" } });
 
@@ -102,10 +104,12 @@ describe("unified recipe creation", () => {
     expect((await screen.findByRole("alert")).textContent).toBe("Not a recipe");
     expect(screen.getByLabelText("Title")).toHaveProperty("value", "My draft");
     expect(screen.getByLabelText("Step 1")).toHaveProperty("value", "My step");
+    expect(screen.getByRole("button", { name: "Remove Lunch from recipe" })).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: "Import URL" }));
     await waitFor(() => expect(screen.getByLabelText("Title")).toHaveProperty("value", "Imported pasta"));
     expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Remove Lunch from recipe" })).toBeNull();
     expect(screen.getByLabelText(/Image URL/)).toHaveProperty("value", parsed.imageUrl);
     expect(screen.getByLabelText("Servings")).toHaveProperty("value", "4");
     expect(screen.getByLabelText(/Notes/)).toHaveProperty("value", "Serve warm.");

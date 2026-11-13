@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
-import { TagToggle } from "@/components/ui/TagToggle";
+import { RecipeTags } from "@/components/recipes/RecipeTags";
 import { IngredientMapper } from "@/components/recipes/IngredientMapper";
 import { requiredIngredientMeasurementsSchema } from "@/features/recipes/ingredient-measurements";
 import type { RecipeIngredientItemInput } from "@/features/recipes/recipe-ingredients.schemas";
@@ -107,6 +107,7 @@ export default function RecipeForm({
   );
   const instructions = useRecipeEditorRows(initial.instructions, () => "");
   const [tagIds, setTagIds] = useState<Set<string>>(new Set(initial.tagIds));
+  const [newTagNames, setNewTagNames] = useState<string[]>([]);
 
   const [pending, setPending] = useState(false);
   const [parsingUrl, setParsingUrl] = useState(false);
@@ -218,6 +219,7 @@ export default function RecipeForm({
       instructions: cleanInstructions,
       ingredientsStructured: cleanIngredients,
       tagIds: Array.from(tagIds),
+      newTagNames,
     };
 
     if (cleanInstructions.length === 0) {
@@ -548,22 +550,14 @@ export default function RecipeForm({
         )}
       </section>
 
-      {allTags.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="font-display text-xl text-foreground">Tags</h2>
-          <div className="flex flex-wrap gap-2">
-            {allTags.map((t) => (
-              <TagToggle
-                key={t.id}
-                selected={tagIds.has(t.id)}
-                onClick={() => toggleTag(t.id)}
-              >
-                {t.name}
-              </TagToggle>
-            ))}
-          </div>
-        </section>
-      )}
+      <RecipeTags
+        allTags={allTags}
+        selectedTagIds={tagIds}
+        newTagNames={newTagNames}
+        onToggleTag={toggleTag}
+        onNewTagNamesChange={setNewTagNames}
+        disabled={pending || parsingUrl || importingPhoto}
+      />
 
       <section className="space-y-2">
         <label htmlFor="notes" className="block text-sm font-medium">
