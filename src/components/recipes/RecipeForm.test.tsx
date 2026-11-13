@@ -105,6 +105,80 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 
+it.each<RecipeFormMode>(["create", "edit"])("stages a tag for %s without creating it before saving", async (mode) => {
+  const user = userEvent.setup();
+  renderForm(mode);
+
+  await user.type(screen.getByRole("combobox", { name: "Search tags" }), "  Dinner  ");
+  await user.click(screen.getByRole("option", { name: "Create “Dinner”" }));
+  expect(screen.getByRole("button", { name: "Remove Dinner from recipe" }).getAttribute("aria-pressed")).toBe("true");
+  await user.click(screen.getByRole("button", { name: mode === "edit" ? "Save changes" : "Create recipe" }));
+
+  const save = mode === "create" ? create : update;
+  await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ newTagNames: ["Dinner"] })));
+});
+
+it("selects an existing tag instead of staging another copy", async () => {
+  const user = userEvent.setup();
+  render(<RecipeForm mode="create" initial={validInitial} allTags={[{ id: "dinner", name: "Dinner" }]} />);
+
+  await user.type(screen.getByRole("combobox", { name: "Search tags" }), "dinner");
+  await user.click(screen.getByRole("option", { name: "Dinner" }));
+  await user.click(screen.getByRole("button", { name: "Create recipe" }));
+
+  await waitFor(() => expect(create).toHaveBeenCalledWith(expect.objectContaining({
+    tagIds: ["dinner"], newTagNames: [],
+  })));
+});
+
+it("removes existing and staged tags from an edited recipe before saving", async () => {
+  const user = userEvent.setup();
+  render(<RecipeForm mode="edit" initial={{ ...validInitial, id: "recipe-123", tagIds: ["dinner"] }}
+    allTags={[{ id: "dinner", name: "Dinner" }]} />);
+
+  await user.type(screen.getByRole("combobox", { name: "Search tags" }), "Lunch");
+  await user.click(screen.getByRole("option", { name: "Create “Lunch”" }));
+  await user.click(screen.getByRole("button", { name: "Remove Dinner from recipe" }));
+  await user.click(screen.getByRole("button", { name: "Remove Lunch from recipe" }));
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+  await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({
+    tagIds: [], newTagNames: [],
+  })));
+});
+
+it("selects an exact tag name when another tag differs only in case", async () => {
+  const user = userEvent.setup();
+  render(<RecipeForm mode="create" initial={validInitial} allTags={[
+    { id: "upper", name: "Dinner" }, { id: "lower", name: "dinner" },
+  ]} />);
+
+  await user.type(screen.getByRole("combobox", { name: "Search tags" }), "dinner");
+  expect(screen.queryByRole("option", { name: /Create/ })).toBeNull();
+  await user.click(screen.getByRole("option", { name: "dinner" }));
+  await user.click(screen.getByRole("button", { name: "Create recipe" }));
+
+  await waitFor(() => expect(create).toHaveBeenCalledWith(expect.objectContaining({
+    tagIds: ["lower"], newTagNames: [],
+  })));
+});
+
+it("disables tag chips during a pending save", async () => {
+  const user = userEvent.setup();
+  create.mockReturnValueOnce(new Promise(() => {}));
+  render(<RecipeForm mode="create" initial={validInitial} allTags={[{ id: "dinner", name: "Dinner" }]} />);
+
+  await user.type(screen.getByRole("combobox", { name: "Search tags" }), "Dinner");
+  await user.click(screen.getByRole("option", { name: "Dinner" }));
+  await user.type(screen.getByRole("combobox", { name: "Search tags" }), "Lunch");
+  await user.click(screen.getByRole("option", { name: "Create “Lunch”" }));
+  await user.click(screen.getByRole("button", { name: "Create recipe" }));
+
+  await waitFor(() => expect(create).toHaveBeenCalledOnce());
+  expect(screen.getByRole("button", { name: "Remove Dinner from recipe" }).hasAttribute("disabled")).toBe(true);
+  expect(screen.getByRole("button", { name: "Remove Lunch from recipe" }).hasAttribute("disabled")).toBe(true);
+});
+
 it.each<RecipeFormMode>(["create", "edit"])("requires quantity and unit in %s mode, then saves the reviewed strings", async (mode) => {
   const user = userEvent.setup();
   renderForm(mode, {

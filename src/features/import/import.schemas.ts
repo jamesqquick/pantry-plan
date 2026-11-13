@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { requiredIngredientMeasurementsSchema } from "@/features/recipes/ingredient-measurements";
 import { optionalHttpUrlSchema } from "@/lib/url";
+import { newRecipeTagNamesSchema, recipeTagCountWithinLimit } from "@/features/tags/tags.schemas";
 
 /** Caps for free-text fields. See recipes.schemas.ts for matching constants. */
 const MAX_RECIPE_NOTES = 20_000;
@@ -52,7 +53,8 @@ export const saveImportedRecipeRecipeSchema = z.object({
     .min(1, "At least one instruction required"),
   notes: z.string().max(MAX_RECIPE_NOTES).optional(),
   tagIds: z.array(z.string().min(1)).max(50).optional().default([]),
-});
+  newTagNames: newRecipeTagNamesSchema.optional(),
+}).refine(recipeTagCountWithinLimit, { path: ["newTagNames"], message: "A recipe can have up to 50 tags." });
 
 export const saveImportedRecipeSchema = z.object({
   recipe: saveImportedRecipeRecipeSchema,

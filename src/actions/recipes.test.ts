@@ -94,6 +94,7 @@ function submittedRecipe() {
 }
 
 type SubmittedRecipe = ReturnType<typeof submittedRecipe> & {
+  newTagNames?: string[];
   ingredientsStructured: Array<
     ReturnType<typeof submittedRecipe>["ingredientsStructured"][number] & {
       createIngredientName?: string;
@@ -205,6 +206,50 @@ describe.each(["create", "update"] as const)("atomic recipe %s", (method) => {
     expect(test.sqlite.prepare("SELECT tagId FROM RecipeTag WHERE recipeId = ?").all(result.id))
       .toEqual([{ tagId: "tag-0" }]);
   });
+
+  it("creates staged tags only in the recipe batch, reusing names already owned by the user", async () => {
+    const input = { ...submittedRecipe(), tagIds: ["old-tag"], newTagNames: [" Original tag ", " New tag ", "New tag"] };
+    const batch = vi.spyOn(test.binding, "batch");
+
+    const result = await mutate(method, input);
+
+    expect(batch).toHaveBeenCalledOnce();
+    expect(test.sqlite.prepare("SELECT name FROM Tag WHERE userId = 'cook' AND name = 'New tag'").all())
+      .toEqual([{ name: "New tag" }]);
+    expect(test.sqlite.prepare(`SELECT t.name FROM RecipeTag rt JOIN Tag t ON t.id = rt.tagId
+      WHERE rt.recipeId = ? ORDER BY t.name`).all(result.id))
+      .toEqual([{ name: "New tag" }, { name: "Original tag" }]);
+  });
+
+  it("rolls back a staged tag if its recipe association fails", async () => {
+    const before = snapshot();
+    test.sqlite.exec(`CREATE TRIGGER fail_new_tag BEFORE INSERT ON RecipeTag
+      WHEN (SELECT name FROM Tag WHERE id = NEW.tagId) = 'New tag'
+      BEGIN SELECT RAISE(ABORT, 'injected new tag failure'); END;`);
+
+    await expect(mutate(method, { ...submittedRecipe(), tagIds: [], newTagNames: ["New tag"] }))
+      .rejects.toThrow(/injected new tag failure/);
+
+    expect(test.sqlite.prepare("SELECT id FROM Tag WHERE name = 'New tag'").all()).toEqual([]);
+    expect(snapshot()).toEqual(before);
+  });
+
+  if (method === "update") {
+    it("keeps partial updates within 50 tags when tagIds is omitted", async () => {
+      const addTag = test.sqlite.prepare("INSERT INTO RecipeTag (id, recipeId, tagId) VALUES (?, 'existing', ?)");
+      for (let index = 0; index < 49; index++) addTag.run(`existing-tag-${index}`, `tag-${index}`);
+      const batch = vi.spyOn(test.binding, "batch");
+
+      await expect(recipes.update.orThrow.call(ctx, { id: "existing", newTagNames: ["New tag"] }))
+        .rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+      expect(batch).not.toHaveBeenCalled();
+      expect(test.sqlite.prepare("SELECT id FROM Tag WHERE name = 'New tag'").all()).toEqual([]);
+      await expect(recipes.update.orThrow.call(ctx, { id: "existing", newTagNames: ["Original tag"] }))
+        .resolves.toEqual({ id: "existing" });
+      expect(test.sqlite.prepare("SELECT id FROM RecipeTag WHERE recipeId = 'existing'").all()).toHaveLength(50);
+    });
+  }
 
   it("allows repeated references to the same accessible ingredient", async () => {
     const input = submittedRecipe();

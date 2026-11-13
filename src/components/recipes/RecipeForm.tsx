@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { actions } from "astro:actions";
 import { INGREDIENT_UNITS, type IngredientUnit } from "@/db/schema/enums";
 import { parseQuantityText } from "@/lib/quantity/quantity";
@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
-import { TagToggle } from "@/components/ui/TagToggle";
+import { RecipeTags } from "@/components/recipes/RecipeTags";
 import { IngredientMapper } from "@/components/recipes/IngredientMapper";
 import { requiredIngredientMeasurementsSchema } from "@/features/recipes/ingredient-measurements";
 import type { RecipeIngredientItemInput } from "@/features/recipes/recipe-ingredients.schemas";
@@ -54,6 +54,7 @@ export interface RecipeFormProps {
   mode: RecipeFormMode;
   initial: RecipeFormInitial;
   allTags: { id: string; name: string }[];
+  onBusyChange?: (busy: boolean) => void;
 }
 
 /** Blank ingredient row for the repeater. */
@@ -80,6 +81,7 @@ export default function RecipeForm({
   mode,
   initial,
   allTags,
+  onBusyChange,
 }: RecipeFormProps) {
   const [title, setTitle] = useState(initial.title);
   const [sourceUrl, setSourceUrl] = useState(initial.sourceUrl);
@@ -99,11 +101,16 @@ export default function RecipeForm({
   );
   const instructions = useRecipeEditorRows(initial.instructions, () => "");
   const [tagIds, setTagIds] = useState<Set<string>>(new Set(initial.tagIds));
+  const [newTagNames, setNewTagNames] = useState<string[]>([]);
 
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [invalidFieldId, setInvalidFieldId] = useState<string | null>(null);
+
+  useEffect(() => {
+    onBusyChange?.(pending);
+  }, [pending, onBusyChange]);
 
   function setIngredient(id: string, patch: Partial<RecipeIngredientDraft>) {
     setError(null);
@@ -205,6 +212,7 @@ export default function RecipeForm({
       instructions: cleanInstructions,
       ingredientsStructured: cleanIngredients,
       tagIds: Array.from(tagIds),
+      newTagNames,
     };
 
     if (cleanInstructions.length === 0) {
@@ -280,12 +288,8 @@ export default function RecipeForm({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label
-              htmlFor="sourceUrl"
-              className="mb-1 block text-sm font-medium"
-            >
-              Source URL
-              <span className="ml-1 text-muted-foreground">(optional)</span>
+            <label htmlFor="sourceUrl" className="mb-1 block text-sm font-medium">
+              Source URL <span className="text-muted-foreground">(optional)</span>
             </label>
             <Input
               id="sourceUrl"
@@ -529,22 +533,14 @@ export default function RecipeForm({
         )}
       </section>
 
-      {allTags.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="font-display text-xl text-foreground">Tags</h2>
-          <div className="flex flex-wrap gap-2">
-            {allTags.map((t) => (
-              <TagToggle
-                key={t.id}
-                selected={tagIds.has(t.id)}
-                onClick={() => toggleTag(t.id)}
-              >
-                {t.name}
-              </TagToggle>
-            ))}
-          </div>
-        </section>
-      )}
+      <RecipeTags
+        allTags={allTags}
+        selectedTagIds={tagIds}
+        newTagNames={newTagNames}
+        onToggleTag={toggleTag}
+        onNewTagNamesChange={setNewTagNames}
+        disabled={pending}
+      />
 
       <section className="space-y-2">
         <label htmlFor="notes" className="block text-sm font-medium">
