@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { actions } from "astro:actions";
 import OrderForm from "./OrderForm";
@@ -13,7 +13,6 @@ vi.mock("astro:actions", () => ({
       create: vi.fn(),
       update: vi.fn(),
     },
-    mutations: { outcome: vi.fn(async () => ({ data: { status: "unknown" } })) },
   },
 }));
 
@@ -36,7 +35,6 @@ afterEach(() => {
 beforeEach(() => {
   vi.clearAllMocks();
   sessionStorage.clear();
-  document.body.dataset.accountId = "cook";
 });
 
 const editProps = {
@@ -90,7 +88,7 @@ describe("OrderForm", () => {
   it("submits customer and fulfillment details with the existing recipe batches", async () => {
     vi.mocked(actions.orders.create).mockResolvedValue({
       data: undefined,
-      error: { message: "Preview test stopped before navigation." },
+      error: { code: "BAD_REQUEST", message: "Preview test stopped before navigation." },
     } as never);
     const user = userEvent.setup();
     render(<OrderForm mode="create" recipeOptions={[{ id: "recipe-123", title: "Chocolate chip cookies", availability: { status: "checked", notices: [] } }]} />);
@@ -129,6 +127,31 @@ describe("OrderForm", () => {
       items: [{ recipeId: "recipe-123", batches: 1 }],
     })));
     expect(await screen.findByText("Preview test stopped before navigation.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Dismiss error message" })).toBeNull();
+  });
+
+  it("disables the submit button until the create action responds", async () => {
+    let finish!: (result: unknown) => void;
+    vi.mocked(actions.orders.create).mockImplementationOnce(
+      () => new Promise((resolve) => { finish = resolve; }) as never,
+    );
+    const user = userEvent.setup();
+    render(<OrderForm mode="create" recipeOptions={[{ id: "recipe-123", title: "Chocolate chip cookies", availability: { status: "checked", notices: [] } }]} />);
+
+    await user.click(screen.getByRole("combobox", { name: "Recipe 1" }));
+    await user.keyboard("{Enter}");
+    await user.click(screen.getByRole("button", { name: "Create order" }));
+
+    await waitFor(() => expect(actions.orders.create).toHaveBeenCalledOnce());
+    expect(screen.getByRole("button", { name: "Creating…" })).toHaveProperty("disabled", true);
+
+    await act(async () => finish({
+      data: undefined,
+      error: { code: "BAD_REQUEST", message: "Preview response." },
+    }));
+
+    expect(await screen.findByText("Preview response.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Create order" })).toHaveProperty("disabled", false);
   });
 
   it("explains why an order cannot be submitted without a recipe", async () => {
@@ -158,7 +181,7 @@ describe("OrderForm", () => {
 
   it("allows another attempt after the save request throws", async () => {
     vi.mocked(actions.orders.create).mockRejectedValueOnce(new TypeError("Network offline"))
-      .mockResolvedValueOnce({ data: undefined, error: { message: "Preview test stopped before navigation." } } as never);
+      .mockResolvedValueOnce({ data: undefined, error: { code: "BAD_REQUEST", message: "Preview test stopped before navigation." } } as never);
     const user = userEvent.setup();
     render(<OrderForm mode="create" recipeOptions={[{ id: "recipe-123", title: "Chocolate chip cookies", availability: { status: "checked", notices: [] } }]} />);
 
@@ -166,16 +189,36 @@ describe("OrderForm", () => {
     await user.keyboard("{Enter}");
     await user.click(screen.getByRole("button", { name: "Create order" }));
 
-    expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Couldn't save the order. Check your connection and try again.");
+    expect((await screen.findByRole("alert")).textContent).toContain("Couldn't save the order. Check your connection and try again.");
     await user.click(screen.getByRole("button", { name: "Create order" }));
     expect(await screen.findByText("Preview test stopped before navigation.")).toBeTruthy();
     expect(actions.orders.create).toHaveBeenCalledTimes(2);
   });
 
+  it("shows a safe error toast instead of a raw database error", async () => {
+    vi.mocked(actions.orders.create).mockResolvedValue({
+      data: undefined,
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "D1_ERROR: failed query",
+      },
+    } as never);
+    const user = userEvent.setup();
+    render(<OrderForm mode="create" recipeOptions={[{ id: "recipe-123", title: "Chocolate chip cookies", availability: { status: "checked", notices: [] } }]} />);
+
+    await user.click(screen.getByRole("combobox", { name: "Recipe 1" }));
+    await user.keyboard("{Enter}");
+    await user.click(screen.getByRole("button", { name: "Create order" }));
+
+    await waitFor(() => expect(actions.orders.create).toHaveBeenCalledOnce());
+    expect((await screen.findByRole("alert")).textContent).toContain("Couldn't save the order. Check your connection and try again.");
+    expect(screen.queryByText(/D1_ERROR/)).toBeNull();
+  });
+
   it("selects recipes by keyboard and keeps the remaining recipe when a row is removed", async () => {
     vi.mocked(actions.orders.create).mockResolvedValue({
       data: undefined,
-      error: { message: "Preview test stopped before navigation." },
+      error: { code: "BAD_REQUEST", message: "Preview test stopped before navigation." },
     } as never);
     const user = userEvent.setup();
     render(<OrderForm mode="create" recipeOptions={[

@@ -39,7 +39,10 @@ beforeEach(() => {
   `);
 });
 
-afterEach(() => test.sqlite.close());
+afterEach(() => {
+  vi.restoreAllMocks();
+  test.sqlite.close();
+});
 
 function savedTotal(id: string) {
   return test.sqlite.prepare('SELECT totalCostCents FROM "Order" WHERE id = ?').get(id);
@@ -52,7 +55,7 @@ describe("order totals", () => {
 
   it.each([0, 2000, 2050])("persists an explicit total of %i cents when creating an order", async (totalCostCents) => {
     const { id } = await orders.create.orThrow.call(context(), {
-      operationId: crypto.randomUUID(), accountId: "cook", name: "Order", totalCostCents, items,
+      name: "Order", totalCostCents, items,
     });
 
     expect(savedTotal(id)).toEqual({ totalCostCents });
@@ -67,7 +70,7 @@ describe("order totals", () => {
 
   it("defaults an omitted create total and preserves the saved total when update omits it", async () => {
     const { id } = await orders.create.orThrow.call(context(), {
-      operationId: crypto.randomUUID(), accountId: "cook", name: "Zero-total order", items,
+      name: "Zero-total order", items,
     });
     expect(savedTotal(id)).toEqual({ totalCostCents: 0 });
 
@@ -78,23 +81,27 @@ describe("order totals", () => {
     expect(savedTotal("legacy-order")).toEqual({ totalCostCents: 1250 });
   });
 
-  it("includes the total in create retry deduplication", async () => {
-    const input = {
-      operationId: crypto.randomUUID(), accountId: "cook", name: "Order", totalCostCents: 2000, items,
-    };
-    const first = await orders.create.orThrow.call(context(), input);
-
-    expect(await orders.create.orThrow.call(context(), input)).toEqual(first);
-    await expect(orders.create.orThrow.call(context(), { ...input, totalCostCents: 0 }))
-      .rejects.toMatchObject({ code: "CONFLICT" });
-    expect(savedTotal(first.id)).toEqual({ totalCostCents: 2000 });
-  });
-
   it("does not allow another user to change an order's total", async () => {
     await expect(orders.update.orThrow.call(context("other"), {
       id: "legacy-order", name: "Order", totalCostCents: 2000, items,
     })).rejects.toMatchObject({ code: "NOT_FOUND" });
 
     expect(savedTotal("legacy-order")).toEqual({ totalCostCents: 0 });
+  });
+
+  it("returns a safe error and rolls back an order when an item write fails", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    test.sqlite.exec(`CREATE TRIGGER fail_order BEFORE INSERT ON OrderItem
+      BEGIN SELECT RAISE(ABORT, 'injected write failure'); END;`);
+
+    await expect(orders.create.orThrow.call(context(), {
+      name: "Failed order",
+      items,
+    })).rejects.toMatchObject({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Couldn't save the order. Check your connection and try again.",
+    });
+    expect(test.sqlite.prepare('SELECT * FROM "Order" WHERE name = ?').all("Failed order")).toEqual([]);
+    expect(console.error).toHaveBeenCalledWith("Unexpected error in orders.create", expect.anything());
   });
 });

@@ -7,54 +7,10 @@ import { createTestDb } from "./d1";
 let test: ReturnType<typeof createTestDb>;
 afterEach(() => { if (test?.sqlite.isOpen) test.sqlite.close(); });
 
-it("never exposes an uncommitted receipt from a batch that rolls back", async () => {
-  test = createTestDb();
-  test.sqlite.exec("INSERT INTO user (id, name, email, createdAt, updatedAt) VALUES ('cook', 'Cook', 'cook@example.test', 1, 1)");
-  const pending = test.binding.batch([
-    test.binding.prepare("INSERT INTO MutationOperation (userId, operationId, kind, requestHash, resourceId) VALUES (?, ?, ?, ?, ?)")
-      .bind("cook", crypto.randomUUID(), "recipes.create", "hash", "new-recipe"),
-    test.binding.prepare("INSERT INTO Recipe (id, userId, title) VALUES (?, ?, ?)")
-      .bind("new-recipe", "missing-user", "Soup"),
-  ]);
-  const concurrentRead = Promise.resolve().then(() =>
-    test.binding.prepare("SELECT resourceId FROM MutationOperation").all(),
-  );
-
-  await expect(pending).rejects.toThrow(/FOREIGN KEY/);
-  expect((await concurrentRead).results).toEqual([]);
-  expect(test.sqlite.prepare("SELECT * FROM MutationOperation").all()).toEqual([]);
-});
-
-it("preserves existing receipts and resources when adding cancellation support", () => {
-  test = createTestDb();
-  const migration = (name: string) => readFileSync(path.join(__dirname, "../db/migrations", name), "utf8");
-  test.sqlite.exec("DROP TABLE MutationOperation");
-  test.sqlite.exec(migration("0008_mutation_operations.sql"));
-  test.sqlite.exec(`
-    INSERT INTO user (id, name, email, createdAt, updatedAt) VALUES ('cook', 'Cook', 'cook@example.test', 1, 1);
-    INSERT INTO Recipe (id, userId, title) VALUES ('saved-recipe', 'cook', 'Soup');
-    INSERT INTO MutationOperation (userId, operationId, kind, requestHash, resourceId, createdAt)
-      VALUES ('cook', 'original-operation', 'recipes.create', 'original-hash', 'saved-recipe', 123);
-  `);
-
-  test.sqlite.exec(`BEGIN; ${migration("0009_mutation_cancellation.sql")} COMMIT;`);
-
-  expect(test.sqlite.prepare("SELECT * FROM MutationOperation").get()).toMatchObject({
-    userId: "cook", operationId: "original-operation", kind: "recipes.create",
-    requestHash: "original-hash", resourceId: "saved-recipe", createdAt: 123, status: "completed",
-  });
-  expect(test.sqlite.prepare("SELECT title FROM Recipe WHERE id = 'saved-recipe'").get()).toMatchObject({ title: "Soup" });
-  test.sqlite.exec(`INSERT INTO MutationOperation (userId, operationId, kind, requestHash, status)
-    VALUES ('cook', 'cancelled-operation', 'recipes.create', '', 'cancelled')`);
-  expect(test.sqlite.prepare("SELECT resourceId FROM MutationOperation WHERE status = 'cancelled'").get()).toMatchObject({ resourceId: null });
-  test.sqlite.exec("DELETE FROM user WHERE id = 'cook'");
-  expect(test.sqlite.prepare("SELECT * FROM MutationOperation").all()).toEqual([]);
-});
-
 it.each([
   "0010_order_total_cost.sql",
   "0011_order_total_default_zero.sql",
-])("preserves legacy ingredients, receipts, and orders when upgrading after %s", (lastApplied) => {
+])("preserves legacy ingredients and orders while dropping create tracking after %s", (lastApplied) => {
   const sqlite = new DatabaseSync(":memory:");
   const migrationsDir = path.join(__dirname, "../db/migrations");
   const migrations = readdirSync(migrationsDir).filter((name) => name.endsWith(".sql")).sort();
@@ -93,7 +49,6 @@ it.each([
     const ingredients = sqlite.prepare("SELECT * FROM Ingredient ORDER BY id").all();
     const recipes = sqlite.prepare("SELECT * FROM Recipe ORDER BY id").all();
     const lines = sqlite.prepare("SELECT * FROM RecipeIngredient ORDER BY id").all();
-    const receipts = sqlite.prepare("SELECT * FROM MutationOperation ORDER BY userId, operationId").all();
     const orders = sqlite.prepare('SELECT * FROM "Order" ORDER BY id').all();
     const items = sqlite.prepare("SELECT * FROM OrderItem ORDER BY id").all();
 
@@ -110,7 +65,8 @@ it.each([
     expect(sqlite.prepare("SELECT * FROM user ORDER BY id").all()).toEqual(users);
     expect(sqlite.prepare("SELECT * FROM Recipe ORDER BY id").all()).toEqual(recipes);
     expect(sqlite.prepare("SELECT * FROM RecipeIngredient ORDER BY id").all()).toEqual(lines);
-    expect(sqlite.prepare("SELECT * FROM MutationOperation ORDER BY userId, operationId").all()).toEqual(receipts);
+    expect(sqlite.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'MutationOperation'").get())
+      .toBeUndefined();
     expect(sqlite.prepare('SELECT * FROM "Order" ORDER BY id').all()).toEqual(
       orders.map((row) => ({ ...row, totalCostCents: row.totalCostCents ?? 0 })),
     );

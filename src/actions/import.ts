@@ -35,8 +35,6 @@ import {
   RecipeCreationError,
 } from "@/features/recipes/create-text-recipe";
 import { IngredientMeasurementValidationError } from "@/features/recipes/ingredient-measurements";
-import { mutationInputSchema } from "@/features/mutations/mutations.schemas";
-import { assertMutationAccount, prepareCreate } from "@/features/mutations/server";
 
 export const recipeImport = {
   /**
@@ -45,25 +43,11 @@ export const recipeImport = {
    * a new ingredient via createName.
    */
   saveWithMappings: defineAction({
-    input: saveImportedRecipeSchema.extend(mutationInputSchema.shape),
+    input: saveImportedRecipeSchema,
     handler: async (input, ctx) => {
       const user = requireUser(ctx);
       const db = getDb();
-      const { operationId, accountId, ...payload } = input;
-      assertMutationAccount(user.id, accountId);
-      const operation = await prepareCreate(
-        db,
-        user.id,
-        "recipeImport.saveWithMappings",
-        operationId,
-        payload,
-      );
-      if (operation.resourceId) {
-        await queueSearchSync(ctx, db, [operation.resourceId]);
-        return { recipeId: operation.resourceId };
-      }
-
-      const { recipe: recipeData, ingredientLines } = payload;
+      const { recipe: recipeData, ingredientLines } = input;
       const recipeId = createId();
 
       // ── Batch-process ingredient lines ──
@@ -293,11 +277,10 @@ export const recipeImport = {
         ),
         ...batchQueries,
       ];
-      const savedRecipeId = await operation.commit(
-        recipeId,
+      await db.batch(
         createStatements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
       );
-      await queueSearchSync(ctx, db, [savedRecipeId]);
+      await queueSearchSync(ctx, db, [recipeId]);
 
       // 9. Upsert aliases (best-effort; not tied to recipe atomicity)
       const aliasEntries = parsedLines
@@ -347,23 +330,21 @@ export const recipeImport = {
         await db.insert(ingredientAlias).values(chunk);
       }
 
-      return { recipeId: savedRecipeId };
+      return { recipeId };
     },
   }),
 
   /**
    * Save reviewed ingredient fields or raw text lines without mapping.
    * Raw text lines are conservatively parsed for quick saves and MCP imports.
-   */
+  */
   saveTextOnly: defineAction({
-    input: saveImportedRecipeTextOnlySchema.extend(mutationInputSchema.shape),
+    input: saveImportedRecipeTextOnlySchema,
     handler: async (input, ctx) => {
       const user = requireUser(ctx);
       const db = getDb();
       try {
-        const { operationId, accountId, ...payload } = input;
-        assertMutationAccount(user.id, accountId);
-        const result = await createTextOnlyRecipe(db, user.id, payload, operationId);
+        const result = await createTextOnlyRecipe(db, user.id, input);
         await queueSearchSync(ctx, db, [result.recipeId]);
         return result;
       } catch (error) {

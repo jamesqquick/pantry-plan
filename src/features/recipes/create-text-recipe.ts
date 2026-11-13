@@ -12,7 +12,6 @@ import type { SaveImportedRecipeTextOnlyInput } from "@/features/import/import.s
 import { createId } from "@paralleldrive/cuid2";
 import { parseScalableIngredientLine } from "@/lib/ingredients/parse-ingredient-line-structured";
 import { validateIngredientMeasurements } from "./ingredient-measurements";
-import { prepareCreate } from "@/features/mutations/server";
 
 export class RecipeCreationError extends Error {
   constructor() {
@@ -38,12 +37,7 @@ export async function createTextOnlyRecipe(
   db: Db,
   userId: string,
   input: SaveImportedRecipeTextOnlyInput,
-  operationId?: string,
 ) {
-  const operation = operationId
-    ? await prepareCreate(db, userId, "recipeImport.saveTextOnly", operationId, input)
-    : undefined;
-  if (operation?.resourceId) return { recipeId: operation.resourceId };
   const { recipe: recipeData, ingredients } = input;
   const recipeId = createId();
 
@@ -103,7 +97,6 @@ export async function createTextOnlyRecipe(
     ...chunkRows(tagRows, 3).map((chunk) => db.insert(recipeTag).values(chunk)),
   ];
   const statements = batchQueries as [(typeof batchQueries)[0], ...typeof batchQueries];
-  if (operation) return { recipeId: await operation.commit(recipeId, statements) };
   await db.batch(statements);
 
   return { recipeId };

@@ -18,7 +18,6 @@ vi.mock("astro:actions", () => ({
   actions: {
     recipeImport: { saveTextOnly, saveWithMappings },
     ingredients: { searchForPicker },
-    mutations: { outcome: vi.fn(async () => ({ data: { status: "unknown" } })) },
   },
 }));
 
@@ -51,8 +50,6 @@ function renderEditor(draft: RecipeDraft = validDraft) {
 }
 
 beforeEach(() => {
-  sessionStorage.clear();
-  document.body.dataset.accountId = "cook";
   saveTextOnly.mockResolvedValue({
     data: { recipeId: "recipe-123" },
     error: undefined,
@@ -592,8 +589,6 @@ describe("RecipeDraftEditor", () => {
 
     await waitFor(() => {
       expect(saveTextOnly).toHaveBeenCalledWith({
-        operationId: expect.any(String),
-        accountId: "cook",
         recipe: expect.objectContaining({
           title: validDraft.title,
           instructions: ["Cook until tender.", "Mix the dough."],

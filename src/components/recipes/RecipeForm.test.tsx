@@ -17,7 +17,6 @@ const { create, update, searchForPicker } = vi.hoisted(() => ({
 vi.mock("astro:actions", () => ({
   actions: {
     recipes: { create, update }, ingredients: { searchForPicker },
-    mutations: { outcome: vi.fn(async () => ({ data: { status: "unknown" } })) },
   },
 }));
 
@@ -88,8 +87,6 @@ const initial: RecipeFormInitial = {
 let sqlite: DatabaseSync | undefined;
 
 beforeEach(() => {
-  sessionStorage.clear();
-  document.body.dataset.accountId = "cook";
   create.mockResolvedValue({ data: undefined, error: { message: "Could not save recipe" } });
   update.mockResolvedValue({ data: undefined, error: { message: "Could not save recipe" } });
   searchForPicker.mockResolvedValue({

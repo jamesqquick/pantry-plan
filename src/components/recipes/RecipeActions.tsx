@@ -4,7 +4,6 @@ import { EllipsisVertical } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { runActionWithRecovery } from "@/lib/action-error";
-import { submitCreate, SubmissionStorageError } from "@/features/mutations/client";
 
 export interface RecipeActionsProps {
   recipeId: string;
@@ -43,14 +42,16 @@ export default function RecipeActions({ recipeId }: RecipeActionsProps) {
     setPending("duplicate");
     setError(null);
     try {
-      const { data, error: err } = await submitCreate("recipes.duplicate", { recipeId });
+      const form = new FormData();
+      form.set("recipeId", recipeId);
+      const { data, error: err } = await actions.recipes.duplicate(form);
       if (err) {
         setError(err.message || "Could not duplicate recipe");
         return;
       }
       if (data) window.location.href = `/recipes/${data.id}`;
-    } catch (cause) {
-      setError(cause instanceof SubmissionStorageError ? cause.message : "Could not duplicate recipe. Check its save status before trying again.");
+    } catch {
+      setError("Could not duplicate recipe. Please try again.");
     } finally {
       setPending(null);
     }
