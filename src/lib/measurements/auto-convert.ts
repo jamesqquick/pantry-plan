@@ -1,6 +1,6 @@
 import type { IngredientUnit } from "@/db/schema/enums";
 import { volumeToCups, weightToGrams } from "./conversions";
-import { isVolumeUnit, isWeightUnit } from "./units";
+import { isCountUnit, isVolumeUnit, isWeightUnit } from "./units";
 
 const RISKY_FLAGS = ["to taste", "garnish", "for garnish"] as const;
 
@@ -35,6 +35,8 @@ export type AutoConvertResult = {
 type IngredientForConvert = {
   normalizedName?: string | null;
   gramsPerCup?: number | null;
+  gramsPerEach?: number | null;
+  cupsPerEach?: number | null;
 };
 
 function hasRiskyFlag(originalLine: string): boolean {
@@ -55,6 +57,7 @@ function isApproximateIngredient(ingredient: IngredientForConvert): boolean {
 /**
  * Compute normalized weightGrams + conversion metadata for a recipe ingredient line.
  * - Volume units (TSP/TBSP/CUP) → weight when ingredient has gramsPerCup.
+ * - Count units → weight when ingredient has gramsPerEach.
  * - Weight units → weightGrams.
  * - No ml/l; volume is CUP-family only.
  */
@@ -81,6 +84,19 @@ export function autoConvert(params: {
     if (gramsPerCup != null) {
       const cups = volumeToCups(qty, unit!);
       if (cups != null) result.weightGrams = cups * gramsPerCup;
+    }
+  }
+
+  if (isCountUnit(unit)) {
+    const gramsPerEach =
+      ingredient.gramsPerEach ??
+      (ingredient.gramsPerCup != null &&
+      ingredient.cupsPerEach != null &&
+      ingredient.cupsPerEach > 0
+        ? ingredient.gramsPerCup * ingredient.cupsPerEach
+        : null);
+    if (gramsPerEach != null && gramsPerEach > 0) {
+      result.weightGrams = qty * gramsPerEach;
     }
   }
 

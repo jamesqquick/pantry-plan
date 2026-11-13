@@ -201,9 +201,9 @@ it.each(["name", "quantity", "unit", "mapping"])("retains an added row containin
   } else if (field === "unit") {
     await selectUnit(user, "tsp", 1);
   } else {
-    await user.click(screen.getAllByRole("button", { name: /Unmapped.*click to map/ })[1]);
-    await user.type(screen.getByPlaceholderText("Search ingredients..."), "flour");
-    await user.click(await screen.findByRole("button", { name: /Flour.*global/ }));
+    await user.click(screen.getAllByRole("button", { name: "Choose an ingredient" })[1]);
+    await user.type(screen.getByPlaceholderText("Search catalog ingredients"), "flour");
+    await user.click(await screen.findByRole("option", { name: /Flour.*global/i }));
   }
   await user.click(screen.getByRole("button", { name: "Create recipe" }));
 
@@ -244,29 +244,49 @@ it("requires correction of an existing completely empty row instead of silently 
   await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Quantity")));
 });
 
-it("keeps measurement requirements when a catalog mapping is selected or cleared", async () => {
+it.each<RecipeFormMode>(["create", "edit"])("keeps recipe line text and measurement requirements when a catalog mapping is selected or cleared in %s mode", async (mode) => {
   const user = userEvent.setup();
-  renderForm("create", {
+  renderForm(mode, {
     ...validInitial,
     ingredients: [{ ...validInitial.ingredients[0], quantityText: "" }],
   });
-  await user.click(screen.getByRole("button", { name: /Unmapped.*click to map/ }));
-  await user.type(screen.getByPlaceholderText("Search ingredients..."), "flour");
-  await user.click(await screen.findByRole("button", { name: /Flour.*global/ }));
-  await user.click(screen.getByRole("button", { name: "Create recipe" }));
+  await user.click(screen.getByRole("button", { name: "Choose an ingredient" }));
+  await user.type(screen.getByPlaceholderText("Search catalog ingredients"), "flour");
+  await user.click(await screen.findByRole("option", { name: /Flour.*global/i }));
+  expect(screen.getByLabelText("Ingredient name")).toHaveProperty("value", "flour");
+  expect(screen.getByLabelText("Quantity")).toHaveProperty("value", "");
+  expect(screen.getByRole("combobox", { name: "Unit" }).getAttribute("aria-required")).toBe("true");
+  const save = screen.getByRole("button", { name: mode === "create" ? "Create recipe" : "Save changes" });
+  await user.click(save);
   expect(screen.getByRole("alert").textContent).toBe('Quantity is required for "flour".');
-  expect(create).not.toHaveBeenCalled();
+  const action = mode === "create" ? create : update;
+  expect(action).not.toHaveBeenCalled();
 
   await user.click(screen.getByRole("button", { name: "Flour" }));
   await user.click(screen.getByRole("button", { name: "Clear mapping" }));
+  expect(screen.getByLabelText("Ingredient name")).toHaveProperty("value", "flour");
   expect(screen.queryByRole("alert")).toBeNull();
-  await user.click(screen.getByRole("button", { name: "Create recipe" }));
+  await user.click(save);
   expect(screen.getByRole("alert").textContent).toBe('Quantity is required for "flour".');
-  expect(create).not.toHaveBeenCalled();
+  expect(action).not.toHaveBeenCalled();
   await user.type(screen.getByLabelText("Quantity"), "1/2");
-  await user.click(screen.getByRole("button", { name: "Create recipe" }));
-  expect(create.mock.calls[0][0].ingredientsStructured[0]).toMatchObject({
+  await user.click(save);
+  expect(action.mock.calls[0][0].ingredientsStructured[0]).toMatchObject({
     ingredientId: "", quantity: 0.5, unit: "CUP", rawText: " 2 cups flour ", displayText: "flour",
+  });
+});
+
+it("maps an existing recipe line inline without changing its text, quantity, or unit", async () => {
+  const user = userEvent.setup();
+  renderForm("edit", validInitial);
+
+  await user.click(screen.getByRole("button", { name: "Choose an ingredient" }));
+  await user.type(screen.getByPlaceholderText("Search catalog ingredients"), "flour");
+  await user.click(await screen.findByRole("option", { name: /Flour.*global/i }));
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+  expect(update.mock.calls[0][0].ingredientsStructured[0]).toMatchObject({
+    ingredientId: "ingredient-flour", quantity: 2, unit: "CUP", rawText: " 2 cups flour ", displayText: "flour",
   });
 });
 
@@ -348,17 +368,20 @@ describe("RecipeForm ordering", () => {
     const eggsRow = screen.getByRole("textbox", { name: "Ingredient 2 name" }).closest("li")!;
     const mapper = within(eggsRow).getByRole("button", { name: "Eggs" });
     await user.click(mapper);
-    const search = screen.getByPlaceholderText("Search ingredients...");
+    const search = screen.getByPlaceholderText("Search catalog ingredients");
     await user.type(search, "duck");
     await waitFor(() => expect(searchForPicker).toHaveBeenCalledWith({ query: "duck" }));
-    await within(eggsRow).findByRole("button", { name: /Duck eggs/ });
+    await within(eggsRow).findByRole("option", { name: /Duck eggs/ });
 
     await user.click(screen.getByRole("button", { name: "Move ingredient 2 up" }));
-    await user.click(within(eggsRow).getByRole("button", { name: "Eggs" }));
+    const mapperAfterMove = within(eggsRow).getByRole("button", { name: "Eggs" });
+    if (mapperAfterMove.getAttribute("aria-expanded") !== "true") {
+      await user.click(mapperAfterMove);
+    }
 
-    expect(within(eggsRow).getByRole("button", { name: "Eggs" })).toBe(mapper);
-    expect(screen.getByPlaceholderText("Search ingredients...")).toHaveProperty("value", "duck");
-    await user.click(within(eggsRow).getByRole("button", { name: /Duck eggs/ }));
+    expect(mapperAfterMove).toBe(mapper);
+    expect(screen.getByPlaceholderText("Search catalog ingredients")).toHaveProperty("value", "duck");
+    await user.click(await within(eggsRow).findByRole("option", { name: /Duck eggs/ }));
     await user.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
@@ -393,6 +416,52 @@ describe("RecipeForm ordering", () => {
     await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
     expect(update.mock.calls[1][0].instructions).toEqual(["Cook until tender.", "Mix the dough."]);
   });
+});
+
+it("stages a new catalog ingredient while preserving the editable recipe line", async () => {
+  const user = userEvent.setup();
+  searchForPicker.mockResolvedValueOnce({ data: [], error: undefined });
+  renderForm("create", {
+    ...validInitial,
+    ingredients: [{
+      ...validInitial.ingredients[0],
+      displayText: "wild fennel",
+      rawText: "2 cups wild fennel",
+    }],
+  });
+  const row = screen.getByRole("textbox", { name: "Ingredient 1 name" }).closest("li")!;
+
+  await user.click(within(row).getByRole("button", { name: "Choose an ingredient" }));
+  await user.type(screen.getByPlaceholderText("Search catalog ingredients"), "Wild fennel");
+  await user.click(await screen.findByRole("option", { name: /Add .*Wild fennel.*catalog/i }));
+
+  expect(within(row).getByRole("textbox", { name: "Ingredient 1 name" })).toHaveProperty("value", "wild fennel");
+  expect(within(row).getByText("New")).toBeTruthy();
+  expect(within(row).getByRole("button", { name: /Wild fennel, new catalog ingredient/i })).toBeTruthy();
+
+  await user.click(screen.getByRole("button", { name: "Create recipe" }));
+
+  expect(create.mock.calls[0][0].ingredientsStructured).toEqual([{
+    displayText: "wild fennel",
+    rawText: "2 cups wild fennel",
+    quantity: 2,
+    unit: "CUP",
+    ingredientId: "",
+    createIngredientName: "Wild fennel",
+    sortOrder: 0,
+  }]);
+});
+
+it("explains how catalog ingredient mapping works", async () => {
+  const user = userEvent.setup();
+  renderForm();
+
+  expect(screen.getByText("Catalog ingredient")).toBeTruthy();
+  await user.hover(screen.getByRole("button", { name: "About catalog ingredients" }));
+  const tooltip = await screen.findByRole("tooltip", {}, { timeout: 2_000 });
+  expect(tooltip.textContent).toBe(
+    "Link this recipe line to a catalog item to combine matching shopping-list items, convert units, and estimate cost.",
+  );
 });
 
 it("preserves imported small quantities when submitting an unrelated title edit", async () => {

@@ -32,6 +32,7 @@ export type RecipeIngredientDraft = {
   rawText: string | null;
   ingredientId: string | null;
   ingredientName?: string | null;
+  createIngredientName?: string | null;
 };
 
 export interface RecipeFormInitial {
@@ -63,6 +64,7 @@ function emptyIngredient(): RecipeIngredientDraft {
     unit: "",
     rawText: null,
     ingredientId: null,
+    createIngredientName: null,
   };
 }
 
@@ -140,12 +142,15 @@ export default function RecipeForm({
     const cleanInstructions = instructions.rows
       .map(({ value }) => value.trim())
       .filter(Boolean);
-    const cleanIngredients: RecipeIngredientItemInput[] = [];
+    const cleanIngredients: Array<
+      RecipeIngredientItemInput & { createIngredientName?: string }
+    > = [];
     for (const [idx, { id, value: row }] of ingredients.rows.entries()) {
       const displayText = row.displayText.trim();
       const quantityText = row.quantityText.trim();
       if (!row.persisted && !displayText && !quantityText && !row.unit &&
-          !row.rawText?.trim() && !row.ingredientId && !row.ingredientName?.trim()) {
+          !row.rawText?.trim() && !row.ingredientId && !row.ingredientName?.trim() &&
+          !row.createIngredientName?.trim()) {
         continue;
       }
 
@@ -179,7 +184,10 @@ export default function RecipeForm({
         sortOrder: cleanIngredients.length,
         displayText,
         rawText: row.rawText,
-        ingredientId: row.ingredientId ?? "",
+        ingredientId: row.createIngredientName ? "" : row.ingredientId ?? "",
+        ...(row.createIngredientName
+          ? { createIngredientName: row.createIngredientName }
+          : {}),
         ...measurements.data,
       });
     }
@@ -457,13 +465,27 @@ export default function RecipeForm({
                 <IngredientMapper
                   ingredientId={row.ingredientId}
                   ingredientName={row.ingredientName}
+                  createIngredientName={row.createIngredientName}
+                  disabled={pending}
                   onMap={(ingredientId, name) =>
-                    setIngredient(id, { ingredientId, ingredientName: name })
+                    setIngredient(id, {
+                      ingredientId,
+                      ingredientName: name,
+                      createIngredientName: null,
+                    })
+                  }
+                  onCreate={(name) =>
+                    setIngredient(id, {
+                      ingredientId: null,
+                      ingredientName: name,
+                      createIngredientName: name,
+                    })
                   }
                   onClear={() =>
                     setIngredient(id, {
                       ingredientId: null,
                       ingredientName: null,
+                      createIngredientName: null,
                     })
                   }
                 />

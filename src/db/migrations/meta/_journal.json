@@ -89,8 +89,22 @@
     {
       "idx": 12,
       "version": "6",
-      "when": 1794413748561,
-      "tag": "0012_drop_mutation_operations",
+      "when": 1794346936000,
+      "tag": "0012_ingredient_item_weight",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1794346936001,
+      "tag": "0013_ingredient_package_pricing",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1794581678662,
+      "tag": "0014_drop_mutation_operations",
       "breakpoints": true
     }
   ]

@@ -6,7 +6,9 @@
  */
 
 import { ActionError, defineAction } from "astro:actions";
+import { createId } from "@paralleldrive/cuid2";
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import {
   saveImportedRecipeSchema,
   saveImportedRecipeTextOnlySchema,
@@ -45,31 +47,8 @@ export const recipeImport = {
     handler: async (input, ctx) => {
       const user = requireUser(ctx);
       const db = getDb();
-
       const { recipe: recipeData, ingredientLines } = input;
-
-      // Create recipe
-      const [row] = await db
-        .insert(recipe)
-        .values({
-          userId: user.id,
-          title: recipeData.title,
-          sourceUrl: recipeData.sourceUrl || null,
-          imageUrl: recipeData.imageUrl || null,
-          servings: recipeData.servings ?? null,
-          prepTimeMinutes: recipeData.prepTimeMinutes ?? null,
-          cookTimeMinutes: recipeData.cookTimeMinutes ?? null,
-          totalTimeMinutes: recipeData.totalTimeMinutes ?? null,
-          notes: recipeData.notes ?? null,
-        })
-        .returning({ id: recipe.id });
-      if (!row) {
-        throw new ActionError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create recipe",
-        });
-      }
-      const recipeId = row.id;
+      const recipeId = createId();
 
       // ── Batch-process ingredient lines ──
       // Pre-compute structured parse data for every line so we can build
@@ -149,24 +128,32 @@ export const recipeImport = {
         existingByName.map((i) => [i.normalizedName, i.id]),
       );
       const namesToCreate = normalizedNames.filter((n) => !existingNameToId.has(n));
-      const createdIngredients = namesToCreate.length
-        ? await db
-            .insert(ingredient)
-            .values(
-              namesToCreate.map((normalizedName) => {
-                const createName = [...nameMap.entries()].find(
-                  ([, n]) => n === normalizedName,
-                )![0];
-                return {
-                  userId: user.id,
-                  name: createName,
-                  normalizedName,
-                  costBasisUnit: "G" as const,
-                };
-              }),
-            )
-            .returning({ id: ingredient.id, normalizedName: ingredient.normalizedName })
-        : [];
+      const createdIngredients = namesToCreate.map((normalizedName) => {
+        const createName = [...nameMap.entries()].find(
+          ([, normalized]) => normalized === normalizedName,
+        )![0];
+        const units = mappedByName
+          .filter(
+            ({ line }) =>
+              normalizeIngredientName(line.createName!.trim()) === normalizedName,
+          )
+          .map(({ line }) => line.unit)
+          .filter((unit): unit is NonNullable<typeof unit> => unit != null);
+        const costBasisUnit =
+          units.length > 0 && units.every((unit) => unit === "COUNT")
+            ? ("COUNT" as const)
+            : units.length > 0 &&
+                units.every((unit) => ["TSP", "TBSP", "CUP", "PINCH"].includes(unit))
+              ? ("CUP" as const)
+              : ("G" as const);
+        return {
+          id: createId(),
+          userId: user.id,
+          name: createName,
+          normalizedName,
+          costBasisUnit,
+        };
+      });
       const nameToIngredientId = new Map([
         ...existingNameToId,
         ...createdIngredients.map((i) => [i.normalizedName, i.id] as const),
@@ -175,6 +162,7 @@ export const recipeImport = {
       // 4. Collect every ingredientId we need conversion data for
       const allIngredientIds = [
         ...verifiedById.map((i) => i.id),
+        ...existingByName.map((i) => i.id),
         ...createdIngredients.map((i) => i.id),
       ];
       const convertData = allIngredientIds.length
@@ -183,6 +171,8 @@ export const recipeImport = {
               id: ingredient.id,
               normalizedName: ingredient.normalizedName,
               gramsPerCup: ingredient.gramsPerCup,
+              gramsPerEach: ingredient.gramsPerEach,
+              cupsPerEach: ingredient.cupsPerEach,
             })
             .from(ingredient)
             .where(inArray(ingredient.id, allIngredientIds))
@@ -202,7 +192,12 @@ export const recipeImport = {
           const converted = autoConvert({
             quantity,
             unit: unitEnum,
-            ingredient: ing ?? { normalizedName: null, gramsPerCup: null },
+            ingredient: ing ?? {
+              normalizedName: null,
+              gramsPerCup: null,
+              gramsPerEach: null,
+              cupsPerEach: null,
+            },
             originalLine: line.originalLine,
           });
           return {
@@ -264,14 +259,27 @@ export const recipeImport = {
           db.insert(recipeTag).values(chunk),
         ),
       ];
-      if (batchQueries.length > 0) {
-        await db.batch(
-          batchQueries as [
-            (typeof batchQueries)[0],
-            ...typeof batchQueries,
-          ],
-        );
-      }
+      const createStatements: BatchItem<"sqlite">[] = [
+        db.insert(recipe).values({
+          id: recipeId,
+          userId: user.id,
+          title: recipeData.title,
+          sourceUrl: recipeData.sourceUrl || null,
+          imageUrl: recipeData.imageUrl || null,
+          servings: recipeData.servings ?? null,
+          prepTimeMinutes: recipeData.prepTimeMinutes ?? null,
+          cookTimeMinutes: recipeData.cookTimeMinutes ?? null,
+          totalTimeMinutes: recipeData.totalTimeMinutes ?? null,
+          notes: recipeData.notes ?? null,
+        }),
+        ...chunkRows(createdIngredients, 5).map((chunk) =>
+          db.insert(ingredient).values(chunk),
+        ),
+        ...batchQueries,
+      ];
+      await db.batch(
+        createStatements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
+      );
       await queueSearchSync(ctx, db, [recipeId]);
 
       // 9. Upsert aliases (best-effort; not tied to recipe atomicity)

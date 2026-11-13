@@ -5,6 +5,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import userEvent from "@testing-library/user-event";
 import { actions } from "astro:actions";
 import OrderForm from "./OrderForm";
+import type { RecipeOption } from "./OrderItemsEditor";
 
 vi.mock("astro:actions", () => ({
   actions: {
@@ -12,6 +13,18 @@ vi.mock("astro:actions", () => ({
       create: vi.fn(),
       update: vi.fn(),
     },
+  },
+}));
+
+const onionRecipeOptions: RecipeOption[] = ([
+  { id: "counted", title: "Counted onions", basisUnit: "COUNT" },
+  { id: "weighed", title: "Weighed onions", basisUnit: "G" },
+  { id: "volume", title: "Volume onions", basisUnit: "CUP" },
+] as const).map(({ basisUnit, ...recipe }) => ({
+  ...recipe,
+  availability: {
+    status: "checked", notices: [],
+    quantityGroups: [{ ingredientId: "onion", basisUnit, gramsPerCup: null, gramsPerEach: null, cupsPerEach: null }],
   },
 }));
 
@@ -27,7 +40,9 @@ beforeEach(() => {
 const editProps = {
   mode: "edit" as const,
   orderId: "order-123",
-  recipeOptions: [{ id: "recipe-123", title: "Chocolate chip cookies" }],
+  recipeOptions: [{
+    id: "recipe-123", title: "Chocolate chip cookies", availability: { status: "checked", notices: [] },
+  }] satisfies RecipeOption[],
   initialName: "Order",
   initialNotes: "",
   initialTotalCostCents: 2000,
@@ -76,7 +91,7 @@ describe("OrderForm", () => {
       error: { code: "BAD_REQUEST", message: "Preview test stopped before navigation." },
     } as never);
     const user = userEvent.setup();
-    render(<OrderForm mode="create" recipeOptions={[{ id: "recipe-123", title: "Chocolate chip cookies" }]} />);
+    render(<OrderForm mode="create" recipeOptions={[{ id: "recipe-123", title: "Chocolate chip cookies", availability: { status: "checked", notices: [] } }]} />);
 
     await user.clear(screen.getByRole("textbox", { name: /^Name/ }));
     await user.type(screen.getByRole("textbox", { name: /^Name/ }), "Sarah's birthday cookies");
@@ -121,7 +136,7 @@ describe("OrderForm", () => {
       () => new Promise((resolve) => { finish = resolve; }) as never,
     );
     const user = userEvent.setup();
-    render(<OrderForm mode="create" recipeOptions={[{ id: "recipe-123", title: "Chocolate chip cookies" }]} />);
+    render(<OrderForm mode="create" recipeOptions={[{ id: "recipe-123", title: "Chocolate chip cookies", availability: { status: "checked", notices: [] } }]} />);
 
     await user.click(screen.getByRole("combobox", { name: "Recipe 1" }));
     await user.keyboard("{Enter}");
@@ -151,7 +166,7 @@ describe("OrderForm", () => {
 
   it("requires a recipe in each added row instead of silently discarding the row", async () => {
     const user = userEvent.setup();
-    render(<OrderForm mode="create" recipeOptions={[{ id: "recipe-123", title: "Chocolate chip cookies" }]} />);
+    render(<OrderForm mode="create" recipeOptions={[{ id: "recipe-123", title: "Chocolate chip cookies", availability: { status: "checked", notices: [] } }]} />);
 
     await user.click(screen.getByRole("combobox", { name: "Recipe 1" }));
     await user.keyboard("{Enter}");
@@ -168,7 +183,7 @@ describe("OrderForm", () => {
     vi.mocked(actions.orders.create).mockRejectedValueOnce(new TypeError("Network offline"))
       .mockResolvedValueOnce({ data: undefined, error: { code: "BAD_REQUEST", message: "Preview test stopped before navigation." } } as never);
     const user = userEvent.setup();
-    render(<OrderForm mode="create" recipeOptions={[{ id: "recipe-123", title: "Chocolate chip cookies" }]} />);
+    render(<OrderForm mode="create" recipeOptions={[{ id: "recipe-123", title: "Chocolate chip cookies", availability: { status: "checked", notices: [] } }]} />);
 
     await user.click(screen.getByRole("combobox", { name: "Recipe 1" }));
     await user.keyboard("{Enter}");
@@ -189,7 +204,7 @@ describe("OrderForm", () => {
       },
     } as never);
     const user = userEvent.setup();
-    render(<OrderForm mode="create" recipeOptions={[{ id: "recipe-123", title: "Chocolate chip cookies" }]} />);
+    render(<OrderForm mode="create" recipeOptions={[{ id: "recipe-123", title: "Chocolate chip cookies", availability: { status: "checked", notices: [] } }]} />);
 
     await user.click(screen.getByRole("combobox", { name: "Recipe 1" }));
     await user.keyboard("{Enter}");
@@ -207,8 +222,8 @@ describe("OrderForm", () => {
     } as never);
     const user = userEvent.setup();
     render(<OrderForm mode="create" recipeOptions={[
-      { id: "chocolate", title: "Chocolate chip cookies" },
-      { id: "oatmeal", title: "Oatmeal cookies" },
+      { id: "chocolate", title: "Chocolate chip cookies", availability: { status: "checked", notices: [] } },
+      { id: "oatmeal", title: "Oatmeal cookies", availability: { status: "checked", notices: [] } },
     ]} />);
 
     const firstRecipe = screen.getByRole<HTMLInputElement>("combobox", { name: "Recipe 1" });
@@ -229,6 +244,155 @@ describe("OrderForm", () => {
     await waitFor(() => expect(actions.orders.create).toHaveBeenCalledWith(expect.objectContaining({
       items: [{ recipeId: "oatmeal", batches: 1 }],
     })));
+  });
+
+  it("shows selected-recipe notices without adding availability data to the order payload", async () => {
+    vi.mocked(actions.orders.create).mockResolvedValue({
+      data: undefined,
+      error: { message: "Preview test stopped before navigation." },
+    } as never);
+    const user = userEvent.setup();
+    render(<OrderForm mode="create" recipeOptions={[{
+      id: "bread",
+      title: "Bread",
+      availability: {
+        status: "checked",
+        notices: [{ code: "missing-price", message: "Flour has no saved price.", href: "/ingredients/flour" }],
+      },
+    }]} />);
+
+    await user.click(screen.getByRole("combobox", { name: "Recipe 1" }));
+    await user.click(screen.getByRole("option", { name: "Bread" }));
+
+    expect(screen.getByRole("link", { name: /Flour has no saved price/ }).getAttribute("href")).toBe("/ingredients/flour");
+    await user.click(screen.getByRole("button", { name: "Create order" }));
+    await waitFor(() => expect(actions.orders.create).toHaveBeenCalledWith(expect.objectContaining({
+      totalCostCents: 0,
+      items: [{ recipeId: "bread", batches: 1 }],
+    })));
+    const payload = vi.mocked(actions.orders.create).mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(payload).not.toHaveProperty("availability");
+  });
+
+  it("uses the initial edit selection and removes stale notices when its recipe changes", async () => {
+    const user = userEvent.setup();
+    render(<OrderForm
+      mode="edit"
+      orderId="order-1"
+      initialName="Friday"
+      initialNotes=""
+      initialTotalCostCents={0}
+      initialCustomerName=""
+      initialCustomerContact=""
+      initialDueDate=""
+      initialDueTime=""
+      initialFulfillmentMethod="PICKUP"
+      initialDeliveryAddress=""
+      initialStatus="DRAFT"
+      initialItems={[{ recipeId: "bread", batches: 1 }]}
+      recipeOptions={[
+        {
+          id: "bread",
+          title: "Bread",
+          availability: {
+            status: "checked",
+            notices: [{ code: "missing-conversion", message: "Bread needs a volume conversion.", href: "/ingredients/flour" }],
+          },
+        },
+        { id: "soup", title: "Soup", availability: { status: "checked", notices: [] } },
+      ]}
+    />);
+
+    expect(screen.getByRole("link", { name: /Bread needs a volume conversion/ })).toBeTruthy();
+    await user.click(screen.getByRole("combobox", { name: "Recipe 1" }));
+    await user.click(screen.getByRole("option", { name: "Soup" }));
+    expect(screen.queryByRole("link", { name: /Bread needs a volume conversion/ })).toBeNull();
+  });
+
+  it("updates combination warnings using only the selected recipes", async () => {
+    const user = userEvent.setup();
+    render(<OrderForm mode="create" recipeOptions={onionRecipeOptions} />);
+
+    await user.click(screen.getByRole("combobox", { name: "Recipe 1" }));
+    await user.click(screen.getByRole("option", { name: "Weighed onions" }));
+    expect(screen.queryByRole("heading", { name: "Ingredient availability" })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Add recipe" }));
+    await user.click(screen.getByRole("combobox", { name: "Recipe 2" }));
+    await user.click(screen.getByRole("option", { name: "Counted onions" }));
+
+    const countWarning = screen.getByRole("link", { name: /weight per item to combine count and mass/ });
+    expect(countWarning.getAttribute("href")).toBe("/ingredients/onion");
+    expect(countWarning.closest("li")?.textContent).toContain("Weighed onions, Counted onions");
+    expect(screen.queryByRole("link", { name: /combine mass and volume/ })).toBeNull();
+
+    await user.click(screen.getByRole("combobox", { name: "Recipe 2" }));
+    await user.keyboard("{ArrowDown}");
+    await user.click(screen.getByRole("option", { name: "Volume onions" }));
+
+    expect(screen.queryByRole("link", { name: /combine count and mass/ })).toBeNull();
+    const volumeWarning = screen.getByRole("link", { name: /volume-to-weight reference to combine mass and volume/ });
+    expect(volumeWarning.closest("li")?.textContent).toContain("Weighed onions, Volume onions");
+    expect(volumeWarning.closest("li")?.textContent).not.toContain("Counted onions");
+
+    await user.click(screen.getByRole("button", { name: "Remove recipe 2" }));
+    expect(screen.queryByRole("heading", { name: "Ingredient availability" })).toBeNull();
+  });
+
+  it("deduplicates initial edit combination warnings and keeps intrinsic warnings after removing a recipe", async () => {
+    const user = userEvent.setup();
+    render(<OrderForm
+      mode="edit"
+      orderId="order-1"
+      initialName="Friday"
+      initialNotes=""
+      initialTotalCostCents={0}
+      initialCustomerName=""
+      initialCustomerContact=""
+      initialDueDate=""
+      initialDueTime=""
+      initialFulfillmentMethod="PICKUP"
+      initialDeliveryAddress=""
+      initialStatus="DRAFT"
+      initialItems={[{ recipeId: "mixed", batches: 1 }, { recipeId: "weighed", batches: 1 }]}
+      recipeOptions={[
+        {
+          id: "mixed", title: "Mixed onions",
+          availability: {
+            status: "checked",
+            notices: [{ code: "cannot-combine", message: "Add weight per item to combine count and mass quantities; kept separate.", href: "/ingredients/onion" }],
+            quantityGroups: [...onionRecipeOptions[0]!.availability.quantityGroups!, ...onionRecipeOptions[1]!.availability.quantityGroups!],
+          },
+        },
+        ...onionRecipeOptions,
+      ]}
+    />);
+
+    const warning = screen.getByRole("link", { name: /weight per item to combine count and mass/ });
+    expect(warning.closest("li")?.textContent).toContain("Mixed onions, Weighed onions");
+
+    await user.click(screen.getByRole("button", { name: "Remove recipe 2" }));
+
+    const remainingWarning = screen.getByRole("link", { name: /weight per item to combine count and mass/ });
+    expect(remainingWarning.closest("li")?.textContent).toContain("Mixed onions");
+    expect(remainingWarning.closest("li")?.textContent).not.toContain("Weighed onions");
+  });
+
+  it("reports an unavailable recipe check without claiming the data is complete", async () => {
+    const user = userEvent.setup();
+    render(<OrderForm mode="create" recipeOptions={[{
+      id: "recipe-123",
+      title: "Soup",
+      availability: { status: "unavailable", notices: [] },
+    }]} />);
+
+    await user.click(screen.getByRole("combobox", { name: "Recipe 1" }));
+    await user.click(screen.getByRole("option", { name: "Soup" }));
+
+    const status = screen.getByRole("status");
+    expect(status.textContent).toMatch(/could not be checked/i);
+    expect(status.textContent).toMatch(/may be incomplete/i);
+    expect(status.textContent).not.toMatch(/\bis complete\b/i);
   });
 
   it.each([

@@ -8,14 +8,18 @@ import {
   ingredientNameSchema,
   ingredientSearchQuerySchema,
   globalIngredientByIdSchema,
+  isPurchaseDetailsCompleteOrEmpty,
+  isVolumeDetailsCompleteOrEmpty,
+  PURCHASE_GROUP_ERROR,
+  VOLUME_GROUP_ERROR,
 } from "@/features/ingredients/ingredients.schemas";
 import { normalizeIngredientName } from "@/lib/ingredients/normalize";
+import { deriveIngredientPricing } from "@/lib/ingredients/pricing";
 import {
   ingredient,
   ingredientCategory,
   recipeIngredient,
-  type CostBasisUnit,
-  type IngredientUnit,
+  type Ingredient,
 } from "@/db";
 import { getDb, queueSearchSync, requireUser, requireAdmin } from "./_shared";
 import { recipeIdsUsingIngredient } from "@/lib/search/recipe-index";
@@ -26,13 +30,12 @@ export type PickerIngredient = {
   source: "global" | "custom";
 };
 
-export type GlobalIngredientBasePrefillData = {
-  category: string | null;
-  defaultUnit: IngredientUnit | null;
-  costBasisUnit: CostBasisUnit;
-  estimatedCentsPerBasisUnit: number | null;
-  notes: string | null;
-};
+export type GlobalIngredientBasePrefillData = Pick<Ingredient,
+  | "category" | "defaultUnit" | "costBasisUnit" | "estimatedCentsPerBasisUnit"
+  | "purchasePriceCents" | "purchaseQuantity" | "purchaseUnit"
+  | "volumeAmount" | "volumeUnit" | "volumeWeightGrams" | "gramsPerCup"
+  | "gramsPerEach" | "preferredDisplayUnit" | "notes"
+>;
 
 const PICKER_SEARCH_TAKE = 25;
 const GLOBAL_BASE_SEARCH_TAKE = 25;
@@ -126,8 +129,9 @@ export const ingredients = {
           category: categoryResolved,
           subcategory: subcategoryForCreate,
           defaultUnit: input.defaultUnit ?? null,
-          costBasisUnit: input.costBasisUnit,
-          estimatedCentsPerBasisUnit: input.estimatedCentsPerBasisUnit ?? null,
+          ...deriveIngredientPricing(input),
+          gramsPerEach: input.gramsPerEach ?? null,
+          preferredDisplayUnit: input.preferredDisplayUnit,
           notes: input.notes?.trim() || null,
           baseIngredientId: input.baseIngredientId ?? null,
         })
@@ -154,7 +158,9 @@ export const ingredients = {
       const user = requireUser(ctx);
       const db = getDb();
 
-      const categoryResolved = await resolveCategoryFromCatalog(db, input.category);
+      const categoryResolved = input.category === undefined
+        ? undefined
+        : await resolveCategoryFromCatalog(db, input.category);
 
       const existingRows = await db
         .select()
@@ -205,19 +211,84 @@ export const ingredients = {
         });
       }
 
+      const purchaseDataChanged = input.purchasePrice !== undefined ||
+        input.purchaseQuantity !== undefined || input.purchaseUnit !== undefined;
+      const volumeDataChanged = input.volumeAmount !== undefined ||
+        input.volumeUnit !== undefined || input.volumeWeightGrams !== undefined;
+      const purchaseDetails = {
+        purchasePrice: input.purchasePrice !== undefined
+          ? input.purchasePrice
+          : existing.purchasePriceCents == null ? null : existing.purchasePriceCents / 100,
+        purchaseQuantity: input.purchaseQuantity !== undefined ? input.purchaseQuantity : existing.purchaseQuantity,
+        purchaseUnit: input.purchaseUnit !== undefined ? input.purchaseUnit : existing.purchaseUnit,
+      };
+      const volumeDetails = {
+        volumeAmount: input.volumeAmount !== undefined ? input.volumeAmount : existing.volumeAmount,
+        volumeUnit: input.volumeUnit !== undefined ? input.volumeUnit : existing.volumeUnit,
+        volumeWeightGrams: input.volumeWeightGrams !== undefined
+          ? input.volumeWeightGrams
+          : existing.volumeWeightGrams,
+      };
+      if (purchaseDataChanged && !isPurchaseDetailsCompleteOrEmpty(purchaseDetails)) {
+        throw new ActionError({
+          code: "BAD_REQUEST",
+          message: PURCHASE_GROUP_ERROR,
+        });
+      }
+      if (volumeDataChanged && !isVolumeDetailsCompleteOrEmpty(volumeDetails)) {
+        throw new ActionError({
+          code: "BAD_REQUEST",
+          message: VOLUME_GROUP_ERROR,
+        });
+      }
+      const validatedDetails = ingredientUpdateSchema.safeParse({
+        ...input,
+        ...(purchaseDataChanged && purchaseDetails),
+        ...(volumeDataChanged && volumeDetails),
+      });
+      if (!validatedDetails.success) {
+        throw new ActionError({
+          code: "BAD_REQUEST",
+          message: validatedDetails.error.issues[0]!.message,
+        });
+      }
+
+      const purchaseUpdate = purchaseDataChanged
+        ? (() => {
+            const pricing = deriveIngredientPricing(purchaseDetails);
+            return {
+              purchasePriceCents: pricing.purchasePriceCents,
+              purchaseQuantity: pricing.purchaseQuantity,
+              purchaseUnit: pricing.purchaseUnit,
+              costBasisUnit: purchaseDetails.purchaseUnit ?? existing.costBasisUnit,
+              estimatedCentsPerBasisUnit: pricing.estimatedCentsPerBasisUnit,
+            };
+          })()
+        : {};
+      const volumeUpdate = volumeDataChanged
+        ? (() => {
+            const pricing = deriveIngredientPricing(volumeDetails);
+            return {
+              volumeAmount: pricing.volumeAmount,
+              volumeUnit: pricing.volumeUnit,
+              volumeWeightGrams: pricing.volumeWeightGrams,
+              gramsPerCup: pricing.gramsPerCup,
+            };
+          })()
+        : {};
+
       await db
         .update(ingredient)
         .set({
           name: input.name.trim(),
           normalizedName,
-          category: categoryResolved,
-          defaultUnit: input.defaultUnit ?? null,
-          ...(input.costBasisUnit != null && {
-            costBasisUnit: input.costBasisUnit,
-          }),
-          estimatedCentsPerBasisUnit: input.estimatedCentsPerBasisUnit ?? null,
-          notes: input.notes?.trim() || null,
-          preferredDisplayUnit: input.preferredDisplayUnit,
+          ...(input.category !== undefined && { category: categoryResolved }),
+          ...(input.defaultUnit !== undefined && { defaultUnit: input.defaultUnit }),
+          ...purchaseUpdate,
+          ...volumeUpdate,
+          ...(input.gramsPerEach !== undefined && { gramsPerEach: input.gramsPerEach }),
+          ...(input.notes !== undefined && { notes: input.notes?.trim() || null }),
+          ...(input.preferredDisplayUnit !== undefined && { preferredDisplayUnit: input.preferredDisplayUnit }),
         })
         .where(eq(ingredient.id, input.id));
 
@@ -409,6 +480,15 @@ export const ingredients = {
           defaultUnit: ingredient.defaultUnit,
           costBasisUnit: ingredient.costBasisUnit,
           estimatedCentsPerBasisUnit: ingredient.estimatedCentsPerBasisUnit,
+          purchasePriceCents: ingredient.purchasePriceCents,
+          purchaseQuantity: ingredient.purchaseQuantity,
+          purchaseUnit: ingredient.purchaseUnit,
+          volumeAmount: ingredient.volumeAmount,
+          volumeUnit: ingredient.volumeUnit,
+          volumeWeightGrams: ingredient.volumeWeightGrams,
+          gramsPerCup: ingredient.gramsPerCup,
+          gramsPerEach: ingredient.gramsPerEach,
+          preferredDisplayUnit: ingredient.preferredDisplayUnit,
           notes: ingredient.notes,
         })
         .from(ingredient)

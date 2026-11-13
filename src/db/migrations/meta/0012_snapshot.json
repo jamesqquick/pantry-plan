@@ -1,8 +1,8 @@
 {
+  "id": "c85a56f4-18c2-4f41-8984-e08ba033ffdd",
+  "prevId": "ee535774-035c-4582-9d65-e51eb66aa15f",
   "version": "6",
   "dialect": "sqlite",
-  "id": "18d0a729-5717-4436-9531-0824454172cc",
-  "prevId": "ee535774-035c-4582-9d65-e51eb66aa15f",
   "tables": {
     "account": {
       "name": "account",
@@ -123,15 +123,15 @@
         "account_userId_user_id_fk": {
           "name": "account_userId_user_id_fk",
           "tableFrom": "account",
-          "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -213,15 +213,15 @@
         "session_userId_user_id_fk": {
           "name": "session_userId_user_id_fk",
           "tableFrom": "session",
-          "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -441,6 +441,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "gramsPerEach": {
+          "name": "gramsPerEach",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "conversionConfidence": {
           "name": "conversionConfidence",
           "type": "text",
@@ -539,28 +546,28 @@
         "Ingredient_userId_user_id_fk": {
           "name": "Ingredient_userId_user_id_fk",
           "tableFrom": "Ingredient",
-          "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "Ingredient_baseIngredientId_Ingredient_id_fk": {
           "name": "Ingredient_baseIngredientId_Ingredient_id_fk",
           "tableFrom": "Ingredient",
-          "tableTo": "Ingredient",
           "columnsFrom": [
             "baseIngredientId"
           ],
+          "tableTo": "Ingredient",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -620,15 +627,15 @@
         "IngredientAlias_ingredientId_Ingredient_id_fk": {
           "name": "IngredientAlias_ingredientId_Ingredient_id_fk",
           "tableFrom": "IngredientAlias",
-          "tableTo": "Ingredient",
           "columnsFrom": [
             "ingredientId"
           ],
+          "tableTo": "Ingredient",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -720,15 +727,15 @@
         "IngredientSubcategory_ingredientCategoryId_IngredientCategory_id_fk": {
           "name": "IngredientSubcategory_ingredientCategoryId_IngredientCategory_id_fk",
           "tableFrom": "IngredientSubcategory",
-          "tableTo": "IngredientCategory",
           "columnsFrom": [
             "ingredientCategoryId"
           ],
+          "tableTo": "IngredientCategory",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -853,15 +860,15 @@
         "Recipe_userId_user_id_fk": {
           "name": "Recipe_userId_user_id_fk",
           "tableFrom": "Recipe",
-          "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1021,28 +1028,28 @@
         "RecipeIngredient_recipeId_Recipe_id_fk": {
           "name": "RecipeIngredient_recipeId_Recipe_id_fk",
           "tableFrom": "RecipeIngredient",
-          "tableTo": "Recipe",
           "columnsFrom": [
             "recipeId"
           ],
+          "tableTo": "Recipe",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "RecipeIngredient_ingredientId_Ingredient_id_fk": {
           "name": "RecipeIngredient_ingredientId_Ingredient_id_fk",
           "tableFrom": "RecipeIngredient",
-          "tableTo": "Ingredient",
           "columnsFrom": [
             "ingredientId"
           ],
+          "tableTo": "Ingredient",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1095,15 +1102,15 @@
         "RecipeInstruction_recipeId_Recipe_id_fk": {
           "name": "RecipeInstruction_recipeId_Recipe_id_fk",
           "tableFrom": "RecipeInstruction",
-          "tableTo": "Recipe",
           "columnsFrom": [
             "recipeId"
           ],
+          "tableTo": "Recipe",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1156,28 +1163,28 @@
         "RecipeTag_recipeId_Recipe_id_fk": {
           "name": "RecipeTag_recipeId_Recipe_id_fk",
           "tableFrom": "RecipeTag",
-          "tableTo": "Recipe",
           "columnsFrom": [
             "recipeId"
           ],
+          "tableTo": "Recipe",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "RecipeTag_tagId_Tag_id_fk": {
           "name": "RecipeTag_tagId_Tag_id_fk",
           "tableFrom": "RecipeTag",
-          "tableTo": "Tag",
           "columnsFrom": [
             "tagId"
           ],
+          "tableTo": "Tag",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1238,15 +1245,15 @@
         "Tag_userId_user_id_fk": {
           "name": "Tag_userId_user_id_fk",
           "tableFrom": "Tag",
-          "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1374,15 +1381,15 @@
         "Order_userId_user_id_fk": {
           "name": "Order_userId_user_id_fk",
           "tableFrom": "Order",
-          "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1458,28 +1465,28 @@
         "OrderItem_orderId_Order_id_fk": {
           "name": "OrderItem_orderId_Order_id_fk",
           "tableFrom": "OrderItem",
-          "tableTo": "Order",
           "columnsFrom": [
             "orderId"
           ],
+          "tableTo": "Order",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "OrderItem_recipeId_Recipe_id_fk": {
           "name": "OrderItem_recipeId_Recipe_id_fk",
           "tableFrom": "OrderItem",
-          "tableTo": "Recipe",
           "columnsFrom": [
             "recipeId"
           ],
+          "tableTo": "Recipe",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1569,28 +1576,28 @@
         "PlannedMeal_userId_user_id_fk": {
           "name": "PlannedMeal_userId_user_id_fk",
           "tableFrom": "PlannedMeal",
-          "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "PlannedMeal_recipeId_Recipe_id_fk": {
           "name": "PlannedMeal_recipeId_Recipe_id_fk",
           "tableFrom": "PlannedMeal",
-          "tableTo": "Recipe",
           "columnsFrom": [
             "recipeId"
           ],
+          "tableTo": "Recipe",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1671,15 +1678,15 @@
         "McpApiKey_userId_user_id_fk": {
           "name": "McpApiKey_userId_user_id_fk",
           "tableFrom": "McpApiKey",
-          "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1931,54 +1938,54 @@
         "oauthAccessToken_clientId_oauthClient_clientId_fk": {
           "name": "oauthAccessToken_clientId_oauthClient_clientId_fk",
           "tableFrom": "oauthAccessToken",
-          "tableTo": "oauthClient",
           "columnsFrom": [
             "clientId"
           ],
+          "tableTo": "oauthClient",
           "columnsTo": [
             "clientId"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "oauthAccessToken_sessionId_session_id_fk": {
           "name": "oauthAccessToken_sessionId_session_id_fk",
           "tableFrom": "oauthAccessToken",
-          "tableTo": "session",
           "columnsFrom": [
             "sessionId"
           ],
+          "tableTo": "session",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "oauthAccessToken_userId_user_id_fk": {
           "name": "oauthAccessToken_userId_user_id_fk",
           "tableFrom": "oauthAccessToken",
-          "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "oauthAccessToken_refreshId_oauthRefreshToken_id_fk": {
           "name": "oauthAccessToken_refreshId_oauthRefreshToken_id_fk",
           "tableFrom": "oauthAccessToken",
-          "tableTo": "oauthRefreshToken",
           "columnsFrom": [
             "refreshId"
           ],
+          "tableTo": "oauthRefreshToken",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -2265,15 +2272,15 @@
         "oauthClient_userId_user_id_fk": {
           "name": "oauthClient_userId_user_id_fk",
           "tableFrom": "oauthClient",
-          "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -2358,28 +2365,28 @@
         "oauthClientResource_clientId_oauthClient_clientId_fk": {
           "name": "oauthClientResource_clientId_oauthClient_clientId_fk",
           "tableFrom": "oauthClientResource",
-          "tableTo": "oauthClient",
           "columnsFrom": [
             "clientId"
           ],
+          "tableTo": "oauthClient",
           "columnsTo": [
             "clientId"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "oauthClientResource_resourceId_oauthResource_identifier_fk": {
           "name": "oauthClientResource_resourceId_oauthResource_identifier_fk",
           "tableFrom": "oauthClientResource",
-          "tableTo": "oauthResource",
           "columnsFrom": [
             "resourceId"
           ],
+          "tableTo": "oauthResource",
           "columnsTo": [
             "identifier"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -2409,15 +2416,15 @@
         "oauthConnection_userId_user_id_fk": {
           "name": "oauthConnection_userId_user_id_fk",
           "tableFrom": "oauthConnection",
-          "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -2507,28 +2514,28 @@
         "oauthConsent_clientId_oauthClient_clientId_fk": {
           "name": "oauthConsent_clientId_oauthClient_clientId_fk",
           "tableFrom": "oauthConsent",
-          "tableTo": "oauthClient",
           "columnsFrom": [
             "clientId"
           ],
+          "tableTo": "oauthClient",
           "columnsTo": [
             "clientId"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "oauthConsent_userId_user_id_fk": {
           "name": "oauthConsent_userId_user_id_fk",
           "tableFrom": "oauthConsent",
-          "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -2694,41 +2701,41 @@
         "oauthRefreshToken_clientId_oauthClient_clientId_fk": {
           "name": "oauthRefreshToken_clientId_oauthClient_clientId_fk",
           "tableFrom": "oauthRefreshToken",
-          "tableTo": "oauthClient",
           "columnsFrom": [
             "clientId"
           ],
+          "tableTo": "oauthClient",
           "columnsTo": [
             "clientId"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "oauthRefreshToken_sessionId_session_id_fk": {
           "name": "oauthRefreshToken_sessionId_session_id_fk",
           "tableFrom": "oauthRefreshToken",
-          "tableTo": "session",
           "columnsFrom": [
             "sessionId"
           ],
+          "tableTo": "session",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "oauthRefreshToken_userId_user_id_fk": {
           "name": "oauthRefreshToken_userId_user_id_fk",
           "tableFrom": "oauthRefreshToken",
-          "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -2862,14 +2869,97 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
+    },
+    "MutationOperation": {
+      "name": "MutationOperation",
+      "columns": {
+        "userId": {
+          "name": "userId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "operationId": {
+          "name": "operationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "requestHash": {
+          "name": "requestHash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'completed'"
+        },
+        "resourceId": {
+          "name": "resourceId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "MutationOperation_userId_user_id_fk": {
+          "name": "MutationOperation_userId_user_id_fk",
+          "tableFrom": "MutationOperation",
+          "columnsFrom": [
+            "userId"
+          ],
+          "tableTo": "user",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "MutationOperation_userId_operationId_pk": {
+          "columns": [
+            "userId",
+            "operationId"
+          ],
+          "name": "MutationOperation_userId_operationId_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     }
   },
   "views": {},
   "enums": {},
   "_meta": {
+    "columns": {},
     "schemas": {},
-    "tables": {},
-    "columns": {}
+    "tables": {}
   },
   "internal": {
     "indexes": {}

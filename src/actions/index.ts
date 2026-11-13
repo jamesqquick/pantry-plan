@@ -6,7 +6,6 @@ import { orders } from "./orders";
 import { mealPlan } from "./meal-plan";
 import { parse } from "./parse";
 import { recipeImport } from "./import";
-import { ingredientMapping } from "./ingredient-mapping";
 import { profile } from "./profile";
 import { mcpKeys } from "./mcp-keys";
 import { searchIndex } from "./search-index";
@@ -25,9 +24,9 @@ export const server = {
   mealPlan,
   parse,
   recipeImport: {
+    saveWithMappings: recipeImport.saveWithMappings,
     saveTextOnly: recipeImport.saveTextOnly,
   },
-  ingredientMapping,
   profile,
   mcpKeys,
   searchIndex,

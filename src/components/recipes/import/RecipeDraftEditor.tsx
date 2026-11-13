@@ -1,6 +1,6 @@
 /**
  * Editable draft editor for imported recipes. Shows parsed data and lets the
- * user review/modify before saving or continuing to ingredient mapping.
+ * user review/modify before saving.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -15,17 +15,15 @@ import {
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { TagToggle } from "@/components/ui/TagToggle";
-import type { SaveImportedRecipeTextOnlyInput } from "@/features/import/import.schemas";
+import type {
+  SaveImportedRecipeInput,
+  SaveImportedRecipeTextOnlyInput,
+} from "@/features/import/import.schemas";
 import { requiredIngredientMeasurementsSchema } from "@/features/recipes/ingredient-measurements";
 import { INGREDIENT_UNITS, UNIT_LABELS } from "@/lib/ingredients/units";
 import { parseScalableIngredientLine } from "@/lib/ingredients/parse-ingredient-line-structured";
 import { formatQuantityForInput, parseQuantityText } from "@/lib/quantity/quantity";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/Tooltip";
+import { IngredientMapper } from "@/components/recipes/IngredientMapper";
 import { softNavigate } from "@/lib/navigate";
 import { SortableRecipeList } from "../SortableRecipeList";
 import { useRecipeEditorRows } from "../useRecipeEditorRows";
@@ -56,6 +54,9 @@ type IngredientReviewRow = {
   displayText: string;
   quantityText: string;
   unit: IngredientUnit | "";
+  ingredientId: string | null;
+  ingredientName: string | null;
+  createIngredientName: string | null;
   status: IngredientReviewStatus;
   edited: boolean;
 };
@@ -79,7 +80,17 @@ function resizeInstructionTextarea(textarea: HTMLTextAreaElement) {
 
 function createIngredientReviewRow(rawText: string): IngredientReviewRow {
   if (!rawText.trim()) {
-    return { rawText: null, displayText: "", quantityText: "", unit: "", status: "empty", edited: false };
+    return {
+      rawText: null,
+      displayText: "",
+      quantityText: "",
+      unit: "",
+      ingredientId: null,
+      ingredientName: null,
+      createIngredientName: null,
+      status: "empty",
+      edited: false,
+    };
   }
 
   const parsed = parseScalableIngredientLine(rawText);
@@ -89,6 +100,9 @@ function createIngredientReviewRow(rawText: string): IngredientReviewRow {
       displayText: parsed.displayText,
       quantityText: formatQuantityForInput(parsed.quantity),
       unit: parsed.unit,
+      ingredientId: null,
+      ingredientName: null,
+      createIngredientName: null,
       status: "parsed",
       edited: false,
     };
@@ -99,6 +113,9 @@ function createIngredientReviewRow(rawText: string): IngredientReviewRow {
     displayText: parsed.displayText,
     quantityText: "",
     unit: "",
+    ingredientId: null,
+    ingredientName: null,
+    createIngredientName: null,
     status: parsed.kind,
     edited: false,
   };
@@ -131,12 +148,9 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
   const instructionsSectionRef = useRef<HTMLElement | null>(null);
   const instructions = useRecipeEditorRows(draft.instructions, () => "");
   const [tagIds, setTagIds] = useState<Set<string>>(new Set());
-  const [savingDestination, setSavingDestination] = useState<
-    "detail" | "map" | null
-  >(null);
+  const [saving, setSaving] = useState(false);
   const [invalidFieldId, setInvalidFieldId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const saving = savingDestination !== null;
 
   useEffect(() => {
     instructionsSectionRef.current
@@ -164,7 +178,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
     return Number.isFinite(n) && n >= 0 ? n : undefined;
   }
 
-  async function handleSave(destination: "detail" | "map") {
+  async function handleSave() {
     if (saving) return;
 
     setError(null);
@@ -195,9 +209,11 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
     }
 
     const cleanIngredients: SaveImportedRecipeTextOnlyInput["ingredients"] = [];
+    const ingredientLines: SaveImportedRecipeInput["ingredientLines"] = [];
     for (const { id, value: row } of ingredients.rows) {
       const quantityText = row.quantityText.trim();
-      if (!row.rawText?.trim() && !row.displayText.trim() && !quantityText && !row.unit) {
+      if (!row.rawText?.trim() && !row.displayText.trim() && !quantityText && !row.unit &&
+          !row.ingredientId && !row.createIngredientName) {
         continue;
       }
 
@@ -233,6 +249,14 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
         displayText,
         ...measurements.data,
       });
+      ingredientLines.push({
+        originalLine: row.rawText?.trim() || displayText,
+        displayText,
+        ingredientId: row.ingredientId ?? undefined,
+        createName: row.createIngredientName ?? undefined,
+        ...measurements.data,
+        sortOrder: ingredientLines.length,
+      });
     }
 
     if (cleanIngredients.length === 0) {
@@ -240,13 +264,21 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
       return;
     }
 
-    setSavingDestination(destination);
+    setSaving(true);
     let savedRecipeId: string | null = null;
     try {
-      const { data, error: saveError } = await actions.recipeImport.saveTextOnly({
-        recipe: recipePayload,
-        ingredients: cleanIngredients,
-      });
+      const hasMappings = ingredientLines.some(
+        (line) => line.ingredientId || line.createName,
+      );
+      const { data, error: saveError } = hasMappings
+        ? await actions.recipeImport.saveWithMappings({
+            recipe: recipePayload,
+            ingredientLines,
+          })
+        : await actions.recipeImport.saveTextOnly({
+            recipe: recipePayload,
+            ingredients: cleanIngredients,
+          });
 
       if (saveError) {
         setError(saveError.message || "Failed to save recipe.");
@@ -261,15 +293,12 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
           : "Failed to save recipe. Please try again.",
       );
     } finally {
-      if (savedRecipeId === null) setSavingDestination(null);
+      if (savedRecipeId === null) setSaving(false);
     }
 
     if (savedRecipeId === null) return;
 
-    const recipePath = `/recipes/${savedRecipeId}`;
-    softNavigate(
-      destination === "map" ? `${recipePath}/map-ingredients` : recipePath,
-    );
+    softNavigate(`/recipes/${savedRecipeId}`);
   }
 
   function toggleTag(id: string) {
@@ -496,6 +525,34 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                   </div>
                 </div>
 
+                <IngredientMapper
+                  ingredientId={row.ingredientId}
+                  ingredientName={row.ingredientName}
+                  createIngredientName={row.createIngredientName}
+                  disabled={saving}
+                  onMap={(ingredientId, ingredientName) =>
+                    updateIngredient(id, {
+                      ingredientId,
+                      ingredientName,
+                      createIngredientName: null,
+                    })
+                  }
+                  onCreate={(name) =>
+                    updateIngredient(id, {
+                      ingredientId: null,
+                      ingredientName: name,
+                      createIngredientName: name,
+                    })
+                  }
+                  onClear={() =>
+                    updateIngredient(id, {
+                      ingredientId: null,
+                      ingredientName: null,
+                      createIngredientName: null,
+                    })
+                  }
+                />
+
                 {statusMessage && (
                   <p
                     id={statusId}
@@ -582,30 +639,12 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
         className="flex-row-reverse gap-2 sm:flex-row sm:justify-start sm:gap-3"
       >
         <Button
-          onClick={() => handleSave("detail")}
+          onClick={handleSave}
           disabled={saving}
           className={`${mobileFormActionButtonClass} w-full sm:w-auto`}
         >
-          {savingDestination === "detail" ? "Saving..." : "Save recipe"}
+          {saving ? "Saving..." : "Save recipe"}
         </Button>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="secondary"
-                onClick={() => handleSave("map")}
-                disabled={saving}
-                className={`${mobileFormActionButtonClass} w-full sm:w-auto`}
-              >
-                {savingDestination === "map" ? "Saving..." : "Save and map"}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              Save the recipe, then review and map its ingredients to items in
-              your pantry.
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
         <Button
           variant="secondary"
           onClick={onBack}

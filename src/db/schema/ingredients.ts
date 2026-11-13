@@ -12,6 +12,8 @@ import type {
   CostBasisUnit,
   IngredientDisplayUnit,
   IngredientUnit,
+  PurchaseUnit,
+  VolumeUnit,
 } from "./enums";
 
 /**
@@ -68,11 +70,19 @@ export const ingredient = sqliteTable(
     defaultUnit: text("defaultUnit").$type<IngredientUnit>(),
     costBasisUnit: text("costBasisUnit").notNull().$type<CostBasisUnit>(),
     estimatedCentsPerBasisUnit: real("estimatedCentsPerBasisUnit"),
+    purchasePriceCents: real("purchasePriceCents"),
+    purchaseQuantity: real("purchaseQuantity"),
+    purchaseUnit: text("purchaseUnit").$type<PurchaseUnit>(),
+    volumeAmount: real("volumeAmount"),
+    volumeUnit: text("volumeUnit").$type<VolumeUnit>(),
+    volumeWeightGrams: real("volumeWeightGrams"),
     /**
      * Prisma had `Decimal?` here; SQLite has no Decimal type, Prisma stored it as DECIMAL
      * text. Drizzle's `real` is fine for grams-per-cup density (precision is not a concern).
      */
     gramsPerCup: real("gramsPerCup"),
+    /** Typical ingredient weight for one recipe count unit (for example, one egg). */
+    gramsPerEach: real("gramsPerEach"),
     conversionConfidence: text("conversionConfidence").notNull().default("Medium"),
     costConfidence: text("costConfidence").notNull().default("Medium"),
     cupsPerEach: real("cupsPerEach"),

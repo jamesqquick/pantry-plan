@@ -4,7 +4,7 @@ import path from "node:path";
 import { afterEach, expect, it } from "vitest";
 
 const migrationsDir = path.resolve(__dirname);
-const dropCreateTrackingMigration = "0012_drop_mutation_operations.sql";
+const dropCreateTrackingMigration = "0014_drop_mutation_operations.sql";
 let sqlite: DatabaseSync | undefined;
 
 afterEach(() => {

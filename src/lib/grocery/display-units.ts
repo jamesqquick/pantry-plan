@@ -4,25 +4,26 @@
  * Cost is always computed from canonical (costBasisUnit); this is display-only.
  */
 import { formatQuantity } from "@/lib/quantity/quantity";
+import type { CostBasisUnit, IngredientDisplayUnit, PurchaseUnit } from "@/db/schema/enums";
+import { DISPLAY_UNIT_LABELS, UNIT_LABELS } from "@/lib/ingredients/units";
+import { convertToBasis } from "./canonical";
 
 export type CanonicalUnit = "GRAM" | "CUP" | "EACH";
-export type DisplayPreference =
-  | "AUTO"
-  | "GRAM"
-  | "CUP"
-  | "EACH"
-  | "TBSP"
-  | "TSP";
+export type DisplayPreference = IngredientDisplayUnit;
 
 export type IngredientDisplayInfo = {
   preferredDisplayUnit: DisplayPreference;
   gramsPerCup?: number | null;
+  gramsPerEach?: number | null;
+  cupsPerEach?: number | null;
+  purchaseUnit?: PurchaseUnit | null;
 };
 
 export type DisplayResult = {
   displayQty: number;
   displayUnitLabel: string;
   displayText: string;
+  reason?: string;
 };
 
 const TSP_PER_CUP = 48;
@@ -123,9 +124,26 @@ export function formatCanonicalForKitchen(
   return `${formatDisplayQty(qty)} ${basisUnitLabel}`;
 }
 
+function unavailableDisplayReason(preferred: Exclude<DisplayPreference, "AUTO">, canonicalUnit: CanonicalUnit, fallbackUnit: CostBasisUnit) {
+  const preferredLabel = DISPLAY_UNIT_LABELS[preferred];
+  const fallbackLabel = UNIT_LABELS[fallbackUnit];
+  const needsMass = preferred === "GRAM" || preferred === "KG" || preferred === "OZ" || preferred === "LB";
+  const needsVolume = preferred === "CUP" || preferred === "TBSP" || preferred === "TSP";
+  let dependency = `a conversion to ${preferredLabel}`;
+
+  if (needsMass && canonicalUnit === "CUP") dependency = "a volume-to-weight reference";
+  else if (needsMass && canonicalUnit === "EACH") dependency = "weight per item";
+  else if (needsVolume && canonicalUnit === "GRAM") dependency = "a volume-to-weight reference";
+  else if (needsVolume && canonicalUnit === "EACH") dependency = "an item-weight and volume reference";
+  else if (preferred === "EACH" && canonicalUnit === "GRAM") dependency = "weight per item";
+  else if (preferred === "EACH" && canonicalUnit === "CUP") dependency = "a count-to-volume reference";
+
+  return `Add ${dependency} to show this amount in ${preferredLabel}; showing ${fallbackLabel} instead.`;
+}
+
 /**
  * Convert canonical total to shopper-friendly display using ingredient preferences.
- * Fallback to canonical when conversion not possible.
+ * Fall back to the purchase unit, then canonical, when conversion is unavailable.
  */
 export function toDisplayUnits(params: {
   canonicalQty: number;
@@ -133,146 +151,48 @@ export function toDisplayUnits(params: {
   ingredient: IngredientDisplayInfo;
 }): DisplayResult {
   const { canonicalQty, canonicalUnit, ingredient } = params;
-  const pref = ingredient.preferredDisplayUnit;
-  const gramsPerCup = ingredient.gramsPerCup ?? null;
-
-  const fallbackCanonical = (): DisplayResult => {
-    const label =
-      canonicalUnit === "GRAM"
-        ? "g"
-        : canonicalUnit === "CUP"
-          ? "cup"
-          : "ea";
-    const rounded =
-      canonicalUnit === "EACH"
-        ? roundEach(canonicalQty)
-        : canonicalUnit === "GRAM"
-          ? roundGrams(canonicalQty)
-          : canonicalUnit === "CUP"
-            ? roundQuarterCup(canonicalQty)
-            : canonicalQty;
-    return {
-      displayQty: rounded,
-      displayUnitLabel: label,
-      displayText: `${formatDisplayQty(rounded)} ${label}`,
-    };
+  const canonicalBasis = { GRAM: "G", CUP: "CUP", EACH: "COUNT" } as const;
+  const displayBasis: Record<Exclude<DisplayPreference, "AUTO">, CostBasisUnit> = {
+    GRAM: "G", KG: "KG", OZ: "OZ", LB: "LB", CUP: "CUP", EACH: "COUNT", TBSP: "TBSP", TSP: "TSP",
   };
-
-  // EACH canonical → show quantity only (no "ea" on grocery list)
-  if (canonicalUnit === "EACH") {
-    const qty = roundEach(canonicalQty);
-    return {
-      displayQty: qty,
-      displayUnitLabel: "ea",
-      displayText: formatDisplayQty(qty),
-    };
+  const positive = (value: number | null | undefined) => value != null && Number.isFinite(value) && value > 0 ? value : null;
+  const conversion = {
+    gramsPerCup: positive(ingredient.gramsPerCup),
+    gramsPerEach: positive(ingredient.gramsPerEach),
+    cupsPerEach: positive(ingredient.cupsPerEach),
+  };
+  const purchaseBasis = ingredient.purchaseUnit ?? canonicalBasis[canonicalUnit];
+  const automaticBasis = conversion.gramsPerEach != null || conversion.cupsPerEach != null ? "COUNT" : purchaseBasis;
+  const preferred = ingredient.preferredDisplayUnit;
+  const requestedBasis = preferred === "AUTO" ? automaticBasis : displayBasis[preferred];
+  let basis = requestedBasis;
+  const convert = (basisUnit: CostBasisUnit) => convertToBasis({
+    quantity: canonicalQty, unit: canonicalBasis[canonicalUnit], basisUnit, ingredientConversion: conversion,
+  })?.basisQty;
+  let quantity = convert(basis);
+  let reason: string | undefined;
+  if (quantity == null || !Number.isFinite(quantity)) {
+    basis = purchaseBasis;
+    quantity = convert(basis);
+  }
+  if (quantity == null || !Number.isFinite(quantity)) {
+    basis = canonicalBasis[canonicalUnit];
+    quantity = canonicalQty;
+  }
+  if (preferred !== "AUTO" && basis !== requestedBasis) {
+    reason = unavailableDisplayReason(preferred, canonicalUnit, basis);
   }
 
-  // CUP canonical
-  if (canonicalUnit === "CUP") {
-    const cups = canonicalQty;
-    if (pref === "GRAM" && gramsPerCup != null) {
-      const g = cupsToGrams(cups, gramsPerCup);
-      const rounded = roundGrams(g);
-      return {
-        displayQty: rounded,
-        displayUnitLabel: "g",
-        displayText: `${formatDisplayQty(rounded)} g`,
-      };
-    }
-    if (pref === "TBSP" || (pref === "AUTO" && cups < 1 / 16)) {
-      const tsp = tspFromCups(cups);
-      const rounded = roundQuarterTsp(tsp);
-      return {
-        displayQty: rounded,
-        displayUnitLabel: "tsp",
-        displayText: `${formatDisplayQty(rounded)} tsp`,
-      };
-    }
-    if (pref === "TSP" || (pref === "AUTO" && cups < 1 / 4 && cups >= 1 / 16)) {
-      const tbsp = tbspFromCups(cups);
-      const rounded = roundHalfTbsp(tbsp);
-      return {
-        displayQty: rounded,
-        displayUnitLabel: "tbsp",
-        displayText: `${formatDisplayQty(rounded)} tbsp`,
-      };
-    }
-    // CUP or AUTO with cups >= 1/4
-    const rounded = cups >= 1 ? roundQuarterCup(cups) : cups;
-    return {
-      displayQty: rounded,
-      displayUnitLabel: "cup",
-      displayText: `${formatDisplayQty(rounded)} cup`,
-    };
-  }
-
-  // GRAM canonical
-  if (canonicalUnit === "GRAM") {
-    const grams = canonicalQty;
-    if (pref === "CUP" && gramsPerCup != null && grams >= 60) {
-      const cups = gramsToCups(grams, gramsPerCup);
-      const rounded = cups >= 1 ? roundQuarterCup(cups) : cups;
-      return {
-        displayQty: rounded,
-        displayUnitLabel: "cup",
-        displayText: `${formatDisplayQty(rounded)} cup`,
-      };
-    }
-    if (pref === "TBSP" && gramsPerCup != null) {
-      const cups = gramsToCups(grams, gramsPerCup);
-      const tbsp = tbspFromCups(cups);
-      const rounded = roundHalfTbsp(tbsp);
-      return {
-        displayQty: rounded,
-        displayUnitLabel: "tbsp",
-        displayText: `${formatDisplayQty(rounded)} tbsp`,
-      };
-    }
-    if (pref === "TSP" && gramsPerCup != null) {
-      const cups = gramsToCups(grams, gramsPerCup);
-      const tsp = tspFromCups(cups);
-      const rounded = roundQuarterTsp(tsp);
-      return {
-        displayQty: rounded,
-        displayUnitLabel: "tsp",
-        displayText: `${formatDisplayQty(rounded)} tsp`,
-      };
-    }
-    if (pref === "GRAM" || pref === "AUTO") {
-      const rounded = roundGrams(grams);
-      return {
-        displayQty: rounded,
-        displayUnitLabel: "g",
-        displayText: `${formatDisplayQty(rounded)} g`,
-      };
-    }
-    if ((pref === "CUP" || pref === "TBSP" || pref === "TSP") && gramsPerCup != null) {
-      const cups = gramsToCups(grams, gramsPerCup);
-      if (pref === "TBSP") {
-        const tbsp = tbspFromCups(cups);
-        return {
-          displayQty: roundHalfTbsp(tbsp),
-          displayUnitLabel: "tbsp",
-          displayText: `${formatDisplayQty(roundHalfTbsp(tbsp))} tbsp`,
-        };
-      }
-      if (pref === "TSP") {
-        const tsp = tspFromCups(cups);
-        return {
-          displayQty: roundQuarterTsp(tsp),
-          displayUnitLabel: "tsp",
-          displayText: `${formatDisplayQty(roundQuarterTsp(tsp))} tsp`,
-        };
-      }
-      const rounded = cups >= 1 ? roundQuarterCup(cups) : cups;
-      return {
-        displayQty: rounded,
-        displayUnitLabel: "cup",
-        displayText: `${formatDisplayQty(rounded)} cup`,
-      };
-    }
-  }
-
-  return fallbackCanonical();
+  let rounded = basis === "G" ? roundGrams(quantity)
+    : basis === "COUNT" ? roundEach(quantity)
+      : basis === "CUP" ? quantity >= 1 ? roundQuarterCup(quantity) : quantity
+        : basis === "TSP" ? roundQuarterTsp(quantity)
+          : basis === "TBSP" ? roundHalfTbsp(quantity)
+            : Number(quantity.toPrecision(4));
+  if (rounded === 0 && quantity > 0) rounded = quantity;
+  const decimalText = rounded.toLocaleString("en-US", { maximumSignificantDigits: 4, useGrouping: false });
+  const fractionText = formatDisplayQty(rounded);
+  const text = basis === "KG" || basis === "LB" || basis === "OZ" || (rounded > 0 && fractionText === "0") ? decimalText : fractionText;
+  const label = UNIT_LABELS[basis];
+  return { displayQty: rounded, displayUnitLabel: label, displayText: `${text} ${label}`, ...(reason ? { reason } : {}) };
 }

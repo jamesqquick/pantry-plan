@@ -56,3 +56,24 @@ export function costBasisToCanonicalDisplay(
   if (u === "CUP" || u === "TSP" || u === "TBSP") return "CUP";
   return "GRAM";
 }
+
+/** Normalize a basis quantity before passing it to shopper display conversion. */
+export function costBasisToCanonicalQuantity(
+  quantity: number,
+  unit: CostBasisUnit,
+): number {
+  switch (unit) {
+    case "KG":
+      return quantity * 1000;
+    case "LB":
+      return quantity * 453.59237;
+    case "OZ":
+      return quantity * 28.3495231;
+    case "TSP":
+      return quantity / 48;
+    case "TBSP":
+      return quantity / 16;
+    default:
+      return quantity;
+  }
+}
