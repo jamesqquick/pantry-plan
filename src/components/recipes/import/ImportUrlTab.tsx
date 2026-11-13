@@ -46,6 +46,7 @@ export function ImportUrlTab({
       cookTimeMinutes: data.cookTimeMinutes,
       totalTimeMinutes: data.totalTimeMinutes,
       ingredients: data.ingredients,
+      ingredientLines: data.ingredientLines,
       instructions: data.instructions,
       notes: data.notes ?? "",
     });

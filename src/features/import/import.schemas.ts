@@ -30,10 +30,6 @@ export const importDraftSchema = z.object({
   notes: z.string().max(MAX_RECIPE_NOTES).optional(),
 });
 
-export const suggestMappingsSchema = z.object({
-  lines: z.array(z.string().max(MAX_INGREDIENT_LINE)).max(MAX_LINES_PER_RECIPE),
-});
-
 export const importIngredientLineSchema = z.object({
   originalLine: z.string().min(1).max(MAX_INGREDIENT_LINE),
   displayText: z.string().max(500).optional(),
@@ -86,7 +82,6 @@ export const saveImportedRecipeTextOnlySchema = z.object({
 });
 
 export type ImportDraft = z.infer<typeof importDraftSchema>;
-export type SuggestMappingsInput = z.infer<typeof suggestMappingsSchema>;
 export type ImportIngredientLineInput = z.infer<typeof importIngredientLineSchema>;
 export type SaveImportedRecipeInput = z.infer<typeof saveImportedRecipeSchema>;
 export type SaveImportedRecipeTextOnlyInput = z.infer<typeof saveImportedRecipeTextOnlySchema>;

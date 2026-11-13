@@ -17,10 +17,17 @@ import {
 import { parseRecipeFromUrl } from "@/lib/parse/parse-recipe";
 import { extractRecipeFromImage } from "@/lib/ai/extract-recipe-from-image";
 import { parseIngredientLineForImport, type ParsedIngredientLine } from "@/lib/ingredients/parse-line";
+import { suggestIngredientMappings } from "@/lib/ingredients/suggest-ingredient-mappings";
 import { canUseWorkersAi } from "@/lib/entitlements";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { getBooleanFlag } from "@/lib/feature-flags";
-import { requireUser } from "./_shared";
+import { getDb, requireUser } from "./_shared";
+
+type ImportedIngredientLine = ParsedIngredientLine & {
+  ingredientId?: string;
+  ingredientName?: string;
+  createName?: string;
+};
 
 export type ParsedRecipeDraft = {
   title: string;
@@ -31,10 +38,30 @@ export type ParsedRecipeDraft = {
   cookTimeMinutes?: number;
   totalTimeMinutes?: number;
   ingredients: string[];
-  ingredientLines: ParsedIngredientLine[];
+  ingredientLines: ImportedIngredientLine[];
   instructions: string[];
   notes?: string;
 };
+
+async function parseAndMatchIngredientLines(
+  lines: string[],
+  userId: string,
+): Promise<ImportedIngredientLine[]> {
+  const parsedLines = lines.map(parseIngredientLineForImport);
+  if (!lines.some((line) => line.trim())) return parsedLines;
+
+  try {
+    const { suggestions } = await suggestIngredientMappings(getDb(), lines, userId, env.AI);
+    return parsedLines.map((line, index) => ({
+      ...line,
+      ingredientId: suggestions[index]?.suggestedIngredient?.id,
+      ingredientName: suggestions[index]?.suggestedIngredient?.name,
+      createName: suggestions[index]?.suggestedCreateName?.trim() || undefined,
+    }));
+  } catch {
+    return parsedLines;
+  }
+}
 
 export const parse = {
   /**
@@ -59,9 +86,7 @@ export const parse = {
         });
       }
 
-      const ingredientLines = result.data.ingredients.map((line) =>
-        parseIngredientLineForImport(line),
-      );
+      const ingredientLines = await parseAndMatchIngredientLines(result.data.ingredients, user.id);
 
       return {
         title: result.data.title,
@@ -139,9 +164,7 @@ export const parse = {
         input.image.type,
       );
 
-      const ingredientLines = parsed.ingredients.map((line) =>
-        parseIngredientLineForImport(line),
-      );
+      const ingredientLines = await parseAndMatchIngredientLines(parsed.ingredients, user.id);
 
       return {
         title: parsed.title,
