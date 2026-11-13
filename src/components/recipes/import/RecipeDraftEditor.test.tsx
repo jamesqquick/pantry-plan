@@ -4,10 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import { parseIngredientLineForImport } from "@/lib/ingredients/parse-line";
 import { RecipeDraftEditor, type RecipeDraft } from "./RecipeDraftEditor";
 
-const { ingredientLines, saveTextOnly, saveWithMappings, searchForPicker, softNavigate } = vi.hoisted(() => ({
-  ingredientLines: vi.fn(),
+const { saveTextOnly, saveWithMappings, searchForPicker, softNavigate } = vi.hoisted(() => ({
   saveTextOnly: vi.fn(),
   saveWithMappings: vi.fn(),
   searchForPicker: vi.fn(),
@@ -16,7 +16,6 @@ const { ingredientLines, saveTextOnly, saveWithMappings, searchForPicker, softNa
 
 vi.mock("astro:actions", () => ({
   actions: {
-    enhance: { ingredientLines },
     recipeImport: { saveTextOnly, saveWithMappings },
     ingredients: { searchForPicker },
   },
@@ -37,6 +36,13 @@ const validDraft: RecipeDraft = {
   notes: "Serve warm.",
 };
 
+const suggestedLines = validDraft.ingredients.map((line, index) => ({
+  ...parseIngredientLineForImport(line),
+  ...(index === 0 ? { ingredientId: "ingredient-flour", ingredientName: "Flour" } : {}),
+  ...(index === 2 ? { createName: "Egg" } : {}),
+}));
+const parseStatusText = /Matching catalog ingredients|Couldn’t suggest catalog ingredients|Couldn't automatically parse ingredient|No quantity was detected automatically|Your edits will be saved as entered/;
+
 function renderEditor(draft: RecipeDraft = validDraft) {
   return render(
     <RecipeDraftEditor draft={draft} onBack={vi.fn()} allTags={[]} />,
@@ -44,7 +50,6 @@ function renderEditor(draft: RecipeDraft = validDraft) {
 }
 
 beforeEach(() => {
-  ingredientLines.mockResolvedValue({ data: { items: [] }, error: undefined });
   saveTextOnly.mockResolvedValue({
     data: { recipeId: "recipe-123" },
     error: undefined,
@@ -65,10 +70,53 @@ afterEach(() => {
 });
 
 describe("RecipeDraftEditor", () => {
-  it("does not request ingredient mapping on render", () => {
+  it("shows catalog suggestions from the parse response on first render", async () => {
+    const user = userEvent.setup();
+    renderEditor({ ...validDraft, ingredientLines: suggestedLines });
+
+    expect(screen.getByRole("button", { name: "Flour" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Egg, new catalog ingredient" })).toBeTruthy();
+    expect(screen.getByLabelText("Ingredient text for ingredient 1")).toHaveProperty("value", "flour");
+    expect(screen.getByLabelText("Quantity for ingredient 2")).toHaveProperty("value", "3");
+    expect(screen.getByRole("button", { name: "Save recipe" })).toHaveProperty("disabled", false);
+    expect(screen.queryByText(parseStatusText)).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+    await waitFor(() => expect(saveWithMappings).toHaveBeenCalledWith(expect.objectContaining({
+      ingredientLines: [
+        { originalLine: "2 cups flour", displayText: "flour", quantity: 2, unit: "CUP", sortOrder: 0, ingredientId: "ingredient-flour" },
+        { originalLine: "3 eggs", displayText: "eggs", quantity: 3, unit: "COUNT", sortOrder: 1, createName: "Egg" },
+      ],
+    })));
+    expect(saveTextOnly).not.toHaveBeenCalled();
+  });
+
+  it("lets the user clear an automatic catalog match before saving", async () => {
+    const user = userEvent.setup();
+    renderEditor({ ...validDraft, ingredientLines: suggestedLines.map((line) => ({ ...line, createName: undefined })) });
+
+    await user.click(screen.getByRole("button", { name: "Flour" }));
+    await user.click(screen.getByRole("button", { name: "Clear mapping" }));
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+
+    await waitFor(() => expect(saveTextOnly).toHaveBeenCalledOnce());
+    expect(saveWithMappings).not.toHaveBeenCalled();
+  });
+
+  it("allows manual mapping and saving without suggestions or status messages", async () => {
+    const user = userEvent.setup();
     renderEditor();
 
-    expect(ingredientLines).not.toHaveBeenCalled();
+    expect(screen.queryByText(parseStatusText)).toBeNull();
+    expect(screen.getByRole("button", { name: "Save recipe" })).toHaveProperty("disabled", false);
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+    await waitFor(() => expect(saveTextOnly).toHaveBeenCalledOnce());
+  });
+
+  it("allows saving without imported ingredient lines", () => {
+    renderEditor({ ...validDraft, ingredients: [] });
+
+    expect(screen.getByRole("button", { name: "Save recipe" })).toHaveProperty("disabled", false);
   });
 
   it("shows a catalog picker for each imported ingredient", () => {
@@ -77,9 +125,6 @@ describe("RecipeDraftEditor", () => {
     expect(screen.queryByText(/\d+\/\d+ mapped/i)).toBeNull();
     expect(screen.queryByText(/auto-map/i)).toBeNull();
     expect(screen.getAllByRole("button", { name: "Choose an ingredient" })).toHaveLength(2);
-    expect(
-      screen.getByRole("button", { name: "Save recipe" }),
-    ).toHaveProperty("disabled", false);
     expect(screen.queryByRole("button", { name: "Save and map" })).toBeNull();
   });
 
@@ -321,7 +366,7 @@ describe("RecipeDraftEditor", () => {
     const user = userEvent.setup();
     renderEditor({ ...validDraft, ingredients: ["2-3 cloves garlic"] });
 
-    expect(screen.getByText("Couldn't automatically parse ingredient.")).toBeTruthy();
+    expect(screen.queryByText(parseStatusText)).toBeNull();
     expect(screen.getByLabelText("Ingredient text for ingredient 1")).toHaveProperty(
       "value",
       "2-3 cloves garlic",
@@ -335,7 +380,7 @@ describe("RecipeDraftEditor", () => {
     await user.type(screen.getByLabelText("Ingredient text for ingredient 1"), "cloves garlic");
     await user.type(screen.getByLabelText("Quantity for ingredient 1"), "2");
     await user.selectOptions(screen.getByLabelText("Unit for ingredient 1"), "COUNT");
-    expect(screen.getByText("Couldn't automatically parse ingredient.")).toBeTruthy();
+    expect(screen.queryByText(parseStatusText)).toBeNull();
     await user.click(screen.getByRole("button", { name: "Save recipe" }));
 
     await waitFor(() => {
@@ -361,7 +406,7 @@ describe("RecipeDraftEditor", () => {
       const unit = screen.getByLabelText("Unit for ingredient 1");
       const save = screen.getByRole("button", { name: "Save recipe" });
 
-      expect(screen.getByText("No quantity was detected automatically. Enter a quantity and choose a unit before saving.")).toBeTruthy();
+      expect(screen.queryByText(parseStatusText)).toBeNull();
       expect(screen.getByLabelText("Ingredient text for ingredient 1")).toHaveProperty("value", "Salt to taste");
       expect(quantity).toHaveProperty("value", "");
       expect(unit).toHaveProperty("value", "");
@@ -555,6 +600,22 @@ describe("RecipeDraftEditor", () => {
       });
       expect(softNavigate).toHaveBeenCalledWith("/recipes/recipe-123");
     });
+  });
+
+  it("keeps suggested catalog mappings attached to their imported lines after reordering", async () => {
+    const user = userEvent.setup();
+    renderEditor({ ...validDraft, ingredientLines: suggestedLines });
+
+    await user.click(screen.getByRole("button", { name: "Move ingredient 2 up" }));
+    expect(screen.getByRole("button", { name: "Egg, new catalog ingredient" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+
+    await waitFor(() => expect(saveWithMappings).toHaveBeenCalledWith(expect.objectContaining({
+      ingredientLines: [
+        expect.objectContaining({ originalLine: "3 eggs", createName: "Egg", sortOrder: 0 }),
+        expect.objectContaining({ originalLine: "2 cups flour", ingredientId: "ingredient-flour", sortOrder: 1 }),
+      ],
+    })));
   });
 
   it("allows only one save request while a save is pending", async () => {

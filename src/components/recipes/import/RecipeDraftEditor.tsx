@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { actions } from "astro:actions";
 
+import type { ParsedRecipeDraft } from "@/actions/parse";
 import type { IngredientUnit } from "@/db/schema/enums";
 import { Button } from "@/components/ui/Button";
 import {
@@ -37,6 +38,7 @@ export type RecipeDraft = {
   cookTimeMinutes?: number;
   totalTimeMinutes?: number;
   ingredients: string[];
+  ingredientLines?: ParsedRecipeDraft["ingredientLines"];
   instructions: string[];
   notes: string;
 };
@@ -47,8 +49,6 @@ interface Props {
   allTags: { id: string; name: string }[];
 }
 
-type IngredientReviewStatus = "parsed" | "unquantified" | "needs-review" | "empty";
-
 type IngredientReviewRow = {
   rawText: string | null;
   displayText: string;
@@ -57,8 +57,6 @@ type IngredientReviewRow = {
   ingredientId: string | null;
   ingredientName: string | null;
   createIngredientName: string | null;
-  status: IngredientReviewStatus;
-  edited: boolean;
 };
 
 function resizeInstructionTextarea(textarea: HTMLTextAreaElement) {
@@ -88,8 +86,6 @@ function createIngredientReviewRow(rawText: string): IngredientReviewRow {
       ingredientId: null,
       ingredientName: null,
       createIngredientName: null,
-      status: "empty",
-      edited: false,
     };
   }
 
@@ -103,8 +99,6 @@ function createIngredientReviewRow(rawText: string): IngredientReviewRow {
       ingredientId: null,
       ingredientName: null,
       createIngredientName: null,
-      status: "parsed",
-      edited: false,
     };
   }
 
@@ -116,8 +110,6 @@ function createIngredientReviewRow(rawText: string): IngredientReviewRow {
     ingredientId: null,
     ingredientName: null,
     createIngredientName: null,
-    status: parsed.kind,
-    edited: false,
   };
 }
 
@@ -139,8 +131,20 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
   );
   const [notes, setNotes] = useState(draft.notes);
   const initialIngredients = draft.ingredients
-    .filter((line) => line.trim() !== "")
-    .map((line) => createIngredientReviewRow(line));
+    .map((line, index) => {
+      const row = createIngredientReviewRow(line);
+      const suggestion = draft.ingredientLines?.[index];
+      if (suggestion?.raw !== line.trim()) return row;
+      if (suggestion.ingredientId && suggestion.ingredientName) {
+        return { ...row, ingredientId: suggestion.ingredientId, ingredientName: suggestion.ingredientName };
+      }
+      if (suggestion.createName?.trim()) {
+        const name = suggestion.createName.trim();
+        return { ...row, ingredientName: name, createIngredientName: name };
+      }
+      return row;
+    })
+    .filter((row) => row.rawText !== null);
   const ingredients = useRecipeEditorRows(
     initialIngredients,
     () => createIngredientReviewRow(""),
@@ -161,7 +165,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
   function updateIngredient(id: string, patch: Partial<IngredientReviewRow>) {
     setError(null);
     setInvalidFieldId(null);
-    ingredients.update(id, (row) => ({ ...row, ...patch, edited: true }));
+    ingredients.update(id, (row) => ({ ...row, ...patch }));
   }
   function addIngredient() {
     setError(null);
@@ -428,7 +432,6 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
             const textId = id;
             const quantityId = `${id}-quantity`;
             const unitId = `${id}-unit`;
-            const statusId = `${id}-status`;
             const hasIngredientContent = Boolean(
               row.rawText?.trim() || row.displayText.trim() || row.quantityText.trim() || row.unit,
             );
@@ -443,13 +446,6 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
               measurementIssues.some((issue) => issue.path[0] === "quantity");
             const unitInvalid = invalidFieldId === unitId ||
               measurementIssues.some((issue) => issue.path[0] === "unit");
-            const statusMessage = row.status === "unquantified" && !measurements.success
-              ? "No quantity was detected automatically. Enter a quantity and choose a unit before saving."
-              : row.status === "needs-review"
-                ? "Couldn't automatically parse ingredient."
-                : row.edited && measurements.success
-                  ? "Your edits will be saved as entered."
-                  : null;
 
             return (
               <div className="space-y-4">
@@ -478,7 +474,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                       aria-required="true"
                       aria-label={`Quantity for ingredient ${idx + 1}`}
                       aria-invalid={quantityInvalid}
-                      aria-describedby={invalidFieldId === quantityId ? "recipe-import-error" : statusMessage ? statusId : undefined}
+                      aria-describedby={invalidFieldId === quantityId ? "recipe-import-error" : undefined}
                       disabled={saving}
                       onChange={(event) => updateIngredient(id, { quantityText: event.target.value })}
                     />
@@ -494,7 +490,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                       aria-required="true"
                       aria-label={`Unit for ingredient ${idx + 1}`}
                       aria-invalid={unitInvalid}
-                      aria-describedby={invalidFieldId === unitId ? "recipe-import-error" : statusMessage ? statusId : undefined}
+                      aria-describedby={invalidFieldId === unitId ? "recipe-import-error" : undefined}
                       disabled={saving}
                       className="flex min-h-11 w-full rounded-input border border-input bg-card px-3 py-1.5 font-ui text-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 aria-invalid:border-destructive aria-invalid:ring-destructive/30 disabled:cursor-not-allowed disabled:opacity-50"
                       onChange={(event) => updateIngredient(id, { unit: event.target.value as IngredientUnit | "" })}
@@ -518,7 +514,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                       placeholder="Ingredient name"
                       aria-label={`Ingredient text for ingredient ${idx + 1}`}
                       aria-invalid={invalidFieldId === textId}
-                      aria-describedby={invalidFieldId === textId ? "recipe-import-error" : statusMessage ? statusId : undefined}
+                      aria-describedby={invalidFieldId === textId ? "recipe-import-error" : undefined}
                       disabled={saving}
                       onChange={(event) => updateIngredient(id, { displayText: event.target.value })}
                     />
@@ -552,18 +548,6 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
                     })
                   }
                 />
-
-                {statusMessage && (
-                  <p
-                    id={statusId}
-                    role={row.status === "needs-review" ? "status" : undefined}
-                    className={row.status === "needs-review"
-                      ? "rounded-input border border-warning/30 bg-warning/10 p-3 text-body leading-relaxed text-foreground"
-                      : "text-meta leading-relaxed text-muted-foreground"}
-                  >
-                    {statusMessage}
-                  </p>
-                )}
               </div>
             );
           }}
