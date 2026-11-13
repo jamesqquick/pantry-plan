@@ -1,15 +1,10 @@
-/**
- * Import wizard: URL / Image / Manual tabs for recipe creation.
- * URL and Image parse the recipe, then show an editable draft.
- * Manual renders the full RecipeForm inline under the same tab bar.
- */
-
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
-import { ImportUrlTab } from "./ImportUrlTab";
+import { useState } from "react";
+import type { ParsedRecipeDraft } from "@/actions/parse";
 import { ImportImageTab } from "./ImportImageTab";
 import RecipeForm, {
   type RecipeFormInitial,
 } from "@/components/recipes/RecipeForm";
+import { parsedRecipeToFormInitial } from "./parsedRecipeToFormInitial";
 
 const EMPTY_INITIAL: RecipeFormInitial = {
   title: "",
@@ -31,33 +26,34 @@ export interface ImportWizardProps {
 }
 
 export function ImportWizard({ allTags, imageUploadEnabled }: ImportWizardProps) {
+  const [initial, setInitial] = useState(EMPTY_INITIAL);
+  const [importVersion, setImportVersion] = useState(0);
+  const [parsingPhoto, setParsingPhoto] = useState(false);
+  const [formBusy, setFormBusy] = useState(false);
+
+  function applyParsedRecipe(draft: ParsedRecipeDraft) {
+    setInitial(parsedRecipeToFormInitial(draft));
+    setImportVersion((version) => version + 1);
+  }
+
   return (
-    <Tabs defaultValue="url" className="space-y-6">
-      <TabsList aria-label="Recipe import method" className="gap-1">
-        <TabsTrigger value="url">From URL</TabsTrigger>
-        {imageUploadEnabled && (
-          <TabsTrigger value="photo">From photo</TabsTrigger>
-        )}
-        <TabsTrigger value="manual">Manual</TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="url">
-        <ImportUrlTab allTags={allTags} />
-      </TabsContent>
-
+    <div className="space-y-6">
       {imageUploadEnabled && (
-        <TabsContent value="photo">
-          <ImportImageTab allTags={allTags} />
-        </TabsContent>
-      )}
-
-      <TabsContent value="manual">
-        <RecipeForm
-          mode="create"
-          initial={EMPTY_INITIAL}
-          allTags={allTags}
+        <ImportImageTab
+          onParsed={applyParsedRecipe}
+          onParsingChange={setParsingPhoto}
+          disabled={formBusy}
         />
-      </TabsContent>
-    </Tabs>
+      )}
+      <RecipeForm
+        key={importVersion}
+        mode="create"
+        initial={initial}
+        allTags={allTags}
+        onParsedRecipe={applyParsedRecipe}
+        importingPhoto={parsingPhoto}
+        onBusyChange={setFormBusy}
+      />
+    </div>
   );
 }

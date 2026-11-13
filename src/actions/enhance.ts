@@ -20,7 +20,6 @@ import { formatIngredientLine } from "@/lib/ingredients/format-ingredient-line";
 import { parseScalableIngredientLine } from "@/lib/ingredients/parse-ingredient-line-structured";
 import type { SuggestionItem } from "@/lib/ingredients/compute-suggestions";
 import { suggestIngredientMappings } from "@/lib/ingredients/suggest-ingredient-mappings";
-import { autoConvert } from "@/lib/measurements/auto-convert";
 import { getDb, queueSearchSync, requireUser } from "./_shared";
 
 export type EnhancedRecipeIngredientResult = {
@@ -54,7 +53,7 @@ export const enhance = {
   /**
    * Re-map an existing recipe's ingredients. Reads rawText from the recipe's
    * ingredient rows, runs suggestion engine, deletes old rows and inserts
-   * enhanced ones with ingredient IDs, conversion data, and aliases.
+   * enhanced ones with ingredient IDs and aliases.
    */
   recipeIngredients: defineAction({
     input: recipeIdOnlySchema,
@@ -207,40 +206,6 @@ export const enhance = {
           }
         }
 
-        // Auto-convert to weight when we have a mapping
-        let weightGrams: number | null = null;
-        let conversionSource: string | null = null;
-        let conversionConfidence: string | null = null;
-        let conversionNotes: string | null = null;
-
-        if (ingredientId) {
-          const [ingForConvert] = await db
-            .select({
-              normalizedName: ingredient.normalizedName,
-              gramsPerCup: ingredient.gramsPerCup,
-              gramsPerEach: ingredient.gramsPerEach,
-              cupsPerEach: ingredient.cupsPerEach,
-            })
-            .from(ingredient)
-            .where(eq(ingredient.id, ingredientId))
-            .limit(1);
-          const converted = autoConvert({
-            quantity,
-            unit,
-            ingredient: ingForConvert ?? {
-              normalizedName: null,
-              gramsPerCup: null,
-              gramsPerEach: null,
-              cupsPerEach: null,
-            },
-            originalLine: rawLine,
-          });
-          weightGrams = converted.weightGrams ?? null;
-          conversionSource = converted.conversionSource ?? null;
-          conversionConfidence = converted.conversionConfidence ?? null;
-          conversionNotes = converted.conversionNotes ?? null;
-        }
-
         await db.insert(recipeIngredient).values({
           recipeId: recipeRow.id,
           ingredientId,
@@ -252,10 +217,6 @@ export const enhance = {
           sortOrder: i,
           originalQuantity: quantity,
           originalUnit: unit,
-          weightGrams,
-          conversionSource,
-          conversionConfidence,
-          conversionNotes,
         });
 
         returnItems.push({

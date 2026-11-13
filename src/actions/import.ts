@@ -23,7 +23,6 @@ import {
 } from "@/db";
 import { chunkRows } from "@/db/chunked-insert";
 import { normalizeIngredientName } from "@/lib/ingredients/normalize";
-import { autoConvert } from "@/lib/measurements/auto-convert";
 import {
   parseIngredientLineStructured,
   getDisplayTextFromIngredientLine,
@@ -159,27 +158,7 @@ export const recipeImport = {
         ...createdIngredients.map((i) => [i.normalizedName, i.id] as const),
       ]);
 
-      // 4. Collect every ingredientId we need conversion data for
-      const allIngredientIds = [
-        ...verifiedById.map((i) => i.id),
-        ...existingByName.map((i) => i.id),
-        ...createdIngredients.map((i) => i.id),
-      ];
-      const convertData = allIngredientIds.length
-        ? await db
-            .select({
-              id: ingredient.id,
-              normalizedName: ingredient.normalizedName,
-              gramsPerCup: ingredient.gramsPerCup,
-              gramsPerEach: ingredient.gramsPerEach,
-              cupsPerEach: ingredient.cupsPerEach,
-            })
-            .from(ingredient)
-            .where(inArray(ingredient.id, allIngredientIds))
-        : [];
-      const convertById = new Map(convertData.map((i) => [i.id, i]));
-
-      // 5. Build recipeIngredient rows for mapped lines
+      // 4. Build recipeIngredient rows for mapped lines
       const mappedRows = parsedLines
         .filter(({ line }) => line.ingredientId?.trim() || line.createName?.trim())
         .map(({ line, structuredParse, quantity, unitEnum, displayText }) => {
@@ -188,18 +167,6 @@ export const recipeImport = {
             : nameToIngredientId.get(
                 normalizeIngredientName(line.createName!.trim()),
               )!;
-          const ing = convertById.get(ingredientId);
-          const converted = autoConvert({
-            quantity,
-            unit: unitEnum,
-            ingredient: ing ?? {
-              normalizedName: null,
-              gramsPerCup: null,
-              gramsPerEach: null,
-              cupsPerEach: null,
-            },
-            originalLine: line.originalLine,
-          });
           return {
             recipeId,
             ingredientId,
@@ -211,24 +178,20 @@ export const recipeImport = {
             sortOrder: line.sortOrder,
             originalQuantity: quantity,
             originalUnit: unitEnum,
-            weightGrams: converted.weightGrams ?? null,
-            conversionSource: converted.conversionSource ?? null,
-            conversionConfidence: converted.conversionConfidence ?? null,
-            conversionNotes: converted.conversionNotes ?? null,
           };
         });
 
-      // 6. Build all recipeIngredient rows
+      // 5. Build all recipeIngredient rows
       const allRecipeIngredientRows = [...unmappedRows, ...mappedRows];
 
-      // 7. Resolve tags
+      // 6. Resolve tags
       const validTagIds = await filterOwnedTagIds(
         db,
         user.id,
         recipeData.tagIds,
       );
 
-      // 8. Atomically insert instructions + ingredients + tags.
+      // 7. Atomically insert instructions + ingredients + tags.
       // If any of these fail, D1 rolls back the entire batch so the
       // recipe won't exist as a partial entity.
       //
@@ -237,7 +200,7 @@ export const recipeImport = {
       // each bulk insert into multiple statements that all run in the
       // same batch. Param-per-row counts:
       //   recipeInstruction: 4 (id, recipeId, sortOrder, text)
-      //   recipeIngredient (mapped): 15
+      //   recipeIngredient: 11
       //   recipeTag: 3 (id, recipeId, tagId)
       const instructionRows = recipeData.instructions.map(
         (text, sortOrder) => ({
@@ -252,7 +215,7 @@ export const recipeImport = {
         ...chunkRows(instructionRows, 4).map((chunk) =>
           db.insert(recipeInstruction).values(chunk),
         ),
-        ...chunkRows(allRecipeIngredientRows, 15).map((chunk) =>
+        ...chunkRows(allRecipeIngredientRows, 11).map((chunk) =>
           db.insert(recipeIngredient).values(chunk),
         ),
         ...chunkRows(tagRows, 3).map((chunk) =>
@@ -282,7 +245,7 @@ export const recipeImport = {
       );
       await queueSearchSync(ctx, db, [recipeId]);
 
-      // 9. Upsert aliases (best-effort; not tied to recipe atomicity)
+      // 8. Upsert aliases (best-effort; not tied to recipe atomicity)
       const aliasEntries = parsedLines
         .map(({ line }) => {
           const key = normalizeIngredientName(

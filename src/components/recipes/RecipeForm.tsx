@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { actions } from "astro:actions";
+import type { ParsedRecipeDraft } from "@/actions/parse";
 import { INGREDIENT_UNITS, type IngredientUnit } from "@/db/schema/enums";
 import { parseQuantityText } from "@/lib/quantity/quantity";
 import { Button } from "@/components/ui/Button";
@@ -22,6 +23,7 @@ import { requiredIngredientMeasurementsSchema } from "@/features/recipes/ingredi
 import type { RecipeIngredientItemInput } from "@/features/recipes/recipe-ingredients.schemas";
 import { SortableRecipeList } from "./SortableRecipeList";
 import { useRecipeEditorRows } from "./useRecipeEditorRows";
+import { ImportUrlTab } from "./import/ImportUrlTab";
 
 export type RecipeFormMode = "create" | "edit";
 
@@ -54,6 +56,9 @@ export interface RecipeFormProps {
   mode: RecipeFormMode;
   initial: RecipeFormInitial;
   allTags: { id: string; name: string }[];
+  onParsedRecipe?: (draft: ParsedRecipeDraft) => void;
+  importingPhoto?: boolean;
+  onBusyChange?: (busy: boolean) => void;
 }
 
 /** Blank ingredient row for the repeater. */
@@ -80,6 +85,9 @@ export default function RecipeForm({
   mode,
   initial,
   allTags,
+  onParsedRecipe,
+  importingPhoto = false,
+  onBusyChange,
 }: RecipeFormProps) {
   const [title, setTitle] = useState(initial.title);
   const [sourceUrl, setSourceUrl] = useState(initial.sourceUrl);
@@ -101,9 +109,14 @@ export default function RecipeForm({
   const [tagIds, setTagIds] = useState<Set<string>>(new Set(initial.tagIds));
 
   const [pending, setPending] = useState(false);
+  const [parsingUrl, setParsingUrl] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [invalidFieldId, setInvalidFieldId] = useState<string | null>(null);
+
+  useEffect(() => {
+    onBusyChange?.(pending || parsingUrl);
+  }, [pending, parsingUrl, onBusyChange]);
 
   function setIngredient(id: string, patch: Partial<RecipeIngredientDraft>) {
     setError(null);
@@ -132,7 +145,7 @@ export default function RecipeForm({
 
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (pending) return;
+    if (pending || parsingUrl || importingPhoto) return;
     setError(null);
     setFieldErrors({});
     setInvalidFieldId(null);
@@ -279,24 +292,30 @@ export default function RecipeForm({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label
-              htmlFor="sourceUrl"
-              className="mb-1 block text-sm font-medium"
-            >
-              Source URL
-              <span className="ml-1 text-muted-foreground">(optional)</span>
-            </label>
-            <Input
-              id="sourceUrl"
-              name="sourceUrl"
-              type="url"
-              autoComplete="url"
-              value={sourceUrl}
-              onChange={(e) => setSourceUrl(e.target.value)}
-              placeholder="https://example.com/recipe"
+          {mode === "create" && onParsedRecipe ? (
+            <ImportUrlTab
+              url={sourceUrl}
+              onChange={setSourceUrl}
+              onParsed={onParsedRecipe}
+              disabled={pending || importingPhoto}
+              onParsingChange={setParsingUrl}
             />
-          </div>
+          ) : (
+            <div>
+              <label htmlFor="sourceUrl" className="mb-1 block text-sm font-medium">
+                Source URL <span className="text-muted-foreground">(optional)</span>
+              </label>
+              <Input
+                id="sourceUrl"
+                name="sourceUrl"
+                type="url"
+                autoComplete="url"
+                value={sourceUrl}
+                onChange={(e) => setSourceUrl(e.target.value)}
+                placeholder="https://example.com/recipe"
+              />
+            </div>
+          )}
           <div>
             <label
               htmlFor="imageUrl"
@@ -370,7 +389,7 @@ export default function RecipeForm({
         <SortableRecipeList
           kind="ingredient"
           rows={ingredients.rows}
-          disabled={pending}
+          disabled={pending || parsingUrl || importingPhoto}
           onAdd={addIngredient}
           onMove={ingredients.move}
           onRemove={removeIngredient}
@@ -466,7 +485,7 @@ export default function RecipeForm({
                   ingredientId={row.ingredientId}
                   ingredientName={row.ingredientName}
                   createIngredientName={row.createIngredientName}
-                  disabled={pending}
+                  disabled={pending || parsingUrl || importingPhoto}
                   onMap={(ingredientId, name) =>
                     setIngredient(id, {
                       ingredientId,
@@ -500,7 +519,7 @@ export default function RecipeForm({
         <SortableRecipeList
           kind="step"
           rows={instructions.rows}
-          disabled={pending}
+          disabled={pending || parsingUrl || importingPhoto}
           onAdd={instructions.add}
           onMove={instructions.move}
           onRemove={instructions.remove}
@@ -587,7 +606,7 @@ export default function RecipeForm({
         </Button>
         <Button
           type="submit"
-          disabled={pending}
+          disabled={pending || parsingUrl || importingPhoto}
           className={`${mobileFormActionButtonClass} w-full px-5 sm:w-auto`}
         >
           {pending
