@@ -105,6 +105,97 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 
+it("starts edit sections collapsed and expands each independently without changing create mode", async () => {
+  const user = userEvent.setup();
+  renderForm("edit", initial);
+
+  const ingredients = screen.getByRole("button", { name: "Ingredients, 2 ingredients" });
+  const instructions = screen.getByRole("button", { name: "Instructions, 3 steps" });
+  expect(ingredients.getAttribute("aria-expanded")).toBe("false");
+  expect(instructions.getAttribute("aria-expanded")).toBe("false");
+  expect(document.getElementById(ingredients.getAttribute("aria-controls")!)?.hidden).toBe(true);
+  expect(document.getElementById(instructions.getAttribute("aria-controls")!)?.hidden).toBe(true);
+  expect(screen.queryByRole("list", { name: "Ingredients" })).toBeNull();
+  expect(screen.queryByRole("list", { name: "Instructions" })).toBeNull();
+
+  await user.click(ingredients);
+  expect(ingredients.getAttribute("aria-expanded")).toBe("true");
+  expect(screen.getByRole("list", { name: "Ingredients" })).toBeTruthy();
+  expect(instructions.getAttribute("aria-expanded")).toBe("false");
+
+  cleanup();
+  renderForm("create", initial);
+  expect(screen.getByRole("list", { name: "Ingredients" })).toBeTruthy();
+  expect(screen.getByRole("list", { name: "Instructions" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /Ingredients, 2 ingredients/ })).toBeNull();
+});
+
+it("keeps edits and row counts after collapsing, and saves closed sections", async () => {
+  const user = userEvent.setup();
+  renderForm("edit", validInitial);
+
+  await user.click(screen.getByRole("button", { name: "Ingredients, 1 ingredient" }));
+  await user.clear(screen.getByLabelText("Ingredient name"));
+  await user.type(screen.getByLabelText("Ingredient name"), "bread flour");
+  await user.click(screen.getByRole("button", { name: "Add ingredient" }));
+  expect(screen.getByRole("button", { name: "Ingredients, 2 ingredients" })).toBeTruthy();
+  await user.click(screen.getByRole("button", { name: "Ingredients, 2 ingredients" }));
+
+  await user.click(screen.getByRole("button", { name: "Instructions, 1 step" }));
+  await user.clear(screen.getByRole("textbox", { name: "Step 1" }));
+  await user.type(screen.getByRole("textbox", { name: "Step 1" }), "Bake until golden.");
+  await user.click(screen.getByRole("button", { name: "Instructions, 1 step" }));
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+  expect(update).toHaveBeenCalledOnce();
+  expect(update.mock.calls[0][0]).toMatchObject({
+    ingredientsStructured: [expect.objectContaining({ displayText: "bread flour" })],
+    instructions: ["Bake until golden."],
+  });
+  await user.click(screen.getByRole("button", { name: "Ingredients, 2 ingredients" }));
+  expect(screen.getByRole("textbox", { name: "Ingredient 1 name" })).toHaveProperty("value", "bread flour");
+});
+
+it("opens a closed ingredient section and focuses the invalid field on save", async () => {
+  const user = userEvent.setup();
+  renderForm("edit", {
+    ...validInitial,
+    ingredients: [{ ...validInitial.ingredients[0], quantityText: "" }],
+  });
+
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+  expect(screen.getByRole("button", { name: "Ingredients, 1 ingredient" }).getAttribute("aria-expanded")).toBe("true");
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Quantity")));
+  expect(update).not.toHaveBeenCalled();
+});
+
+it("opens a closed instructions section and focuses the empty step on save", async () => {
+  const user = userEvent.setup();
+  renderForm("edit", { ...validInitial, instructions: [""] });
+
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+  expect(screen.getByRole("button", { name: "Instructions, 1 step" }).getAttribute("aria-expanded")).toBe("true");
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("textbox", { name: "Step 1" })));
+  expect(update).not.toHaveBeenCalled();
+});
+
+it("opens sections with server-side field errors", async () => {
+  const user = userEvent.setup();
+  update.mockResolvedValueOnce({
+    data: undefined,
+    error: { message: "Please review this recipe", fields: {
+      ingredientsStructured: ["Check ingredients"],
+      instructions: ["Check instructions"],
+    } },
+  });
+  renderForm("edit");
+
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Ingredients, 1 ingredient" }).getAttribute("aria-expanded")).toBe("true"));
+  expect(screen.getByRole("button", { name: "Instructions, 1 step" }).getAttribute("aria-expanded")).toBe("true");
+  expect(screen.getByText("Check instructions")).toBeTruthy();
+});
+
 it.each<RecipeFormMode>(["create", "edit"])("requires quantity and unit in %s mode, then saves the reviewed strings", async (mode) => {
   const user = userEvent.setup();
   renderForm(mode, {
@@ -114,6 +205,7 @@ it.each<RecipeFormMode>(["create", "edit"])("requires quantity and unit in %s mo
       rawText: " Salt to taste ", ingredientId: null,
     }],
   });
+  if (mode === "edit") await user.click(screen.getByRole("button", { name: /Ingredients, 1 ingredient/ }));
   const save = screen.getByRole("button", { name: mode === "create" ? "Create recipe" : "Save changes" });
   const quantity = screen.getByLabelText("Quantity");
   const unit = screen.getByRole("combobox", { name: "Unit" });
@@ -250,6 +342,7 @@ it.each<RecipeFormMode>(["create", "edit"])("keeps recipe line text and measurem
     ...validInitial,
     ingredients: [{ ...validInitial.ingredients[0], quantityText: "" }],
   });
+  if (mode === "edit") await user.click(screen.getByRole("button", { name: /Ingredients, 1 ingredient/ }));
   await user.click(screen.getByRole("button", { name: "Choose an ingredient" }));
   await user.type(screen.getByPlaceholderText("Search catalog ingredients"), "flour");
   await user.click(await screen.findByRole("option", { name: /Flour.*global/i }));
@@ -280,6 +373,7 @@ it("maps an existing recipe line inline without changing its text, quantity, or 
   const user = userEvent.setup();
   renderForm("edit", validInitial);
 
+  await user.click(screen.getByRole("button", { name: /Ingredients, 1 ingredient/ }));
   await user.click(screen.getByRole("button", { name: "Choose an ingredient" }));
   await user.type(screen.getByPlaceholderText("Search catalog ingredients"), "flour");
   await user.click(await screen.findByRole("option", { name: /Flour.*global/i }));
@@ -335,6 +429,10 @@ describe("RecipeForm ordering", () => {
   it.each(["create", "edit"] as const)("serializes the new order in %s mode without losing ingredient details", async (mode) => {
     const user = userEvent.setup();
     render(<RecipeForm mode={mode} initial={initial} allTags={[]} />);
+    if (mode === "edit") {
+      await user.click(screen.getByRole("button", { name: /Ingredients, 2 ingredients/ }));
+      await user.click(screen.getByRole("button", { name: /Instructions, 3 steps/ }));
+    }
     const eggs = screen.getByRole("textbox", { name: "Ingredient 2 name" });
 
     await user.click(screen.getByRole("button", { name: "Move ingredient 2 up" }));
@@ -365,6 +463,7 @@ describe("RecipeForm ordering", () => {
   it("keeps mapper state and new mappings attached to the moved ingredient", async () => {
     const user = userEvent.setup();
     render(<RecipeForm mode="edit" initial={initial} allTags={[]} />);
+    await user.click(screen.getByRole("button", { name: /Ingredients, 2 ingredients/ }));
     const eggsRow = screen.getByRole("textbox", { name: "Ingredient 2 name" }).closest("li")!;
     const mapper = within(eggsRow).getByRole("button", { name: "Eggs" });
     await user.click(mapper);
@@ -396,6 +495,8 @@ describe("RecipeForm ordering", () => {
     let rejectSave: (reason: unknown) => void;
     update.mockReturnValueOnce(new Promise((_, reject) => { rejectSave = reject; }));
     render(<RecipeForm mode="edit" initial={initial} allTags={[]} />);
+    await user.click(screen.getByRole("button", { name: /Ingredients, 2 ingredients/ }));
+    await user.click(screen.getByRole("button", { name: /Instructions, 3 steps/ }));
     await user.click(screen.getByRole("button", { name: "Move step 3 up" }));
     await user.click(screen.getByRole("button", { name: "Save changes" }));
 

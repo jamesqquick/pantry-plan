@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { actions } from "astro:actions";
+import { ChevronDown } from "lucide-react";
 import { INGREDIENT_UNITS, type IngredientUnit } from "@/db/schema/enums";
 import { parseQuantityText } from "@/lib/quantity/quantity";
 import { Button } from "@/components/ui/Button";
@@ -99,11 +100,23 @@ export default function RecipeForm({
   );
   const instructions = useRecipeEditorRows(initial.instructions, () => "");
   const [tagIds, setTagIds] = useState<Set<string>>(new Set(initial.tagIds));
+  const [ingredientsOpen, setIngredientsOpen] = useState(mode === "create");
+  const [instructionsOpen, setInstructionsOpen] = useState(mode === "create");
 
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [invalidFieldId, setInvalidFieldId] = useState<string | null>(null);
+
+  function showFieldErrors(fields: Record<string, string[]>) {
+    setFieldErrors(fields);
+    if (Object.keys(fields).some((key) => key.startsWith("ingredients"))) {
+      setIngredientsOpen(true);
+    }
+    if (Object.keys(fields).some((key) => key.startsWith("instructions"))) {
+      setInstructionsOpen(true);
+    }
+  }
 
   function setIngredient(id: string, patch: Partial<RecipeIngredientDraft>) {
     setError(null);
@@ -168,6 +181,7 @@ export default function RecipeForm({
             : `Quantity for "${label}" must be a valid number or fraction that is 0 or greater.`
           : `Choose a unit for "${label}".`);
         setInvalidFieldId(fieldId);
+        setIngredientsOpen(true);
         window.setTimeout(() => document.getElementById(fieldId)?.focus(), 0);
         return;
       }
@@ -176,6 +190,7 @@ export default function RecipeForm({
         const fieldId = id;
         setError(`Ingredient name is required for "${label}".`);
         setInvalidFieldId(fieldId);
+        setIngredientsOpen(true);
         window.setTimeout(() => document.getElementById(fieldId)?.focus(), 0);
         return;
       }
@@ -209,6 +224,10 @@ export default function RecipeForm({
 
     if (cleanInstructions.length === 0) {
       setError("At least one instruction is required.");
+      if (mode === "edit") {
+        setInstructionsOpen(true);
+        window.setTimeout(() => document.getElementById(instructions.rows[0]!.id)?.focus(), 0);
+      }
       return;
     }
 
@@ -219,7 +238,7 @@ export default function RecipeForm({
         if (err) {
           setError(err.message || "Could not create recipe");
           if ("fields" in err && err.fields) {
-            setFieldErrors(err.fields as Record<string, string[]>);
+            showFieldErrors(err.fields as Record<string, string[]>);
           }
           setPending(false);
           return;
@@ -240,7 +259,7 @@ export default function RecipeForm({
         if (err) {
           setError(err.message || "Could not update recipe");
           if ("fields" in err && err.fields) {
-            setFieldErrors(err.fields as Record<string, string[]>);
+            showFieldErrors(err.fields as Record<string, string[]>);
           }
           setPending(false);
           return;
@@ -366,7 +385,25 @@ export default function RecipeForm({
       </section>
 
       <section id="recipe-ingredients" className="scroll-mt-24 space-y-3">
-        <h2 className="font-display text-xl text-foreground">Ingredients</h2>
+        <h2 className="font-display text-xl text-foreground">
+          {mode === "edit" ? (
+            <button
+              type="button"
+              aria-label={`Ingredients, ${ingredients.rows.length} ${ingredients.rows.length === 1 ? "ingredient" : "ingredients"}`}
+              aria-expanded={ingredientsOpen}
+              aria-controls="recipe-ingredients-content"
+              onClick={() => setIngredientsOpen((open) => !open)}
+              className="flex min-h-11 w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+            >
+              <span className="flex-1">Ingredients</span>
+              <span className="font-ui text-sm font-normal text-muted-foreground">
+                {ingredients.rows.length} {ingredients.rows.length === 1 ? "ingredient" : "ingredients"}
+              </span>
+              <ChevronDown className={`size-5 shrink-0 transition-transform motion-reduce:transition-none ${ingredientsOpen ? "rotate-180" : ""}`} aria-hidden="true" />
+            </button>
+          ) : "Ingredients"}
+        </h2>
+        <div id="recipe-ingredients-content" hidden={mode === "edit" && !ingredientsOpen} className="space-y-3">
         <SortableRecipeList
           kind="ingredient"
           rows={ingredients.rows}
@@ -493,10 +530,29 @@ export default function RecipeForm({
             </>
           )}
         </SortableRecipeList>
+        </div>
       </section>
 
       <section className="space-y-3">
-        <h2 className="font-display text-xl text-foreground">Instructions</h2>
+        <h2 className="font-display text-xl text-foreground">
+          {mode === "edit" ? (
+            <button
+              type="button"
+              aria-label={`Instructions, ${instructions.rows.length} ${instructions.rows.length === 1 ? "step" : "steps"}`}
+              aria-expanded={instructionsOpen}
+              aria-controls="recipe-instructions-content"
+              onClick={() => setInstructionsOpen((open) => !open)}
+              className="flex min-h-11 w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+            >
+              <span className="flex-1">Instructions</span>
+              <span className="font-ui text-sm font-normal text-muted-foreground">
+                {instructions.rows.length} {instructions.rows.length === 1 ? "step" : "steps"}
+              </span>
+              <ChevronDown className={`size-5 shrink-0 transition-transform motion-reduce:transition-none ${instructionsOpen ? "rotate-180" : ""}`} aria-hidden="true" />
+            </button>
+          ) : "Instructions"}
+        </h2>
+        <div id="recipe-instructions-content" hidden={mode === "edit" && !instructionsOpen} className="space-y-3">
         <SortableRecipeList
           kind="step"
           rows={instructions.rows}
@@ -527,6 +583,7 @@ export default function RecipeForm({
             {fieldErrors.instructions[0]}
           </p>
         )}
+        </div>
       </section>
 
       {allTags.length > 0 && (
