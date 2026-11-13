@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { submitCreate } from "@/features/mutations/client";
+import { actions } from "astro:actions";
 
 import type { IngredientUnit } from "@/db/schema/enums";
 import { Button } from "@/components/ui/Button";
@@ -271,11 +271,11 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
         (line) => line.ingredientId || line.createName,
       );
       const { data, error: saveError } = hasMappings
-        ? await submitCreate("recipeImport.saveWithMappings", {
+        ? await actions.recipeImport.saveWithMappings({
             recipe: recipePayload,
             ingredientLines,
           })
-        : await submitCreate("recipeImport.saveTextOnly", {
+        : await actions.recipeImport.saveTextOnly({
             recipe: recipePayload,
             ingredients: cleanIngredients,
           });
@@ -285,7 +285,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
         return;
       }
 
-      savedRecipeId = data!.id;
+      savedRecipeId = data!.recipeId;
     } catch (cause) {
       setError(
         cause instanceof Error && cause.message

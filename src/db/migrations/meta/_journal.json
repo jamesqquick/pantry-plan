@@ -99,6 +99,13 @@
       "when": 1794346936001,
       "tag": "0013_ingredient_package_pricing",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1794581678662,
+      "tag": "0014_drop_mutation_operations",
+      "breakpoints": true
     }
   ]
 }

@@ -10,7 +10,6 @@ import { profile } from "./profile";
 import { mcpKeys } from "./mcp-keys";
 import { searchIndex } from "./search-index";
 import { chatgpt } from "./chatgpt";
-import { mutations } from "./mutations";
 
 /**
  * Every mutation / authenticated read is namespaced here. Callers import from
@@ -32,5 +31,4 @@ export const server = {
   mcpKeys,
   searchIndex,
   chatgpt,
-  mutations,
 };

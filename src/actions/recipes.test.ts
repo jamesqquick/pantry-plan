@@ -103,7 +103,7 @@ type SubmittedRecipe = ReturnType<typeof submittedRecipe> & {
 
 function mutate(method: "create" | "update", input: SubmittedRecipe = submittedRecipe()) {
   return method === "create"
-    ? recipes.create.orThrow.call(ctx, { ...input, accountId: "cook", operationId: crypto.randomUUID() })
+    ? recipes.create.orThrow.call(ctx, input)
     : recipes.update.orThrow.call(ctx, { id: "existing", ...input });
 }
 
@@ -362,11 +362,30 @@ describe("partial recipe mutations", () => {
   });
 
   it("creates a recipe without optional children", async () => {
-    const { id } = await recipes.create.orThrow.call(ctx, { accountId: "cook", operationId: crypto.randomUUID(), title: "Simple soup", instructions: ["  Cook.  "] });
+    const { id } = await recipes.create.orThrow.call(ctx, { title: "Simple soup", instructions: ["  Cook.  "] });
 
     expect(test.sqlite.prepare("SELECT text FROM RecipeInstruction WHERE recipeId = ?").all(id)).toEqual([{ text: "Cook." }]);
     expect(test.sqlite.prepare("SELECT * FROM RecipeIngredient WHERE recipeId = ?").all(id)).toEqual([]);
     expect(test.sqlite.prepare("SELECT * FROM RecipeTag WHERE recipeId = ?").all(id)).toEqual([]);
+  });
+
+  it("duplicates a recipe and its nested data in one batch", async () => {
+    const batch = vi.spyOn(test.binding, "batch");
+    const form = new FormData();
+    form.set("recipeId", "existing");
+
+    const { id } = await recipes.duplicate.orThrow.call(ctx, form);
+
+    expect(test.sqlite.prepare("SELECT title, sourceUrl FROM Recipe WHERE id = ?").get(id))
+      .toEqual({ title: "Copy of Original soup", sourceUrl: "https://example.test/soup" });
+    expect(test.sqlite.prepare("SELECT text FROM RecipeInstruction WHERE recipeId = ?").all(id))
+      .toEqual([{ text: "Original instruction" }]);
+    expect(test.sqlite.prepare("SELECT displayText FROM RecipeIngredient WHERE recipeId = ?").all(id))
+      .toEqual([{ displayText: "Original ingredient" }]);
+    expect(test.sqlite.prepare("SELECT tagId FROM RecipeTag WHERE recipeId = ?").all(id))
+      .toEqual([{ tagId: "old-tag" }]);
+    expect(batch).toHaveBeenCalledOnce();
+    expect(runtime.queueSearchSync).toHaveBeenCalledExactlyOnceWith(ctx, runtime.db, [id]);
   });
 
   it("leaves omitted core fields and child arrays unchanged", async () => {
