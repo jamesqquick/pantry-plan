@@ -20,6 +20,7 @@ export const recipe = sqliteTable(
     title: text("title").notNull(),
     sourceUrl: text("sourceUrl"),
     imageUrl: text("imageUrl"),
+    imageStorageKey: text("imageStorageKey"),
     servings: integer("servings"),
     prepTimeMinutes: integer("prepTimeMinutes"),
     cookTimeMinutes: integer("cookTimeMinutes"),

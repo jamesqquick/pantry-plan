@@ -63,7 +63,9 @@ it.each([
         .toEqual(Array(7).fill(null));
     }
     expect(sqlite.prepare("SELECT * FROM user ORDER BY id").all()).toEqual(users);
-    expect(sqlite.prepare("SELECT * FROM Recipe ORDER BY id").all()).toEqual(recipes);
+    expect(sqlite.prepare("SELECT * FROM Recipe ORDER BY id").all()).toEqual(
+      recipes.map((row) => ({ ...row, imageStorageKey: null })),
+    );
     expect(sqlite.prepare("SELECT * FROM RecipeIngredient ORDER BY id").all()).toEqual(lines);
     expect(sqlite.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'MutationOperation'").get())
       .toBeUndefined();

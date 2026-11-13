@@ -108,7 +108,9 @@ OAuth and MCP keys use the same six tools:
 - `create_recipe` creates a recipe in your account. Ingredients use structured
   objects with `quantity`, `unit`, `displayText`, and optional `rawText` fields.
   Pass optional `tags` as tag names to reuse existing tags or create missing ones
-  in your account. Names are trimmed and duplicates are ignored.
+  in your account. Names are trimmed and duplicates are ignored. To copy a
+  display photo into Quick Pantry, pass a public HTTPS `photoSourceUrl` instead
+  of `imageUrl` (JPEG, PNG, or WebP; maximum 4 MB).
 - `import_recipe_from_url` fetches and saves a recipe from a URL.
 - `search_recipes` searches your recipes. Pass an optional `tag` name to only
   search recipes with that tag. Natural-language search across ingredients,
@@ -120,6 +122,7 @@ OAuth and MCP keys use the same six tools:
   replace the complete ordered list. Replacement lists must contain at least one
   item. Supply `tags` as tag names to replace all tags, or `[]` to clear them.
   Omit `tags` to keep the current tags. The result includes the saved tag names.
+  Pass `photoSourceUrl` to replace the display photo with a copied image.
 - `create_weekly_meal_plan` replaces a week with saved recipe IDs. Use
   `search_recipes` and `create_recipe` first when a recipe is not already saved.
 
@@ -171,6 +174,18 @@ For Google sign-in locally, configure `GOOGLE_CLIENT_ID` and
 Production email uses the `EMAIL` Cloudflare Email Sending binding and the
 onboarded `quickpantry.app` domain. Local development keeps using the remote
 Email Sending binding from `wrangler.jsonc`.
+
+### Recipe display photos
+
+Manual and imported recipe editors can upload a JPEG, PNG, or WebP display photo
+up to 4 MB. The `RECIPE_PHOTOS` R2 binding uses `quickpantry-recipe-photos` in
+production and `quickpantry-recipe-photos-preview` for Worker Previews. Create
+both buckets in the account from `wrangler.jsonc` before deploying and apply
+the committed D1 migration with the appropriate `db:migrate:*` command.
+Uploaded photos use `/recipe-photos/{recipeId}` by default. To serve them
+directly from R2, configure an R2 custom domain for each bucket and set
+`RECIPE_PHOTO_PUBLIC_URL` to its origin in that environment. The photo-read
+route works without a custom domain.
 
 ### ChatGPT OAuth
 

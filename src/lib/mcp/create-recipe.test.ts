@@ -31,6 +31,24 @@ function createFakeDb() {
 }
 
 describe("createMcpRecipe", () => {
+  it("copies photoSourceUrl to R2 and rolls back the object if the recipe batch fails", async () => {
+    const test = createTestDb();
+    sqlite = test.sqlite;
+    sqlite.exec("INSERT INTO user (id, name, email, createdAt, updatedAt) VALUES ('cook', 'Cook', 'cook@example.test', 1, 1)");
+    const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1]);
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () => new Response(png, { headers: { "content-type": "image/png" } }));
+    const bucket = { put: vi.fn(), delete: vi.fn() };
+    const storage = { bucket: bucket as unknown as R2Bucket, publicUrl: "https://photos.example.test" };
+    const input: CreateRecipeToolInput = { title: "Soup", ingredients: [{ quantity: 1, unit: "CUP", displayText: "stock" }], instructions: ["Heat"], photoSourceUrl: "https://example.test/soup.png" };
+
+    const { recipeId } = await createMcpRecipe(test.db, "cook", input, storage);
+    expect(bucket.put).toHaveBeenCalledWith(`recipe-photos/${recipeId}`, png, expect.objectContaining({ httpMetadata: { contentType: "image/png", cacheControl: "public, no-cache" } }));
+    expect(sqlite.prepare("SELECT imageStorageKey, imageUrl FROM Recipe WHERE id = ?").get(recipeId)).toMatchObject({ imageStorageKey: `recipe-photos/${recipeId}`, imageUrl: expect.stringContaining(`recipe-photos/${recipeId}?v=`) });
+
+    sqlite.exec("CREATE TRIGGER fail_recipe BEFORE INSERT ON Recipe BEGIN SELECT RAISE(ABORT, 'injected failure'); END;");
+    await expect(createMcpRecipe(test.db, "cook", input, storage)).rejects.toThrow("injected failure");
+    expect(bucket.delete).toHaveBeenCalledWith(expect.stringMatching(/^recipe-photos\//));
+  });
   it("stores structured ingredients and ordered instructions in one batch", async () => {
     const { db, batch, inserts } = createFakeDb();
 

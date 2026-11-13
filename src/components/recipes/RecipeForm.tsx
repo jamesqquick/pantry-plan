@@ -22,6 +22,7 @@ import { requiredIngredientMeasurementsSchema } from "@/features/recipes/ingredi
 import type { RecipeIngredientItemInput } from "@/features/recipes/recipe-ingredients.schemas";
 import { SortableRecipeList } from "./SortableRecipeList";
 import { useRecipeEditorRows } from "./useRecipeEditorRows";
+import { RecipePhotoFields } from "./RecipePhotoFields";
 
 export type RecipeFormMode = "create" | "edit";
 
@@ -84,6 +85,8 @@ export default function RecipeForm({
   const [title, setTitle] = useState(initial.title);
   const [sourceUrl, setSourceUrl] = useState(initial.sourceUrl);
   const [imageUrl, setImageUrl] = useState(initial.imageUrl);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [savedRecipeId, setSavedRecipeId] = useState<string | null>(null);
   const [servings, setServings] = useState(initial.servings);
   const [prepTime, setPrepTime] = useState(initial.prepTimeMinutes);
   const [cookTime, setCookTime] = useState(initial.cookTimeMinutes);
@@ -213,8 +216,10 @@ export default function RecipeForm({
     }
 
     setPending(true);
+    let recipeSaved = false;
     try {
-      if (mode === "create") {
+      let recipeId = savedRecipeId ?? (mode === "edit" ? initial.id : undefined);
+      if (mode === "create" && !recipeId) {
         const { data, error: err } = await actions.recipes.create(payload);
         if (err) {
           setError(err.message || "Could not create recipe");
@@ -224,18 +229,16 @@ export default function RecipeForm({
           setPending(false);
           return;
         }
-        if (data) {
-          window.location.href = `/recipes/${data.id}`;
-        }
+        if (data) recipeId = data.id;
       } else {
-        if (!initial.id) {
+        if (!recipeId) {
           setError("Missing recipe id");
           setPending(false);
           return;
         }
         const { data, error: err } = await actions.recipes.update({
           ...payload,
-          id: initial.id,
+          id: recipeId,
         });
         if (err) {
           setError(err.message || "Could not update recipe");
@@ -245,12 +248,25 @@ export default function RecipeForm({
           setPending(false);
           return;
         }
-        if (data) {
-          window.location.href = `/recipes/${data.id}`;
+        if (data) recipeId = data.id;
+      }
+      if (!recipeId) return;
+      recipeSaved = true;
+      if (photo) {
+        setSavedRecipeId(recipeId);
+        const formData = new FormData();
+        formData.set("recipeId", recipeId);
+        formData.set("image", photo);
+        const { error: uploadError } = await actions.recipes.uploadPhoto(formData);
+        if (uploadError) {
+          setError(`Recipe saved, but the photo upload failed: ${uploadError.message}. Save again to retry.`);
+          setPending(false);
+          return;
         }
       }
+      window.location.href = `/recipes/${recipeId}`;
     } catch {
-      setError("Could not save recipe. Please try again.");
+      setError(recipeSaved && photo ? "Recipe saved, but the photo upload failed. Save again to retry." : "Could not save recipe. Please try again.");
       setPending(false);
     }
   }
@@ -297,24 +313,7 @@ export default function RecipeForm({
               placeholder="https://example.com/recipe"
             />
           </div>
-          <div>
-            <label
-              htmlFor="imageUrl"
-              className="mb-1 block text-sm font-medium"
-            >
-              Image URL
-              <span className="ml-1 text-muted-foreground">(optional)</span>
-            </label>
-            <Input
-              id="imageUrl"
-              name="imageUrl"
-              type="url"
-              autoComplete="url"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://example.com/image.jpg"
-            />
-          </div>
+          <RecipePhotoFields id="image" imageUrl={imageUrl} onImageUrlChange={setImageUrl} photo={photo} onPhotoChange={setPhoto} disabled={pending} />
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">

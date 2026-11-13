@@ -11,12 +11,12 @@ import { createTextOnlyRecipe } from "@/features/recipes/create-text-recipe";
 import { formatQuantityForInput } from "@/lib/quantity/quantity";
 import RecipeForm, { type RecipeFormInitial, type RecipeFormMode } from "./RecipeForm";
 
-const { create, update, searchForPicker } = vi.hoisted(() => ({
-  create: vi.fn(), update: vi.fn(), searchForPicker: vi.fn(),
+const { create, update, uploadPhoto, searchForPicker } = vi.hoisted(() => ({
+  create: vi.fn(), update: vi.fn(), uploadPhoto: vi.fn(), searchForPicker: vi.fn(),
 }));
 vi.mock("astro:actions", () => ({
   actions: {
-    recipes: { create, update }, ingredients: { searchForPicker },
+    recipes: { create, update, uploadPhoto }, ingredients: { searchForPicker },
   },
 }));
 
@@ -89,6 +89,7 @@ let sqlite: DatabaseSync | undefined;
 beforeEach(() => {
   create.mockResolvedValue({ data: undefined, error: { message: "Could not save recipe" } });
   update.mockResolvedValue({ data: undefined, error: { message: "Could not save recipe" } });
+  uploadPhoto.mockResolvedValue({ data: { imageUrl: "https://photos.example.test/photo" }, error: undefined });
   searchForPicker.mockResolvedValue({
     data: [
       { id: "ingredient-flour", name: "Flour", source: "global" },
@@ -96,6 +97,37 @@ beforeEach(() => {
     ],
     error: undefined,
   });
+});
+
+it("saves a recipe before uploading its photo and retries without creating a duplicate", async () => {
+  const user = userEvent.setup();
+  renderForm("create");
+  create.mockResolvedValue({ data: { id: "saved-recipe" }, error: undefined });
+  update.mockResolvedValue({ data: { id: "saved-recipe" }, error: undefined });
+  uploadPhoto.mockResolvedValue({ data: undefined, error: { message: "Storage unavailable" } });
+  const file = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], "photo.png", { type: "image/png" });
+  await user.upload(screen.getByLabelText("Or upload a photo"), file);
+  await user.click(screen.getByRole("button", { name: "Create recipe" }));
+  await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Recipe saved, but the photo upload failed"));
+  expect(create).toHaveBeenCalledOnce();
+  expect(uploadPhoto).toHaveBeenCalledOnce();
+  expect(uploadPhoto.mock.calls[0][0].get("recipeId")).toBe("saved-recipe");
+  await user.click(screen.getByRole("button", { name: "Create recipe" }));
+  await waitFor(() => expect(uploadPhoto).toHaveBeenCalledTimes(2));
+  expect(create).toHaveBeenCalledOnce();
+  expect(update).toHaveBeenCalledWith(expect.objectContaining({ id: "saved-recipe" }));
+});
+
+it("reports a thrown photo upload failure as retryable after the recipe was saved", async () => {
+  const user = userEvent.setup();
+  renderForm("create");
+  create.mockResolvedValue({ data: { id: "saved-recipe" }, error: undefined });
+  uploadPhoto.mockRejectedValue(new Error("Network unavailable"));
+  await user.upload(screen.getByLabelText("Or upload a photo"), new File(["photo"], "photo.png", { type: "image/png" }));
+  await user.click(screen.getByRole("button", { name: "Create recipe" }));
+  await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Recipe saved, but the photo upload failed"));
+  expect(create).toHaveBeenCalledOnce();
+  expect(uploadPhoto).toHaveBeenCalledOnce();
 });
 
 afterEach(() => {

@@ -44,6 +44,12 @@
     "images": {
       "binding": "IMAGES"
     },
+    "r2_buckets": [
+      {
+        "binding": "RECIPE_PHOTOS",
+        "bucket_name": "quickpantry-recipe-photos-preview"
+      }
+    ],
     "send_email": [
       {
         "name": "EMAIL",
@@ -102,6 +108,12 @@
       "database_name": "pantry-plan",
       "database_id": "c34f212d-1ce2-478a-9366-bb6f764d9f23",
       "migrations_dir": "src/db/migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "RECIPE_PHOTOS",
+      "bucket_name": "quickpantry-recipe-photos"
     }
   ],
   "ratelimits": [

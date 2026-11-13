@@ -7,9 +7,10 @@ import userEvent from "@testing-library/user-event";
 import { parseIngredientLineForImport } from "@/lib/ingredients/parse-line";
 import { RecipeDraftEditor, type RecipeDraft } from "./RecipeDraftEditor";
 
-const { saveTextOnly, saveWithMappings, searchForPicker, softNavigate } = vi.hoisted(() => ({
+const { saveTextOnly, saveWithMappings, uploadPhoto, searchForPicker, softNavigate } = vi.hoisted(() => ({
   saveTextOnly: vi.fn(),
   saveWithMappings: vi.fn(),
+  uploadPhoto: vi.fn(),
   searchForPicker: vi.fn(),
   softNavigate: vi.fn(),
 }));
@@ -17,6 +18,7 @@ const { saveTextOnly, saveWithMappings, searchForPicker, softNavigate } = vi.hoi
 vi.mock("astro:actions", () => ({
   actions: {
     recipeImport: { saveTextOnly, saveWithMappings },
+    recipes: { uploadPhoto },
     ingredients: { searchForPicker },
   },
 }));
@@ -58,6 +60,7 @@ beforeEach(() => {
     data: { recipeId: "recipe-123" },
     error: undefined,
   });
+  uploadPhoto.mockResolvedValue({ data: { imageUrl: "/recipe-photos/recipe-123" }, error: undefined });
   searchForPicker.mockResolvedValue({
     data: [{ id: "ingredient-flour", name: "Flour", source: "global" }],
     error: undefined,
@@ -70,6 +73,26 @@ afterEach(() => {
 });
 
 describe("RecipeDraftEditor", () => {
+  it("keeps the extraction photo separate and retries a failed display photo upload without duplicating the import", async () => {
+    const user = userEvent.setup();
+    renderEditor();
+    expect(screen.getByLabelText("Or upload a photo")).toBeTruthy();
+    const file = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], "display.png", { type: "image/png" });
+    await user.upload(screen.getByLabelText("Or upload a photo"), file);
+    uploadPhoto.mockResolvedValue({ data: undefined, error: { message: "Storage unavailable" } });
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("photo upload failed"));
+    expect(saveTextOnly).toHaveBeenCalledOnce();
+    expect(uploadPhoto.mock.calls[0][0].get("recipeId")).toBe("recipe-123");
+    expect(screen.getByRole("link", { name: "Open saved recipe" }).getAttribute("href")).toBe("/recipes/recipe-123");
+    const replacement = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], "replacement.png", { type: "image/png" });
+    await user.upload(screen.getByLabelText("Or upload a photo"), replacement);
+    await user.click(screen.getByRole("button", { name: "Retry photo upload" }));
+    await waitFor(() => expect(uploadPhoto).toHaveBeenCalledTimes(2));
+    expect(uploadPhoto.mock.calls[1][0].get("image").name).toBe("replacement.png");
+    expect(saveTextOnly).toHaveBeenCalledOnce();
+    expect(saveWithMappings).not.toHaveBeenCalled();
+  });
   it("shows catalog suggestions from the parse response on first render", async () => {
     const user = userEvent.setup();
     renderEditor({ ...validDraft, ingredientLines: suggestedLines });

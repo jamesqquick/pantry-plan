@@ -52,6 +52,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;
   // MCP and OAuth discovery authenticate independently of browser sessions.
   if (pathname === "/mcp" || pathname.startsWith("/.well-known/")) return next();
+  if (pathname.startsWith("/recipe-photos/")) return next();
 
   const isAction = pathname.startsWith("/_actions/");
   const budget = new DatabaseBudget({

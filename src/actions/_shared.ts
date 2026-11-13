@@ -53,6 +53,10 @@ export function getDb(): Db {
   return createDb(env.DB);
 }
 
+export function getPhotoStorage() {
+  return { bucket: env.RECIPE_PHOTOS, publicUrl: env.RECIPE_PHOTO_PUBLIC_URL };
+}
+
 /** Wrap a unique-like constraint violation into a clean ActionError. */
 export function throwDuplicate(message: string): never {
   throw new ActionError({ code: "CONFLICT", message });

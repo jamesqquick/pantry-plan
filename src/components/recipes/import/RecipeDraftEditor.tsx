@@ -28,6 +28,7 @@ import { IngredientMapper } from "@/components/recipes/IngredientMapper";
 import { softNavigate } from "@/lib/navigate";
 import { SortableRecipeList } from "../SortableRecipeList";
 import { useRecipeEditorRows } from "../useRecipeEditorRows";
+import { RecipePhotoFields } from "../RecipePhotoFields";
 
 export type RecipeDraft = {
   title: string;
@@ -117,6 +118,8 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
   const [title, setTitle] = useState(draft.title);
   const [sourceUrl, setSourceUrl] = useState(draft.sourceUrl);
   const [imageUrl, setImageUrl] = useState(draft.imageUrl);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [savedRecipeId, setSavedRecipeId] = useState<string | null>(null);
   const [servings, setServings] = useState(
     draft.servings?.toString() ?? "",
   );
@@ -184,6 +187,11 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
 
   async function handleSave() {
     if (saving) return;
+
+    if (savedRecipeId) {
+      await uploadAndNavigate(savedRecipeId);
+      return;
+    }
 
     setError(null);
     setInvalidFieldId(null);
@@ -269,7 +277,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
     }
 
     setSaving(true);
-    let savedRecipeId: string | null = null;
+    let createdRecipeId: string | null = null;
     try {
       const hasMappings = ingredientLines.some(
         (line) => line.ingredientId || line.createName,
@@ -289,7 +297,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
         return;
       }
 
-      savedRecipeId = data!.recipeId;
+      createdRecipeId = data!.recipeId;
     } catch (cause) {
       setError(
         cause instanceof Error && cause.message
@@ -297,12 +305,36 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
           : "Failed to save recipe. Please try again.",
       );
     } finally {
-      if (savedRecipeId === null) setSaving(false);
+      if (createdRecipeId === null) setSaving(false);
     }
 
-    if (savedRecipeId === null) return;
+    if (createdRecipeId === null) return;
 
-    softNavigate(`/recipes/${savedRecipeId}`);
+    setSavedRecipeId(createdRecipeId);
+    await uploadAndNavigate(createdRecipeId);
+  }
+
+  async function uploadAndNavigate(recipeId: string) {
+    if (!photo) {
+      softNavigate(`/recipes/${recipeId}`);
+      return;
+    }
+    setSaving(true);
+    const formData = new FormData();
+    formData.set("recipeId", recipeId);
+    formData.set("image", photo);
+    try {
+      const { error: uploadError } = await actions.recipes.uploadPhoto(formData);
+      if (uploadError) {
+        setError(`Recipe saved, but the photo upload failed: ${uploadError.message}. Retry the upload, or open the saved recipe to add a photo later.`);
+        setSaving(false);
+        return;
+      }
+      softNavigate(`/recipes/${recipeId}`);
+    } catch {
+      setError("Recipe saved, but the photo upload failed. Retry the upload, or open the saved recipe to add a photo later.");
+      setSaving(false);
+    }
   }
 
   function toggleTag(id: string) {
@@ -325,6 +357,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
           {error}
         </div>
       )}
+      {savedRecipeId && <a href={`/recipes/${savedRecipeId}`} className="text-sm text-primary underline">Open saved recipe</a>}
 
       {/* Metadata */}
       <div className="grid gap-4 sm:grid-cols-2">
@@ -342,16 +375,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
             onChange={(e) => setSourceUrl(e.target.value)}
           />
         </div>
-        <div>
-          <label htmlFor="draft-image-url" className="mb-1 block text-sm font-medium">Image URL</label>
-          <Input
-            id="draft-image-url"
-            type="url"
-            autoComplete="url"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-          />
-        </div>
+        <RecipePhotoFields id="draft-image" imageUrl={imageUrl} onImageUrlChange={setImageUrl} photo={photo} onPhotoChange={setPhoto} disabled={saving} urlDisabled={!!savedRecipeId} />
         <div>
           <label htmlFor="draft-servings" className="mb-1 block text-sm font-medium">Servings</label>
           <Input
@@ -627,7 +651,7 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
           disabled={saving}
           className={`${mobileFormActionButtonClass} w-full sm:w-auto`}
         >
-          {saving ? "Saving..." : "Save recipe"}
+          {saving ? "Saving..." : savedRecipeId ? "Retry photo upload" : "Save recipe"}
         </Button>
         <Button
           variant="secondary"

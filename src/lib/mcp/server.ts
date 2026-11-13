@@ -24,7 +24,9 @@ import { authenticateMcpRequest, mcpAuthChallenge } from "./auth";
 import { MCP_SCOPES } from "@/lib/oauth";
 import { searchRecipes } from "./search-recipes";
 import { createMcpRecipe } from "./create-recipe";
+import { RecipePhotoStorageUnavailableError } from "./create-recipe";
 import { editMcpRecipe } from "./edit-recipe";
+import { RecipePhotoValidationError, type RecipePhotoStorage } from "@/lib/recipes/recipe-photos";
 import { getMcpRecipe } from "./get-recipe";
 import { RecipeNotFoundError, TagNotFoundError } from "./recipe-errors";
 import { getBooleanFlag } from "@/lib/feature-flags";
@@ -120,6 +122,7 @@ export function createServer(
   rateLimit: RateLimit | undefined,
   search?: McpSearchContext,
   scopes: readonly string[] = MCP_SCOPES,
+  photos?: RecipePhotoStorage,
 ) {
   const server = new McpServer({ name: "quick-pantry", version: "1.0.0" });
   const advertisedTools: Array<Tool & { securitySchemes: { type: string; scopes: string[] }[] }> = [];
@@ -167,13 +170,14 @@ export function createServer(
         return toolError("Too many requests. Please try again later.");
       }
       try {
-        const result = await createMcpRecipe(db, userId, input);
+        const result = await createMcpRecipe(db, userId, input, photos);
         await queueIndexSync([result.recipeId]);
         return createRecipeResult(origin, result.recipeId, input.title);
       } catch (error) {
         if (error instanceof IngredientMeasurementValidationError) {
           return toolError(error.message);
         }
+        if (error instanceof RecipePhotoValidationError || error instanceof RecipePhotoStorageUnavailableError) return toolError(error.message);
         console.error(
           JSON.stringify({
             message: "MCP recipe creation failed",
@@ -237,7 +241,7 @@ export function createServer(
         return toolError("Too many requests. Please try again later.");
       }
       try {
-        await editMcpRecipe(db, userId, input);
+        await editMcpRecipe(db, userId, input, photos);
         await queueIndexSync([input.recipeId]);
         const result = await getMcpRecipe(db, userId, input.recipeId);
         return recipeDetailsResult(origin, result, "Updated recipe");
@@ -245,6 +249,7 @@ export function createServer(
         if (error instanceof IngredientMeasurementValidationError) {
           return toolError(error.message);
         }
+        if (error instanceof RecipePhotoValidationError || error instanceof RecipePhotoStorageUnavailableError) return toolError(error.message);
         console.error(
           JSON.stringify({
             message: "MCP recipe edit failed",
@@ -460,7 +465,7 @@ export async function handleMcpRequest(
       createServer(db, auth.userId, origin, env.AI_RATE_LIMIT, {
         env,
         waitUntil: ctx.waitUntil.bind(ctx),
-      }, auth.scopes),
+      }, auth.scopes, { bucket: env.RECIPE_PHOTOS, publicUrl: env.RECIPE_PHOTO_PUBLIC_URL }),
     {
       route: "/mcp",
       authContext: { props: { userId: auth.userId, scopes: auth.scopes } },

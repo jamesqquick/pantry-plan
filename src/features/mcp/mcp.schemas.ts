@@ -40,6 +40,9 @@ const recipeToolFields = {
   title: z.string().trim().min(1).max(500),
   sourceUrl: optionalHttpUrlSchema,
   imageUrl: optionalHttpUrlSchema,
+  photoSourceUrl: z.url().startsWith("https://").max(2_048).optional().describe(
+    "Public HTTPS JPEG, PNG, or WebP photo to copy into Quick Pantry (4 MB maximum). Use instead of imageUrl.",
+  ),
   servings: z.number().int().min(0).optional(),
   prepTimeMinutes: z.number().int().min(0).optional(),
   cookTimeMinutes: z.number().int().min(0).optional(),
@@ -52,7 +55,10 @@ const recipeToolFields = {
   ),
 };
 
-export const createRecipeToolSchema = z.object(recipeToolFields).strict();
+export const createRecipeToolSchema = z.object(recipeToolFields).strict().refine(
+  (input) => !input.photoSourceUrl || !input.imageUrl,
+  "Supply either photoSourceUrl or imageUrl, not both.",
+);
 
 export const getRecipeToolSchema = z
   .object({
@@ -66,6 +72,7 @@ export const editRecipeToolSchema = z
     title: recipeToolFields.title.optional(),
     sourceUrl: optionalHttpUrlSchema.nullable().optional(),
     imageUrl: optionalHttpUrlSchema.nullable().optional(),
+    photoSourceUrl: recipeToolFields.photoSourceUrl,
     servings: recipeToolFields.servings.nullable().optional(),
     prepTimeMinutes: recipeToolFields.prepTimeMinutes.nullable().optional(),
     cookTimeMinutes: recipeToolFields.cookTimeMinutes.nullable().optional(),
@@ -78,6 +85,10 @@ export const editRecipeToolSchema = z
     ),
   })
   .strict()
+  .refine(
+    (input) => !input.photoSourceUrl || input.imageUrl === undefined,
+    "Supply either photoSourceUrl or imageUrl, not both.",
+  )
   .refine(
     (input) =>
       Object.entries(input).some(
