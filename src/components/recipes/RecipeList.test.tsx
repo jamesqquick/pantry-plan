@@ -89,7 +89,8 @@ describe("RecipeList", () => {
     expect(photo.parentElement?.closest("a")).toBeNull();
     const pasta = screen.getByRole("heading", { name: "Tomato Pasta" }).closest("article")!;
     expect(within(pasta).getByText("Your recipe")).toBeDefined();
-    expect(within(pasta).queryByRole("link", { name: /Add photo/ })).toBeNull();
+    expect(within(pasta).getByRole("link", { name: "Update photo for Tomato Pasta" }).getAttribute("href"))
+      .toBe("/recipes/pasta/edit");
     expect(within(pasta).queryByText(/No timing|servings/)).toBeNull();
   });
 

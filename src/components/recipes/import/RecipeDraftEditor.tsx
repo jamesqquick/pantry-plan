@@ -375,7 +375,18 @@ export function RecipeDraftEditor({ draft, onBack, allTags }: Props) {
             onChange={(e) => setSourceUrl(e.target.value)}
           />
         </div>
-        <RecipePhotoFields id="draft-image" imageUrl={imageUrl} onImageUrlChange={setImageUrl} photo={photo} onPhotoChange={setPhoto} disabled={saving} urlDisabled={!!savedRecipeId} />
+        <RecipePhotoFields
+          id="draft-image"
+          title={title}
+          imageUrl={imageUrl}
+          photo={photo}
+          onPhotoChange={setPhoto}
+          onRemove={savedRecipeId ? undefined : () => {
+            setImageUrl("");
+            setPhoto(null);
+          }}
+          disabled={saving}
+        />
         <div>
           <label htmlFor="draft-servings" className="mb-1 block text-sm font-medium">Servings</label>
           <Input

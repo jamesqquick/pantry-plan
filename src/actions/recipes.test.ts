@@ -101,6 +101,14 @@ describe("managed recipe photos", () => {
     expect(test.sqlite.prepare("SELECT imageStorageKey FROM Recipe WHERE id = 'existing'").get()).toEqual({ imageStorageKey: null });
   });
 
+  it("clears a managed photo and deletes its object when the image URL is unset", async () => {
+    test.sqlite.exec("UPDATE Recipe SET imageUrl = 'https://photos.example.test/recipe-photos/existing?v=1', imageStorageKey = 'recipe-photos/existing' WHERE id = 'existing'");
+    await recipes.update.orThrow.call(ctx, { id: "existing", imageUrl: "" });
+    expect(test.sqlite.prepare("SELECT imageStorageKey, imageUrl FROM Recipe WHERE id = 'existing'").get())
+      .toEqual({ imageStorageKey: null, imageUrl: null });
+    expect(runtime.bucket.delete).toHaveBeenCalledWith("recipe-photos/existing");
+  });
+
   it("duplicates managed photos into an independent object", async () => {
     test.sqlite.exec("UPDATE Recipe SET imageUrl = 'https://photos.example.test/recipe-photos/existing?v=1', imageStorageKey = 'recipe-photos/existing' WHERE id = 'existing'");
     const body = new Blob([png]).stream();

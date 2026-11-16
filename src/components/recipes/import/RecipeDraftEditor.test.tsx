@@ -73,12 +73,37 @@ afterEach(() => {
 });
 
 describe("RecipeDraftEditor", () => {
+  it("previews an imported photo without an image URL input", async () => {
+    const user = userEvent.setup();
+    const { container } = renderEditor({ ...validDraft, imageUrl: "https://example.com/pasta.jpg" });
+    expect(container.querySelector(".recipe-photo-tile img")?.getAttribute("src")).toBe("https://example.com/pasta.jpg");
+    expect(screen.getByRole("button", { name: "Update photo" })).toBeTruthy();
+    expect(screen.queryByLabelText("Image URL")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+    await waitFor(() => expect(saveTextOnly).toHaveBeenCalledWith(expect.objectContaining({
+      recipe: expect.objectContaining({ imageUrl: "https://example.com/pasta.jpg" }),
+    })));
+  });
+
+  it("omits an imported photo after removing it during review", async () => {
+    const user = userEvent.setup();
+    const { container } = renderEditor({ ...validDraft, imageUrl: "https://example.com/pasta.jpg" });
+    await user.click(screen.getByRole("button", { name: "Remove photo" }));
+    expect(container.querySelector(".recipe-photo-tile img")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
+    await waitFor(() => expect(saveTextOnly).toHaveBeenCalledWith(expect.objectContaining({
+      recipe: expect.objectContaining({ imageUrl: undefined }),
+    })));
+  });
+
   it("keeps the extraction photo separate and retries a failed display photo upload without duplicating the import", async () => {
     const user = userEvent.setup();
     renderEditor();
-    expect(screen.getByLabelText("Or upload a photo")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add photo" })).toBeTruthy();
     const file = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], "display.png", { type: "image/png" });
-    await user.upload(screen.getByLabelText("Or upload a photo"), file);
+    await user.upload(screen.getByLabelText("Photo file"), file);
     uploadPhoto.mockResolvedValue({ data: undefined, error: { message: "Storage unavailable" } });
     await user.click(screen.getByRole("button", { name: "Save recipe" }));
     await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("photo upload failed"));
@@ -86,7 +111,7 @@ describe("RecipeDraftEditor", () => {
     expect(uploadPhoto.mock.calls[0][0].get("recipeId")).toBe("recipe-123");
     expect(screen.getByRole("link", { name: "Open saved recipe" }).getAttribute("href")).toBe("/recipes/recipe-123");
     const replacement = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], "replacement.png", { type: "image/png" });
-    await user.upload(screen.getByLabelText("Or upload a photo"), replacement);
+    await user.upload(screen.getByLabelText("Photo file"), replacement);
     await user.click(screen.getByRole("button", { name: "Retry photo upload" }));
     await waitFor(() => expect(uploadPhoto).toHaveBeenCalledTimes(2));
     expect(uploadPhoto.mock.calls[1][0].get("image").name).toBe("replacement.png");

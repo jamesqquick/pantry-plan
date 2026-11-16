@@ -198,7 +198,7 @@ export default function RecipeForm({
     const payload = {
       title: title.trim(),
       sourceUrl: sourceUrl.trim(),
-      imageUrl: imageUrl.trim(),
+      ...(imageUrl !== initial.imageUrl && !photo ? { imageUrl } : {}),
       servings: parseIntOr(servings),
       prepTimeMinutes: parseIntOr(prepTime),
       cookTimeMinutes: parseIntOr(cookTime),
@@ -271,97 +271,128 @@ export default function RecipeForm({
     }
   }
 
+  const photoField = (
+    <RecipePhotoFields
+      id="image"
+      title={title}
+      imageUrl={imageUrl}
+      photo={photo}
+      onPhotoChange={setPhoto}
+      onRemove={() => {
+        setImageUrl("");
+        setPhoto(null);
+      }}
+      disabled={pending}
+    />
+  );
+  const sourceUrlField = (
+    <div>
+      <label htmlFor="sourceUrl" className="mb-1 block text-sm font-medium">
+        Source URL
+        <span className="ml-1 text-muted-foreground">(optional)</span>
+      </label>
+      <Input
+        id="sourceUrl"
+        name="sourceUrl"
+        type="url"
+        autoComplete="url"
+        value={sourceUrl}
+        onChange={(e) => setSourceUrl(e.target.value)}
+        placeholder="https://example.com/recipe"
+      />
+    </div>
+  );
+  const recipeDetails = (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+      {[
+        {
+          id: "servings",
+          label: "Servings",
+          value: servings,
+          setter: setServings,
+        },
+        {
+          id: "prepTime",
+          label: "Prep (min)",
+          value: prepTime,
+          setter: setPrepTime,
+        },
+        {
+          id: "cookTime",
+          label: "Cook (min)",
+          value: cookTime,
+          setter: setCookTime,
+        },
+        {
+          id: "totalTime",
+          label: "Total (min)",
+          value: totalTime,
+          setter: setTotalTime,
+        },
+      ].map((field) => (
+        <div key={field.id}>
+          <label
+            htmlFor={field.id}
+            className="mb-1 block text-sm font-medium"
+          >
+            {field.label}
+          </label>
+          <Input
+            id={field.id}
+            type="number"
+            min={0}
+            inputMode="numeric"
+            autoComplete="off"
+            value={field.value}
+            onChange={(e) => field.setter(e.target.value)}
+          />
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8" noValidate>
       <section className="space-y-4">
-        <div>
-          <label htmlFor="title" className="mb-1 block text-sm font-medium">
-            Title
-          </label>
-          <Input
-            id="title"
-            name="title"
-            required
-            autoComplete="off"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            aria-invalid={!!fieldErrors.title}
-          />
-          {fieldErrors.title?.[0] && (
-            <p className="mt-1 text-meta text-destructive">
-              {fieldErrors.title[0]}
-            </p>
+        <div className={mode === "edit" ? "flex flex-col gap-5 md:flex-row md:items-start" : ""}>
+          {mode === "edit" && (
+            <div className="recipe-photo-hero w-full md:w-48 md:shrink-0">
+              {photoField}
+            </div>
           )}
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label
-              htmlFor="sourceUrl"
-              className="mb-1 block text-sm font-medium"
-            >
-              Source URL
-              <span className="ml-1 text-muted-foreground">(optional)</span>
-            </label>
-            <Input
-              id="sourceUrl"
-              name="sourceUrl"
-              type="url"
-              autoComplete="url"
-              value={sourceUrl}
-              onChange={(e) => setSourceUrl(e.target.value)}
-              placeholder="https://example.com/recipe"
-            />
-          </div>
-          <RecipePhotoFields id="image" imageUrl={imageUrl} onImageUrlChange={setImageUrl} photo={photo} onPhotoChange={setPhoto} disabled={pending} />
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-          {[
-            {
-              id: "servings",
-              label: "Servings",
-              value: servings,
-              setter: setServings,
-            },
-            {
-              id: "prepTime",
-              label: "Prep (min)",
-              value: prepTime,
-              setter: setPrepTime,
-            },
-            {
-              id: "cookTime",
-              label: "Cook (min)",
-              value: cookTime,
-              setter: setCookTime,
-            },
-            {
-              id: "totalTime",
-              label: "Total (min)",
-              value: totalTime,
-              setter: setTotalTime,
-            },
-          ].map((field) => (
-            <div key={field.id}>
-              <label
-                htmlFor={field.id}
-                className="mb-1 block text-sm font-medium"
-              >
-                {field.label}
+          <div className={mode === "edit" ? "min-w-0 flex-1 space-y-4" : ""}>
+            <div>
+              <label htmlFor="title" className="mb-1 block text-sm font-medium">
+                Title
               </label>
               <Input
-                id={field.id}
-                type="number"
-                min={0}
-                inputMode="numeric"
+                id="title"
+                name="title"
+                required
                 autoComplete="off"
-                value={field.value}
-                onChange={(e) => field.setter(e.target.value)}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                aria-invalid={!!fieldErrors.title}
               />
+              {fieldErrors.title?.[0] && (
+                <p className="mt-1 text-meta text-destructive">
+                  {fieldErrors.title[0]}
+                </p>
+              )}
             </div>
-          ))}
+            {mode === "edit" && recipeDetails}
+            {mode === "edit" && sourceUrlField}
+          </div>
         </div>
+
+        {mode === "create" && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {sourceUrlField}
+            {photoField}
+          </div>
+        )}
+
+        {mode === "create" && recipeDetails}
       </section>
 
       <section id="recipe-ingredients" className="scroll-mt-24 space-y-3">

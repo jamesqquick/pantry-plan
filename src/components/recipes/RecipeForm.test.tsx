@@ -99,6 +99,60 @@ beforeEach(() => {
   });
 });
 
+it("preserves a legacy image URL on edit without showing an image URL field", async () => {
+  const user = userEvent.setup();
+  const { container } = renderForm("edit", { ...initial, imageUrl: "https://legacy.example/photo.jpg" });
+  expect(container.querySelector(".recipe-photo-tile img")?.getAttribute("src")).toBe("https://legacy.example/photo.jpg");
+  expect(screen.getByRole("button", { name: "Update photo" })).toBeTruthy();
+  expect(screen.queryByLabelText("Image URL")).toBeNull();
+  expect(screen.getByLabelText(/Source URL/)).toHaveProperty("value", initial.sourceUrl);
+
+  update.mockResolvedValue({ data: { id: "recipe-123" }, error: undefined });
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+  expect(update).toHaveBeenCalledOnce();
+  expect(update.mock.calls[0][0]).not.toHaveProperty("imageUrl");
+});
+
+it("clears an existing photo when saved after removing it", async () => {
+  const user = userEvent.setup();
+  const { container } = renderForm("edit", { ...initial, imageUrl: "https://legacy.example/photo.jpg" });
+
+  await user.click(screen.getByRole("button", { name: "Remove photo" }));
+  expect(container.querySelector(".recipe-photo-tile img")).toBeNull();
+  expect(screen.getByRole("button", { name: "Add photo" })).toBeTruthy();
+
+  update.mockResolvedValue({ data: { id: "recipe-123" }, error: undefined });
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+  expect(update).toHaveBeenCalledWith(expect.objectContaining({ imageUrl: "" }));
+  expect(uploadPhoto).not.toHaveBeenCalled();
+});
+
+it("stacks the photo above the details only below medium screens", () => {
+  const { container } = renderForm("edit");
+  const photoHero = container.querySelector(".recipe-photo-hero");
+  const titleColumn = photoHero?.nextElementSibling;
+  const titleInput = screen.getByLabelText("Title");
+
+  expect(photoHero?.parentElement?.classList.contains("md:flex-row")).toBe(true);
+  expect(photoHero?.classList.contains("md:w-48")).toBe(true);
+  expect(photoHero?.classList.contains("max-w-xs")).toBe(false);
+  expect(titleColumn?.children[0]?.contains(titleInput)).toBe(true);
+  expect(titleInput.getAttribute("class")).not.toContain("font-editorial");
+  expect(titleColumn?.children[1]?.contains(screen.getByLabelText("Servings"))).toBe(true);
+  expect(titleColumn?.querySelector("#prepTime")).toBeTruthy();
+  expect(titleColumn?.querySelector("#cookTime")).toBeTruthy();
+  expect(titleColumn?.querySelector("#totalTime")).toBeTruthy();
+  expect(titleColumn?.children[2]?.contains(screen.getByLabelText(/Source URL/))).toBe(true);
+});
+
+it("keeps source URL beside the photo on the manual create form", () => {
+  const { container } = renderForm("create");
+  const sourceUrl = screen.getByLabelText(/Source URL/);
+  expect(sourceUrl).toHaveProperty("value", "");
+  expect(sourceUrl.parentElement?.parentElement?.contains(screen.getByRole("button", { name: "Add photo" }))).toBe(true);
+  expect(container.querySelector(".recipe-photo-hero")).toBeNull();
+});
+
 it("saves a recipe before uploading its photo and retries without creating a duplicate", async () => {
   const user = userEvent.setup();
   renderForm("create");
@@ -106,7 +160,7 @@ it("saves a recipe before uploading its photo and retries without creating a dup
   update.mockResolvedValue({ data: { id: "saved-recipe" }, error: undefined });
   uploadPhoto.mockResolvedValue({ data: undefined, error: { message: "Storage unavailable" } });
   const file = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], "photo.png", { type: "image/png" });
-  await user.upload(screen.getByLabelText("Or upload a photo"), file);
+  await user.upload(screen.getByLabelText("Photo file"), file);
   await user.click(screen.getByRole("button", { name: "Create recipe" }));
   await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Recipe saved, but the photo upload failed"));
   expect(create).toHaveBeenCalledOnce();
@@ -123,7 +177,7 @@ it("reports a thrown photo upload failure as retryable after the recipe was save
   renderForm("create");
   create.mockResolvedValue({ data: { id: "saved-recipe" }, error: undefined });
   uploadPhoto.mockRejectedValue(new Error("Network unavailable"));
-  await user.upload(screen.getByLabelText("Or upload a photo"), new File(["photo"], "photo.png", { type: "image/png" }));
+  await user.upload(screen.getByLabelText("Photo file"), new File(["photo"], "photo.png", { type: "image/png" }));
   await user.click(screen.getByRole("button", { name: "Create recipe" }));
   await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Recipe saved, but the photo upload failed"));
   expect(create).toHaveBeenCalledOnce();
