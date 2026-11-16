@@ -200,17 +200,17 @@ export default function RecipeList({ recipes, allTags }: RecipeListProps) {
                     {r.imageUrl ? (
                       <img src={r.imageUrl} alt="" loading="lazy" />
                     ) : (
-                      <>
-                        <span className="recipe-initial font-display" aria-hidden="true">{monogram(r.title)}</span>
-                        <a
-                          href={`/recipes/${r.id}/edit`}
-                          className="recipe-add-photo"
-                          aria-label={`Add photo to ${r.title}`}
-                        >
-                          <Camera aria-hidden="true" /> Add photo
-                        </a>
-                      </>
+                      <span className="recipe-initial font-display" aria-hidden="true">{monogram(r.title)}</span>
                     )}
+                    <Button
+                      href={`/recipes/${r.id}/edit`}
+                      variant="secondary"
+                      size="sm"
+                      className="recipe-add-photo transition-[opacity,color,background-color,border-color,box-shadow,transform]"
+                      aria-label={r.imageUrl ? `Update photo for ${r.title}` : `Add photo to ${r.title}`}
+                    >
+                      <Camera aria-hidden="true" /> {r.imageUrl ? "Update" : "Add"} photo
+                    </Button>
                   </div>
                   <div className="recipe-card-body">
                     <p className="recipe-source" title={source}>{source}</p>

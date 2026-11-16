@@ -118,7 +118,8 @@ describe("unified recipe creation", () => {
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.getByLabelText(/Source URL/)).toHaveProperty("value", parsed.sourceUrl);
     expect(screen.queryByRole("button", { name: "Remove Lunch from recipe" })).toBeNull();
-    expect(screen.getByLabelText(/Image URL/)).toHaveProperty("value", parsed.imageUrl);
+    expect(screen.queryByLabelText("Image URL")).toBeNull();
+    expect(document.querySelector(".recipe-photo-tile img")?.getAttribute("src")).toBe(parsed.imageUrl);
     expect(screen.getByLabelText("Servings")).toHaveProperty("value", "4");
     expect(screen.getByLabelText(/Notes/)).toHaveProperty("value", "Serve warm.");
     expect(screen.getByLabelText("Step 1")).toHaveProperty("value", "Boil water.");
@@ -131,11 +132,28 @@ describe("unified recipe creation", () => {
     await user.click(screen.getByRole("button", { name: "Remove ingredient 3" }));
     await user.click(screen.getByRole("button", { name: "Create recipe" }));
     expect(create).toHaveBeenCalledWith(expect.objectContaining({
+      imageUrl: parsed.imageUrl,
       ingredientsStructured: [
         expect.objectContaining({ rawText: "1/64 tsp salt", quantity: 1 / 64, unit: "TSP", ingredientId: "" }),
         expect.objectContaining({ rawText: "2 cups flour", quantity: 2, unit: "CUP", ingredientId: "flour-id" }),
       ],
     }));
+  });
+
+  it("removes an imported display photo before creating the recipe", async () => {
+    const user = userEvent.setup();
+    render(<ImportWizard allTags={[]} />);
+    await user.click(screen.getByRole("button", { name: "Import from URL" }));
+    const dialog = screen.getByRole("dialog", { name: "Import from URL" });
+    await user.type(within(dialog).getByRole("textbox", { name: "Recipe URL" }), parsed.sourceUrl);
+    await user.click(within(dialog).getByRole("button", { name: "Import URL" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+    await user.click(screen.getByRole("button", { name: "Remove photo" }));
+    expect(document.querySelector(".recipe-photo-tile img")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Remove ingredient 3" }));
+    await user.click(screen.getByRole("button", { name: "Create recipe" }));
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ imageUrl: "" }));
   });
 
   it("keeps the import dialog open with a loading state until URL parsing finishes", async () => {

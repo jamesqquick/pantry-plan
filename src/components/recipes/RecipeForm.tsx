@@ -22,6 +22,7 @@ import { requiredIngredientMeasurementsSchema } from "@/features/recipes/ingredi
 import type { RecipeIngredientItemInput } from "@/features/recipes/recipe-ingredients.schemas";
 import { SortableRecipeList } from "./SortableRecipeList";
 import { useRecipeEditorRows } from "./useRecipeEditorRows";
+import { RecipePhotoFields } from "./RecipePhotoFields";
 
 export type RecipeFormMode = "create" | "edit";
 
@@ -86,6 +87,8 @@ export default function RecipeForm({
   const [title, setTitle] = useState(initial.title);
   const [sourceUrl, setSourceUrl] = useState(initial.sourceUrl);
   const [imageUrl, setImageUrl] = useState(initial.imageUrl);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [savedRecipeId, setSavedRecipeId] = useState<string | null>(null);
   const [servings, setServings] = useState(initial.servings);
   const [prepTime, setPrepTime] = useState(initial.prepTimeMinutes);
   const [cookTime, setCookTime] = useState(initial.cookTimeMinutes);
@@ -202,7 +205,9 @@ export default function RecipeForm({
     const payload = {
       title: title.trim(),
       sourceUrl: sourceUrl.trim(),
-      imageUrl: imageUrl.trim(),
+      ...(!photo && (mode === "create" || imageUrl !== initial.imageUrl)
+        ? { imageUrl: imageUrl.trim() }
+        : {}),
       servings: parseIntOr(servings),
       prepTimeMinutes: parseIntOr(prepTime),
       cookTimeMinutes: parseIntOr(cookTime),
@@ -221,8 +226,10 @@ export default function RecipeForm({
     }
 
     setPending(true);
+    let recipeSaved = false;
     try {
-      if (mode === "create") {
+      let recipeId = savedRecipeId ?? (mode === "edit" ? initial.id : undefined);
+      if (mode === "create" && !recipeId) {
         const { data, error: err } = await actions.recipes.create(payload);
         if (err) {
           setError(err.message || "Could not create recipe");
@@ -232,18 +239,16 @@ export default function RecipeForm({
           setPending(false);
           return;
         }
-        if (data) {
-          window.location.href = `/recipes/${data.id}`;
-        }
+        if (data) recipeId = data.id;
       } else {
-        if (!initial.id) {
+        if (!recipeId) {
           setError("Missing recipe id");
           setPending(false);
           return;
         }
         const { data, error: err } = await actions.recipes.update({
           ...payload,
-          id: initial.id,
+          id: recipeId,
         });
         if (err) {
           setError(err.message || "Could not update recipe");
@@ -253,120 +258,151 @@ export default function RecipeForm({
           setPending(false);
           return;
         }
-        if (data) {
-          window.location.href = `/recipes/${data.id}`;
+        if (data) recipeId = data.id;
+      }
+      if (!recipeId) return;
+      recipeSaved = true;
+      if (photo) {
+        setSavedRecipeId(recipeId);
+        const formData = new FormData();
+        formData.set("recipeId", recipeId);
+        formData.set("image", photo);
+        const { error: uploadError } = await actions.recipes.uploadPhoto(formData);
+        if (uploadError) {
+          setError(`Recipe saved, but the photo upload failed: ${uploadError.message}. Save again to retry.`);
+          setPending(false);
+          return;
         }
       }
+      window.location.href = `/recipes/${recipeId}`;
     } catch {
-      setError("Could not save recipe. Please try again.");
+      setError(recipeSaved && photo ? "Recipe saved, but the photo upload failed. Save again to retry." : "Could not save recipe. Please try again.");
       setPending(false);
     }
   }
 
+  const photoField = (
+    <RecipePhotoFields
+      id="image"
+      title={title}
+      imageUrl={imageUrl}
+      photo={photo}
+      onPhotoChange={setPhoto}
+      onRemove={() => {
+        setImageUrl("");
+        setPhoto(null);
+      }}
+      disabled={pending}
+    />
+  );
+  const sourceUrlField = (
+    <div>
+      <label htmlFor="sourceUrl" className="mb-1 block text-sm font-medium">
+        Source URL
+        <span className="ml-1 text-muted-foreground">(optional)</span>
+      </label>
+      <Input
+        id="sourceUrl"
+        name="sourceUrl"
+        type="url"
+        autoComplete="url"
+        value={sourceUrl}
+        onChange={(e) => setSourceUrl(e.target.value)}
+        placeholder="https://example.com/recipe"
+      />
+    </div>
+  );
+  const recipeDetails = (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+      {[
+        {
+          id: "servings",
+          label: "Servings",
+          value: servings,
+          setter: setServings,
+        },
+        {
+          id: "prepTime",
+          label: "Prep (min)",
+          value: prepTime,
+          setter: setPrepTime,
+        },
+        {
+          id: "cookTime",
+          label: "Cook (min)",
+          value: cookTime,
+          setter: setCookTime,
+        },
+        {
+          id: "totalTime",
+          label: "Total (min)",
+          value: totalTime,
+          setter: setTotalTime,
+        },
+      ].map((field) => (
+        <div key={field.id}>
+          <label
+            htmlFor={field.id}
+            className="mb-1 block text-sm font-medium"
+          >
+            {field.label}
+          </label>
+          <Input
+            id={field.id}
+            type="number"
+            min={0}
+            inputMode="numeric"
+            autoComplete="off"
+            value={field.value}
+            onChange={(e) => field.setter(e.target.value)}
+          />
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8" noValidate>
       <section className="space-y-4">
-        <div>
-          <label htmlFor="title" className="mb-1 block text-sm font-medium">
-            Title
-          </label>
-          <Input
-            id="title"
-            name="title"
-            required
-            autoComplete="off"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            aria-invalid={!!fieldErrors.title}
-          />
-          {fieldErrors.title?.[0] && (
-            <p className="mt-1 text-meta text-destructive">
-              {fieldErrors.title[0]}
-            </p>
+        <div className={mode === "edit" ? "flex flex-col gap-5 md:flex-row md:items-start" : ""}>
+          {mode === "edit" && (
+            <div className="recipe-photo-hero w-full md:w-48 md:shrink-0">
+              {photoField}
+            </div>
           )}
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="sourceUrl" className="mb-1 block text-sm font-medium">
-              Source URL <span className="text-muted-foreground">(optional)</span>
-            </label>
-            <Input
-              id="sourceUrl"
-              name="sourceUrl"
-              type="url"
-              autoComplete="url"
-              value={sourceUrl}
-              onChange={(e) => setSourceUrl(e.target.value)}
-              placeholder="https://example.com/recipe"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="imageUrl"
-              className="mb-1 block text-sm font-medium"
-            >
-              Image URL
-              <span className="ml-1 text-muted-foreground">(optional)</span>
-            </label>
-            <Input
-              id="imageUrl"
-              name="imageUrl"
-              type="url"
-              autoComplete="url"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://example.com/image.jpg"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-          {[
-            {
-              id: "servings",
-              label: "Servings",
-              value: servings,
-              setter: setServings,
-            },
-            {
-              id: "prepTime",
-              label: "Prep (min)",
-              value: prepTime,
-              setter: setPrepTime,
-            },
-            {
-              id: "cookTime",
-              label: "Cook (min)",
-              value: cookTime,
-              setter: setCookTime,
-            },
-            {
-              id: "totalTime",
-              label: "Total (min)",
-              value: totalTime,
-              setter: setTotalTime,
-            },
-          ].map((field) => (
-            <div key={field.id}>
-              <label
-                htmlFor={field.id}
-                className="mb-1 block text-sm font-medium"
-              >
-                {field.label}
+          <div className={mode === "edit" ? "min-w-0 flex-1 space-y-4" : ""}>
+            <div>
+              <label htmlFor="title" className="mb-1 block text-sm font-medium">
+                Title
               </label>
               <Input
-                id={field.id}
-                type="number"
-                min={0}
-                inputMode="numeric"
+                id="title"
+                name="title"
+                required
                 autoComplete="off"
-                value={field.value}
-                onChange={(e) => field.setter(e.target.value)}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                aria-invalid={!!fieldErrors.title}
               />
+              {fieldErrors.title?.[0] && (
+                <p className="mt-1 text-meta text-destructive">
+                  {fieldErrors.title[0]}
+                </p>
+              )}
             </div>
-          ))}
+            {mode === "edit" && recipeDetails}
+            {mode === "edit" && sourceUrlField}
+          </div>
         </div>
+
+        {mode === "create" && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {sourceUrlField}
+            {photoField}
+          </div>
+        )}
+
+        {mode === "create" && recipeDetails}
       </section>
 
       <section id="recipe-ingredients" className="scroll-mt-24 space-y-3">

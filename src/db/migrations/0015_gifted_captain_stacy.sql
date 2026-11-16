@@ -1,0 +1,1 @@
+ALTER TABLE `Recipe` ADD `imageStorageKey` text;

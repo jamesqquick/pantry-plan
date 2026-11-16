@@ -6,14 +6,17 @@ import { chunkRows } from "@/db/chunked-insert";
 import { validateIngredientMeasurements } from "@/features/recipes/ingredient-measurements";
 import { RecipeNotFoundError } from "./recipe-errors";
 import { mcpRecipeTagStatements } from "./recipe-tags";
+import { fetchRecipePhoto, putRecipePhoto, recipePhotoKey, recipePhotoUrl, removeRecipePhoto, type RecipePhotoStorage } from "@/lib/recipes/recipe-photos";
+import { RecipePhotoStorageUnavailableError } from "./create-recipe";
 
 export async function editMcpRecipe(
   db: Db,
   userId: string,
   input: EditRecipeToolInput,
+  photoStorage?: RecipePhotoStorage,
 ): Promise<{ recipeId: string }> {
   const existingRows = await db
-    .select({ id: recipe.id })
+    .select({ id: recipe.id, imageUrl: recipe.imageUrl, imageStorageKey: recipe.imageStorageKey })
     .from(recipe)
     .where(and(eq(recipe.id, input.recipeId), eq(recipe.userId, userId)))
     .limit(1);
@@ -32,10 +35,24 @@ export async function editMcpRecipe(
       .orderBy(recipeIngredient.sortOrder));
   validateIngredientMeasurements(effectiveIngredients);
 
+  const photo = input.photoSourceUrl ? await fetchRecipePhoto(input.photoSourceUrl) : null;
+  if (photo && !photoStorage) throw new RecipePhotoStorageUnavailableError();
+  const previous = existingRows[0]!;
+  const previousObject = photo && previous.imageStorageKey && photoStorage
+    ? await photoStorage.bucket.get(previous.imageStorageKey)
+    : null;
+  if (photo && photoStorage) await putRecipePhoto(photoStorage.bucket, input.recipeId, photo.bytes, photo.contentType);
+
   const patch: Partial<typeof recipe.$inferInsert> = { updatedAt: new Date() };
   if (input.title !== undefined) patch.title = input.title;
   if (input.sourceUrl !== undefined) patch.sourceUrl = input.sourceUrl || null;
-  if (input.imageUrl !== undefined) patch.imageUrl = input.imageUrl || null;
+  if (photo) {
+    patch.imageUrl = recipePhotoUrl(input.recipeId, photoStorage?.publicUrl);
+    patch.imageStorageKey = recipePhotoKey(input.recipeId);
+  } else if (input.imageUrl !== undefined && input.imageUrl !== previous.imageUrl) {
+    patch.imageUrl = input.imageUrl || null;
+    patch.imageStorageKey = null;
+  }
   if (input.servings !== undefined) patch.servings = input.servings;
   if (input.prepTimeMinutes !== undefined) {
     patch.prepTimeMinutes = input.prepTimeMinutes;
@@ -98,6 +115,20 @@ export async function editMcpRecipe(
     );
   }
 
-  await db.batch(statements as unknown as Parameters<Db["batch"]>[0]);
+  try {
+    await db.batch(statements as unknown as Parameters<Db["batch"]>[0]);
+  } catch (error) {
+    if (photo && photoStorage) {
+      if (previousObject) {
+        await photoStorage.bucket.put(recipePhotoKey(input.recipeId), previousObject.body, { httpMetadata: previousObject.httpMetadata });
+      } else {
+        await removeRecipePhoto(photoStorage.bucket, recipePhotoKey(input.recipeId));
+      }
+    }
+    throw error;
+  }
+  if (patch.imageStorageKey === null && previous.imageStorageKey && photoStorage) {
+    await removeRecipePhoto(photoStorage.bucket, previous.imageStorageKey);
+  }
   return { recipeId: input.recipeId };
 }
