@@ -326,7 +326,7 @@ describe("recipe measurement actions", () => {
     expect(await test.db.select().from(ingredient)).toMatchObject([{ costBasisUnit: basis, purchasePriceCents: null, gramsPerCup: null }]);
   });
 
-  it.each([{ ingredientId: "eggs" }, { createName: "Eggs" }])("uses saved item weight for imported mapping %o", async (mapping) => {
+  it.each([{ ingredientId: "eggs" }, { createName: "Eggs" }])("does not store derived weight for imported mapping %o", async (mapping) => {
     await test.db.insert(ingredient).values({
       id: "eggs", userId: "cook", name: "Eggs", normalizedName: "eggs", costBasisUnit: "COUNT", gramsPerEach: 50,
     });
@@ -335,7 +335,9 @@ describe("recipe measurement actions", () => {
       ingredientLines: [{ originalLine: "2 eggs", quantity: 2, unit: "COUNT", sortOrder: 0, ...mapping }],
     });
     expect(result.error).toBeUndefined();
-    expect(await test.db.select().from(recipeIngredient)).toMatchObject([{ ingredientId: "eggs", weightGrams: 100, conversionSource: "AUTO" }]);
+    expect(await test.db.select().from(recipeIngredient)).toMatchObject([{
+      ingredientId: "eggs", quantity: 2, unit: "COUNT", weightGrams: null, conversionSource: null,
+    }]);
   });
 
 });

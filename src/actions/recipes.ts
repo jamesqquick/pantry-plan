@@ -29,7 +29,16 @@ import {
   NEW_INGREDIENT_INSERT_PARAMS_PER_ROW,
 } from "@/lib/ingredients/recipe-mapping";
 import { normalizeIngredientName } from "@/lib/ingredients/normalize";
-import { getDb, queueSearchSync, requireUser } from "./_shared";
+import {
+  RecipePhotoValidationError,
+  recipePhotoKey,
+  recipePhotoUrl,
+  removeRecipePhoto,
+  storeRecipePhotoFile,
+} from "@/lib/recipes/recipe-photos";
+import { newRecipeTagStatements } from "@/features/recipes/recipe-tag-creation";
+import { recipeTagCountWithinLimit } from "@/features/tags/tags.schemas";
+import { getDb, getPhotoStorage, queueSearchSync, requireUser } from "./_shared";
 
 /**
  * Recipes submit complex nested data (ingredients + instructions + tags).
@@ -65,13 +74,14 @@ const recipeCreateInputSchema = recipeCreateSchema.extend({
     .array(recipeEditorIngredientSchema)
     .optional()
     .default([]),
-});
+}).refine(recipeTagCountWithinLimit, { path: ["newTagNames"], message: "A recipe can have up to 50 tags." });
 
 const recipeUpdateInputSchema = recipeUpdateSchema.extend({
   // Omitted tags must not inherit the create schema's empty-array default.
   tagIds: recipeCreateSchema.shape.tagIds.unwrap(),
+  newTagNames: recipeCreateSchema.shape.newTagNames,
   ingredientsStructured: z.array(recipeEditorIngredientSchema).optional(),
-});
+}).refine(recipeTagCountWithinLimit, { path: ["newTagNames"], message: "A recipe can have up to 50 tags." });
 
 /**
  * Filter tagIds to ones the user actually owns. Prevents cross-user tag
@@ -213,6 +223,27 @@ async function resolveRecipeIngredientCreates(
 }
 
 export const recipes = {
+  uploadPhoto: defineAction({
+    accept: "form",
+    input: z.object({
+      recipeId: z.string().min(1),
+      image: z.instanceof(File),
+    }),
+    handler: async ({ recipeId, image }, ctx) => {
+      const user = requireUser(ctx);
+      const { bucket, publicUrl } = getPhotoStorage();
+      try {
+        const imageUrl = await storeRecipePhotoFile(getDb(), bucket, user.id, recipeId, image, publicUrl);
+        return { imageUrl };
+      } catch (error) {
+        if (error instanceof RecipePhotoValidationError) {
+          throw new ActionError({ code: error.message === "Recipe not found." ? "NOT_FOUND" : "BAD_REQUEST", message: error.message });
+        }
+        throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Could not upload photo. Please try again." });
+      }
+    },
+  }),
+
   /**
    * Create a recipe with structured ingredients, instructions, and tags.
    * Returns the new id; the client is expected to navigate to it.
@@ -278,6 +309,7 @@ export const recipes = {
           db.insert(recipeIngredient).values(chunk)
         ),
         ...chunkRows(tagRows, 3).map((chunk) => db.insert(recipeTag).values(chunk)),
+        ...newRecipeTagStatements(db, user.id, recipeId, input.newTagNames ?? []),
       ]);
 
       await queueSearchSync(ctx, db, [recipeId]);
@@ -297,7 +329,7 @@ export const recipes = {
       const db = getDb();
 
       const existingRows = await db
-        .select({ id: recipe.id, userId: recipe.userId })
+        .select({ id: recipe.id, userId: recipe.userId, imageUrl: recipe.imageUrl, imageStorageKey: recipe.imageStorageKey })
         .from(recipe)
         .where(eq(recipe.id, input.id))
         .limit(1);
@@ -345,12 +377,30 @@ export const recipes = {
       const validTagIds = input.tagIds !== undefined
         ? await filterOwnedTagIds(db, user.id, input.tagIds)
         : undefined;
+      if (validTagIds === undefined && input.newTagNames?.length) {
+        const existingTags = await db
+          .select({ name: tag.name })
+          .from(recipeTag)
+          .innerJoin(tag, eq(recipeTag.tagId, tag.id))
+          .where(eq(recipeTag.recipeId, input.id));
+        const resultingNames = new Set([
+          ...existingTags.map(({ name }) => name),
+          ...input.newTagNames,
+        ]);
+        if (resultingNames.size > 50) {
+          throw new ActionError({ code: "BAD_REQUEST", message: "A recipe can have up to 50 tags." });
+        }
+      }
 
       // Build partial update for core fields — only set what was provided.
       const patch: Partial<typeof recipe.$inferInsert> = {};
       if (input.title !== undefined) patch.title = input.title;
       if (input.sourceUrl !== undefined) patch.sourceUrl = input.sourceUrl || null;
-      if (input.imageUrl !== undefined) patch.imageUrl = input.imageUrl || null;
+      const previousPhotoKey = existingRows[0]!.imageStorageKey;
+      if (input.imageUrl !== undefined && input.imageUrl !== existingRows[0]!.imageUrl) {
+        patch.imageUrl = input.imageUrl || null;
+        patch.imageStorageKey = null;
+      }
       if (input.servings !== undefined) patch.servings = input.servings ?? null;
       if (input.prepTimeMinutes !== undefined)
         patch.prepTimeMinutes = input.prepTimeMinutes ?? null;
@@ -418,8 +468,16 @@ export const recipes = {
         }
       }
 
+      if (input.newTagNames?.length) {
+        statements.push(...newRecipeTagStatements(db, user.id, input.id, input.newTagNames));
+      }
+
       const [first, ...rest] = statements;
       if (first) await db.batch([first, ...rest]);
+
+      if (patch.imageStorageKey === null && previousPhotoKey) {
+        await removeRecipePhoto(getPhotoStorage().bucket, previousPhotoKey);
+      }
 
       await queueSearchSync(ctx, db, [input.id]);
       return { id: input.id };
@@ -437,7 +495,7 @@ export const recipes = {
       const db = getDb();
 
       const existingRows = await db
-        .select({ userId: recipe.userId })
+        .select({ userId: recipe.userId, imageStorageKey: recipe.imageStorageKey })
         .from(recipe)
         .where(eq(recipe.id, input.id))
         .limit(1);
@@ -449,6 +507,9 @@ export const recipes = {
       }
 
       await db.delete(recipe).where(eq(recipe.id, input.id));
+      if (existingRows[0]!.imageStorageKey) {
+        await removeRecipePhoto(getPhotoStorage().bucket, existingRows[0]!.imageStorageKey);
+      }
       await queueSearchSync(ctx, db, [input.id]);
       return { id: input.id };
     },
@@ -520,23 +581,38 @@ export const recipes = {
       }));
       const validTagIds = await filterOwnedTagIds(db, user.id, rtags.map((r) => r.tagId));
       const tagRows = validTagIds.map((tagId) => ({ recipeId: copyId, tagId }));
-      await db.batch([
-        db.insert(recipe).values({
-          id: copyId,
-          userId: user.id,
-          title: `Copy of ${source.title}`,
-          sourceUrl: source.sourceUrl,
-          imageUrl: source.imageUrl,
-          servings: source.servings,
-          prepTimeMinutes: source.prepTimeMinutes,
-          cookTimeMinutes: source.cookTimeMinutes,
-          totalTimeMinutes: source.totalTimeMinutes,
-          notes: source.notes,
-        }),
-        ...chunkRows(instructionRows, 4).map((chunk) => db.insert(recipeInstruction).values(chunk)),
-        ...chunkRows(ingredientRows, 8).map((chunk) => db.insert(recipeIngredient).values(chunk)),
-        ...chunkRows(tagRows, 3).map((chunk) => db.insert(recipeTag).values(chunk)),
-      ]);
+      const photoStorage = source.imageStorageKey ? getPhotoStorage() : null;
+      const copyKey = source.imageStorageKey ? recipePhotoKey(copyId) : null;
+      if (copyKey && photoStorage) {
+        const original = await photoStorage.bucket.get(source.imageStorageKey!);
+        if (!original) {
+          throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Could not copy the recipe photo." });
+        }
+        await photoStorage.bucket.put(copyKey, original.body, { httpMetadata: original.httpMetadata });
+      }
+      try {
+        await db.batch([
+          db.insert(recipe).values({
+            id: copyId,
+            userId: user.id,
+            title: `Copy of ${source.title}`,
+            sourceUrl: source.sourceUrl,
+            imageUrl: copyKey ? recipePhotoUrl(copyId, photoStorage?.publicUrl) : source.imageUrl,
+            imageStorageKey: copyKey,
+            servings: source.servings,
+            prepTimeMinutes: source.prepTimeMinutes,
+            cookTimeMinutes: source.cookTimeMinutes,
+            totalTimeMinutes: source.totalTimeMinutes,
+            notes: source.notes,
+          }),
+          ...chunkRows(instructionRows, 4).map((chunk) => db.insert(recipeInstruction).values(chunk)),
+          ...chunkRows(ingredientRows, 8).map((chunk) => db.insert(recipeIngredient).values(chunk)),
+          ...chunkRows(tagRows, 3).map((chunk) => db.insert(recipeTag).values(chunk)),
+        ]);
+      } catch (error) {
+        if (copyKey && photoStorage) await removeRecipePhoto(photoStorage.bucket, copyKey);
+        throw error;
+      }
 
       await queueSearchSync(ctx, db, [copyId]);
       return { id: copyId };

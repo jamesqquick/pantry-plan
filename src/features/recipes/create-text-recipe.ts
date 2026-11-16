@@ -12,6 +12,7 @@ import type { SaveImportedRecipeTextOnlyInput } from "@/features/import/import.s
 import { createId } from "@paralleldrive/cuid2";
 import { parseScalableIngredientLine } from "@/lib/ingredients/parse-ingredient-line-structured";
 import { validateIngredientMeasurements } from "./ingredient-measurements";
+import { newRecipeTagStatements } from "./recipe-tag-creation";
 
 export class RecipeCreationError extends Error {
   constructor() {
@@ -95,6 +96,7 @@ export async function createTextOnlyRecipe(
       db.insert(recipeIngredient).values(chunk),
     ),
     ...chunkRows(tagRows, 3).map((chunk) => db.insert(recipeTag).values(chunk)),
+    ...newRecipeTagStatements(db, userId, recipeId, recipeData.newTagNames ?? []),
   ];
   const statements = batchQueries as [(typeof batchQueries)[0], ...typeof batchQueries];
   await db.batch(statements);

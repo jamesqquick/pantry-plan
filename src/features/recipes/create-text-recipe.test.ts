@@ -48,6 +48,26 @@ describe("quick recipe saves", () => {
       ]);
   });
 
+  it("saves new tags with a reviewed text-only recipe and rolls them back on failure", async () => {
+    const input = {
+      recipe: { ...recipeData, newTagNames: [" Breakfast "] },
+      ingredients: ["1 cup flour"],
+    };
+    const first = await createTextOnlyRecipe(test.db, "cook", input);
+    expect(test.sqlite.prepare(`SELECT t.name FROM RecipeTag rt JOIN Tag t ON t.id = rt.tagId
+      WHERE rt.recipeId = ?`).all(first.recipeId)).toEqual([{ name: "Breakfast" }]);
+
+    const before = test.sqlite.prepare("SELECT id FROM Tag WHERE name = 'Brunch'").all();
+    test.sqlite.exec(`CREATE TRIGGER fail_brunch BEFORE INSERT ON RecipeTag
+      WHEN (SELECT name FROM Tag WHERE id = NEW.tagId) = 'Brunch'
+      BEGIN SELECT RAISE(ABORT, 'injected tag failure'); END;`);
+    await expect(createTextOnlyRecipe(test.db, "cook", {
+      ...input,
+      recipe: { ...recipeData, newTagNames: ["Brunch"] },
+    })).rejects.toThrow(/injected tag failure/);
+    expect(test.sqlite.prepare("SELECT id FROM Tag WHERE name = 'Brunch'").all()).toEqual(before);
+  });
+
   it.each([
     "Salt to taste", "pepper", "2-3 cloves garlic", "1 ⅙ tsp salt",
     "0.75 l milk", "500 ml milk", "1 fl oz vanilla", `${"1" + "0".repeat(303)} g flour`,

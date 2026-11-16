@@ -11,6 +11,7 @@ export interface TagToggleProps {
   count?: number;
   size?: TagToggleSize;
   className?: string;
+  disabled?: boolean;
 }
 
 const sizes = {
@@ -29,15 +30,18 @@ export function TagToggle({
   count,
   size = "sm",
   className,
+  disabled,
 }: TagToggleProps) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-pressed={selected}
       className={cn(
         "inline-flex cursor-pointer items-center rounded-full border-[1.5px] font-ui font-semibold leading-none transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "disabled:cursor-not-allowed disabled:opacity-50",
         sizes[size],
         selected
           ? "border-foreground bg-foreground text-background"

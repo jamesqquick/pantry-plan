@@ -5,15 +5,21 @@ import type { CreateRecipeToolInput } from "@/features/mcp/mcp.schemas";
 import { chunkRows } from "@/db/chunked-insert";
 import { validateIngredientMeasurements } from "@/features/recipes/ingredient-measurements";
 import { mcpRecipeTagStatements } from "./recipe-tags";
+import { fetchRecipePhoto, putRecipePhoto, recipePhotoKey, recipePhotoUrl, removeRecipePhoto, type RecipePhotoStorage } from "@/lib/recipes/recipe-photos";
 
 export async function createMcpRecipe(
   db: Db,
   userId: string,
   input: CreateRecipeToolInput,
+  photoStorage?: RecipePhotoStorage,
 ): Promise<{ recipeId: string }> {
   validateIngredientMeasurements(input.ingredients);
 
+  const photo = input.photoSourceUrl ? await fetchRecipePhoto(input.photoSourceUrl) : null;
+  if (photo && !photoStorage) throw new RecipePhotoStorageUnavailableError();
+
   const recipeId = createId();
+  if (photo && photoStorage) await putRecipePhoto(photoStorage.bucket, recipeId, photo.bytes, photo.contentType);
   const instructionRows = input.instructions.map((text, sortOrder) => ({
     recipeId,
     sortOrder,
@@ -35,7 +41,8 @@ export async function createMcpRecipe(
       userId,
       title: input.title,
       sourceUrl: input.sourceUrl || null,
-      imageUrl: input.imageUrl || null,
+      imageUrl: photo ? recipePhotoUrl(recipeId, photoStorage?.publicUrl) : input.imageUrl || null,
+      imageStorageKey: photo ? recipePhotoKey(recipeId) : null,
       servings: input.servings ?? null,
       prepTimeMinutes: input.prepTimeMinutes ?? null,
       cookTimeMinutes: input.cookTimeMinutes ?? null,
@@ -51,6 +58,18 @@ export async function createMcpRecipe(
     ...mcpRecipeTagStatements(db, userId, recipeId, input.tags ?? []),
   ];
 
-  await db.batch(statements as [(typeof statements)[0], ...typeof statements]);
+  try {
+    await db.batch(statements as [(typeof statements)[0], ...typeof statements]);
+  } catch (error) {
+    if (photo && photoStorage) await removeRecipePhoto(photoStorage.bucket, recipePhotoKey(recipeId));
+    throw error;
+  }
   return { recipeId };
+}
+
+export class RecipePhotoStorageUnavailableError extends Error {
+  constructor() {
+    super("Recipe photo storage is unavailable.");
+    this.name = "RecipePhotoStorageUnavailableError";
+  }
 }

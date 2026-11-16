@@ -9,6 +9,7 @@ import { recipes } from "./recipes";
 const runtime = vi.hoisted(() => ({
   db: undefined as Db | undefined,
   queueSearchSync: vi.fn(async () => undefined),
+  bucket: { put: vi.fn(), get: vi.fn(), delete: vi.fn() },
 }));
 
 vi.mock("astro:actions", async () => {
@@ -20,6 +21,7 @@ vi.mock("./_shared", () => ({
   getDb: () => runtime.db,
   requireUser: (ctx: { locals: { user: { id: string } } }) => ctx.locals.user,
   queueSearchSync: runtime.queueSearchSync,
+  getPhotoStorage: () => ({ bucket: runtime.bucket, publicUrl: "https://photos.example.test" }),
 }));
 
 let test: ReturnType<typeof createTestDb>;
@@ -32,6 +34,9 @@ beforeEach(() => {
   test = createTestDb();
   runtime.db = test.db;
   runtime.queueSearchSync.mockReset();
+  runtime.bucket.put.mockReset();
+  runtime.bucket.get.mockReset();
+  runtime.bucket.delete.mockReset();
   test.sqlite.exec(`
     INSERT INTO user (id, name, email, createdAt, updatedAt) VALUES
       ('cook', 'Cook', 'cook@example.test', 1, 1),
@@ -58,6 +63,68 @@ beforeEach(() => {
   }
   const insertTag = test.sqlite.prepare("INSERT INTO Tag (id, userId, name) VALUES (?, 'cook', ?)");
   for (let index = 0; index < 50; index++) insertTag.run(`tag-${index}`, `Tag ${index}`);
+});
+
+const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1]);
+
+describe("managed recipe photos", () => {
+  it("only uploads a valid photo for the owning user and records its public URL", async () => {
+    const form = new FormData();
+    form.set("recipeId", "existing");
+    form.set("image", new File([png], "pasta.png", { type: "image/png" }));
+    const result = await recipes.uploadPhoto.orThrow.call(ctx, form);
+    expect(result.imageUrl).toMatch(/^https:\/\/photos\.example\.test\/recipe-photos\/existing\?v=/);
+    expect(runtime.bucket.put).toHaveBeenCalledOnce();
+    expect(runtime.bucket.put.mock.calls[0][0]).toBe("recipe-photos/existing");
+    expect(test.sqlite.prepare("SELECT imageStorageKey, imageUrl FROM Recipe WHERE id = 'existing'").get())
+      .toEqual({ imageStorageKey: "recipe-photos/existing", imageUrl: result.imageUrl });
+
+    form.set("recipeId", "foreign");
+    await expect(recipes.uploadPhoto.orThrow.call(ctx, form)).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(runtime.bucket.put).toHaveBeenCalledOnce();
+  });
+
+  it("rejects spoofed image bytes without writing to R2", async () => {
+    const form = new FormData();
+    form.set("recipeId", "existing");
+    form.set("image", new File(["not an image"], "pasta.png", { type: "image/png" }));
+    await expect(recipes.uploadPhoto.orThrow.call(ctx, form)).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(runtime.bucket.put).not.toHaveBeenCalled();
+  });
+
+  it("deletes the old object only when a managed photo is removed or the recipe is deleted", async () => {
+    test.sqlite.exec("UPDATE Recipe SET imageUrl = 'https://photos.example.test/recipe-photos/existing?v=1', imageStorageKey = 'recipe-photos/existing' WHERE id = 'existing'");
+    await recipes.update.orThrow.call(ctx, { id: "existing", title: "Soup", imageUrl: "https://photos.example.test/recipe-photos/existing?v=1" });
+    expect(runtime.bucket.delete).not.toHaveBeenCalled();
+    await recipes.update.orThrow.call(ctx, { id: "existing", imageUrl: "https://external.example.test/soup.png" });
+    expect(runtime.bucket.delete).toHaveBeenCalledWith("recipe-photos/existing");
+    expect(test.sqlite.prepare("SELECT imageStorageKey FROM Recipe WHERE id = 'existing'").get()).toEqual({ imageStorageKey: null });
+  });
+
+  it("clears a managed photo and deletes its object when the image URL is unset", async () => {
+    test.sqlite.exec("UPDATE Recipe SET imageUrl = 'https://photos.example.test/recipe-photos/existing?v=1', imageStorageKey = 'recipe-photos/existing' WHERE id = 'existing'");
+    await recipes.update.orThrow.call(ctx, { id: "existing", imageUrl: "" });
+    expect(test.sqlite.prepare("SELECT imageStorageKey, imageUrl FROM Recipe WHERE id = 'existing'").get())
+      .toEqual({ imageStorageKey: null, imageUrl: null });
+    expect(runtime.bucket.delete).toHaveBeenCalledWith("recipe-photos/existing");
+  });
+
+  it("duplicates managed photos into an independent object", async () => {
+    test.sqlite.exec("UPDATE Recipe SET imageUrl = 'https://photos.example.test/recipe-photos/existing?v=1', imageStorageKey = 'recipe-photos/existing' WHERE id = 'existing'");
+    const body = new Blob([png]).stream();
+    runtime.bucket.get.mockResolvedValue({ body, httpMetadata: { contentType: "image/png" } });
+    const form = new FormData();
+    form.set("recipeId", "existing");
+    const { id } = await recipes.duplicate.orThrow.call(ctx, form);
+    expect(runtime.bucket.put).toHaveBeenCalledWith(`recipe-photos/${id}`, body, { httpMetadata: { contentType: "image/png" } });
+    expect(test.sqlite.prepare("SELECT imageStorageKey, imageUrl FROM Recipe WHERE id = ?").get(id))
+      .toMatchObject({ imageStorageKey: `recipe-photos/${id}`, imageUrl: expect.stringContaining(`recipe-photos/${id}?v=`) });
+    const deleteForm = new FormData();
+    deleteForm.set("id", id);
+    await recipes.delete.orThrow.call(ctx, deleteForm);
+    expect(runtime.bucket.delete).toHaveBeenCalledWith(`recipe-photos/${id}`);
+    expect(runtime.bucket.delete).not.toHaveBeenCalledWith("recipe-photos/existing");
+  });
 });
 
 afterEach(() => {
@@ -94,6 +161,7 @@ function submittedRecipe() {
 }
 
 type SubmittedRecipe = ReturnType<typeof submittedRecipe> & {
+  newTagNames?: string[];
   ingredientsStructured: Array<
     ReturnType<typeof submittedRecipe>["ingredientsStructured"][number] & {
       createIngredientName?: string;
@@ -205,6 +273,50 @@ describe.each(["create", "update"] as const)("atomic recipe %s", (method) => {
     expect(test.sqlite.prepare("SELECT tagId FROM RecipeTag WHERE recipeId = ?").all(result.id))
       .toEqual([{ tagId: "tag-0" }]);
   });
+
+  it("creates staged tags only in the recipe batch, reusing names already owned by the user", async () => {
+    const input = { ...submittedRecipe(), tagIds: ["old-tag"], newTagNames: [" Original tag ", " New tag ", "New tag"] };
+    const batch = vi.spyOn(test.binding, "batch");
+
+    const result = await mutate(method, input);
+
+    expect(batch).toHaveBeenCalledOnce();
+    expect(test.sqlite.prepare("SELECT name FROM Tag WHERE userId = 'cook' AND name = 'New tag'").all())
+      .toEqual([{ name: "New tag" }]);
+    expect(test.sqlite.prepare(`SELECT t.name FROM RecipeTag rt JOIN Tag t ON t.id = rt.tagId
+      WHERE rt.recipeId = ? ORDER BY t.name`).all(result.id))
+      .toEqual([{ name: "New tag" }, { name: "Original tag" }]);
+  });
+
+  it("rolls back a staged tag if its recipe association fails", async () => {
+    const before = snapshot();
+    test.sqlite.exec(`CREATE TRIGGER fail_new_tag BEFORE INSERT ON RecipeTag
+      WHEN (SELECT name FROM Tag WHERE id = NEW.tagId) = 'New tag'
+      BEGIN SELECT RAISE(ABORT, 'injected new tag failure'); END;`);
+
+    await expect(mutate(method, { ...submittedRecipe(), tagIds: [], newTagNames: ["New tag"] }))
+      .rejects.toThrow(/injected new tag failure/);
+
+    expect(test.sqlite.prepare("SELECT id FROM Tag WHERE name = 'New tag'").all()).toEqual([]);
+    expect(snapshot()).toEqual(before);
+  });
+
+  if (method === "update") {
+    it("keeps partial updates within 50 tags when tagIds is omitted", async () => {
+      const addTag = test.sqlite.prepare("INSERT INTO RecipeTag (id, recipeId, tagId) VALUES (?, 'existing', ?)");
+      for (let index = 0; index < 49; index++) addTag.run(`existing-tag-${index}`, `tag-${index}`);
+      const batch = vi.spyOn(test.binding, "batch");
+
+      await expect(recipes.update.orThrow.call(ctx, { id: "existing", newTagNames: ["New tag"] }))
+        .rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+      expect(batch).not.toHaveBeenCalled();
+      expect(test.sqlite.prepare("SELECT id FROM Tag WHERE name = 'New tag'").all()).toEqual([]);
+      await expect(recipes.update.orThrow.call(ctx, { id: "existing", newTagNames: ["Original tag"] }))
+        .resolves.toEqual({ id: "existing" });
+      expect(test.sqlite.prepare("SELECT id FROM RecipeTag WHERE recipeId = 'existing'").all()).toHaveLength(50);
+    });
+  }
 
   it("allows repeated references to the same accessible ingredient", async () => {
     const input = submittedRecipe();

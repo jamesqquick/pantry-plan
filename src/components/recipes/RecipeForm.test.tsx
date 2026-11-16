@@ -11,12 +11,12 @@ import { createTextOnlyRecipe } from "@/features/recipes/create-text-recipe";
 import { formatQuantityForInput } from "@/lib/quantity/quantity";
 import RecipeForm, { type RecipeFormInitial, type RecipeFormMode } from "./RecipeForm";
 
-const { create, update, searchForPicker } = vi.hoisted(() => ({
-  create: vi.fn(), update: vi.fn(), searchForPicker: vi.fn(),
+const { create, update, uploadPhoto, searchForPicker } = vi.hoisted(() => ({
+  create: vi.fn(), update: vi.fn(), uploadPhoto: vi.fn(), searchForPicker: vi.fn(),
 }));
 vi.mock("astro:actions", () => ({
   actions: {
-    recipes: { create, update }, ingredients: { searchForPicker },
+    recipes: { create, update, uploadPhoto }, ingredients: { searchForPicker },
   },
 }));
 
@@ -89,6 +89,7 @@ let sqlite: DatabaseSync | undefined;
 beforeEach(() => {
   create.mockResolvedValue({ data: undefined, error: { message: "Could not save recipe" } });
   update.mockResolvedValue({ data: undefined, error: { message: "Could not save recipe" } });
+  uploadPhoto.mockResolvedValue({ data: { imageUrl: "https://photos.example.test/photo" }, error: undefined });
   searchForPicker.mockResolvedValue({
     data: [
       { id: "ingredient-flour", name: "Flour", source: "global" },
@@ -96,6 +97,91 @@ beforeEach(() => {
     ],
     error: undefined,
   });
+});
+
+it("preserves a legacy image URL on edit without showing an image URL field", async () => {
+  const user = userEvent.setup();
+  const { container } = renderForm("edit", { ...initial, imageUrl: "https://legacy.example/photo.jpg" });
+  expect(container.querySelector(".recipe-photo-tile img")?.getAttribute("src")).toBe("https://legacy.example/photo.jpg");
+  expect(screen.getByRole("button", { name: "Update photo" })).toBeTruthy();
+  expect(screen.queryByLabelText("Image URL")).toBeNull();
+  expect(screen.getByLabelText(/Source URL/)).toHaveProperty("value", initial.sourceUrl);
+
+  update.mockResolvedValue({ data: { id: "recipe-123" }, error: undefined });
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+  expect(update).toHaveBeenCalledOnce();
+  expect(update.mock.calls[0][0]).not.toHaveProperty("imageUrl");
+});
+
+it("clears an existing photo when saved after removing it", async () => {
+  const user = userEvent.setup();
+  const { container } = renderForm("edit", { ...initial, imageUrl: "https://legacy.example/photo.jpg" });
+
+  await user.click(screen.getByRole("button", { name: "Remove photo" }));
+  expect(container.querySelector(".recipe-photo-tile img")).toBeNull();
+  expect(screen.getByRole("button", { name: "Add photo" })).toBeTruthy();
+
+  update.mockResolvedValue({ data: { id: "recipe-123" }, error: undefined });
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+  expect(update).toHaveBeenCalledWith(expect.objectContaining({ imageUrl: "" }));
+  expect(uploadPhoto).not.toHaveBeenCalled();
+});
+
+it("stacks the photo above the details only below medium screens", () => {
+  const { container } = renderForm("edit");
+  const photoHero = container.querySelector(".recipe-photo-hero");
+  const titleColumn = photoHero?.nextElementSibling;
+  const titleInput = screen.getByLabelText("Title");
+
+  expect(photoHero?.parentElement?.classList.contains("md:flex-row")).toBe(true);
+  expect(photoHero?.classList.contains("md:w-48")).toBe(true);
+  expect(photoHero?.classList.contains("max-w-xs")).toBe(false);
+  expect(titleColumn?.children[0]?.contains(titleInput)).toBe(true);
+  expect(titleInput.getAttribute("class")).not.toContain("font-editorial");
+  expect(titleColumn?.children[1]?.contains(screen.getByLabelText("Servings"))).toBe(true);
+  expect(titleColumn?.querySelector("#prepTime")).toBeTruthy();
+  expect(titleColumn?.querySelector("#cookTime")).toBeTruthy();
+  expect(titleColumn?.querySelector("#totalTime")).toBeTruthy();
+  expect(titleColumn?.children[2]?.contains(screen.getByLabelText(/Source URL/))).toBe(true);
+});
+
+it("keeps source URL beside the photo on the manual create form", () => {
+  const { container } = renderForm("create");
+  const sourceUrl = screen.getByLabelText(/Source URL/);
+  expect(sourceUrl).toHaveProperty("value", "");
+  expect(sourceUrl.parentElement?.parentElement?.contains(screen.getByRole("button", { name: "Add photo" }))).toBe(true);
+  expect(container.querySelector(".recipe-photo-hero")).toBeNull();
+});
+
+it("saves a recipe before uploading its photo and retries without creating a duplicate", async () => {
+  const user = userEvent.setup();
+  renderForm("create");
+  create.mockResolvedValue({ data: { id: "saved-recipe" }, error: undefined });
+  update.mockResolvedValue({ data: { id: "saved-recipe" }, error: undefined });
+  uploadPhoto.mockResolvedValue({ data: undefined, error: { message: "Storage unavailable" } });
+  const file = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], "photo.png", { type: "image/png" });
+  await user.upload(screen.getByLabelText("Photo file"), file);
+  await user.click(screen.getByRole("button", { name: "Create recipe" }));
+  await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Recipe saved, but the photo upload failed"));
+  expect(create).toHaveBeenCalledOnce();
+  expect(uploadPhoto).toHaveBeenCalledOnce();
+  expect(uploadPhoto.mock.calls[0][0].get("recipeId")).toBe("saved-recipe");
+  await user.click(screen.getByRole("button", { name: "Create recipe" }));
+  await waitFor(() => expect(uploadPhoto).toHaveBeenCalledTimes(2));
+  expect(create).toHaveBeenCalledOnce();
+  expect(update).toHaveBeenCalledWith(expect.objectContaining({ id: "saved-recipe" }));
+});
+
+it("reports a thrown photo upload failure as retryable after the recipe was saved", async () => {
+  const user = userEvent.setup();
+  renderForm("create");
+  create.mockResolvedValue({ data: { id: "saved-recipe" }, error: undefined });
+  uploadPhoto.mockRejectedValue(new Error("Network unavailable"));
+  await user.upload(screen.getByLabelText("Photo file"), new File(["photo"], "photo.png", { type: "image/png" }));
+  await user.click(screen.getByRole("button", { name: "Create recipe" }));
+  await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Recipe saved, but the photo upload failed"));
+  expect(create).toHaveBeenCalledOnce();
+  expect(uploadPhoto).toHaveBeenCalledOnce();
 });
 
 afterEach(() => {
@@ -194,6 +280,80 @@ it("opens sections with server-side field errors", async () => {
   await waitFor(() => expect(screen.getByRole("button", { name: "Ingredients, 1 ingredient" }).getAttribute("aria-expanded")).toBe("true"));
   expect(screen.getByRole("button", { name: "Instructions, 1 step" }).getAttribute("aria-expanded")).toBe("true");
   expect(screen.getByText("Check instructions")).toBeTruthy();
+});
+
+it.each<RecipeFormMode>(["create", "edit"])("stages a tag for %s without creating it before saving", async (mode) => {
+  const user = userEvent.setup();
+  renderForm(mode);
+
+  await user.type(screen.getByRole("combobox", { name: "Search tags" }), "  Dinner  ");
+  await user.click(screen.getByRole("option", { name: "Create “Dinner”" }));
+  expect(screen.getByRole("button", { name: "Remove Dinner from recipe" }).getAttribute("aria-pressed")).toBe("true");
+  await user.click(screen.getByRole("button", { name: mode === "edit" ? "Save changes" : "Create recipe" }));
+
+  const save = mode === "create" ? create : update;
+  await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ newTagNames: ["Dinner"] })));
+});
+
+it("selects an existing tag instead of staging another copy", async () => {
+  const user = userEvent.setup();
+  render(<RecipeForm mode="create" initial={validInitial} allTags={[{ id: "dinner", name: "Dinner" }]} />);
+
+  await user.type(screen.getByRole("combobox", { name: "Search tags" }), "dinner");
+  await user.click(screen.getByRole("option", { name: "Dinner" }));
+  await user.click(screen.getByRole("button", { name: "Create recipe" }));
+
+  await waitFor(() => expect(create).toHaveBeenCalledWith(expect.objectContaining({
+    tagIds: ["dinner"], newTagNames: [],
+  })));
+});
+
+it("removes existing and staged tags from an edited recipe before saving", async () => {
+  const user = userEvent.setup();
+  render(<RecipeForm mode="edit" initial={{ ...validInitial, id: "recipe-123", tagIds: ["dinner"] }}
+    allTags={[{ id: "dinner", name: "Dinner" }]} />);
+
+  await user.type(screen.getByRole("combobox", { name: "Search tags" }), "Lunch");
+  await user.click(screen.getByRole("option", { name: "Create “Lunch”" }));
+  await user.click(screen.getByRole("button", { name: "Remove Dinner from recipe" }));
+  await user.click(screen.getByRole("button", { name: "Remove Lunch from recipe" }));
+  await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+  await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({
+    tagIds: [], newTagNames: [],
+  })));
+});
+
+it("selects an exact tag name when another tag differs only in case", async () => {
+  const user = userEvent.setup();
+  render(<RecipeForm mode="create" initial={validInitial} allTags={[
+    { id: "upper", name: "Dinner" }, { id: "lower", name: "dinner" },
+  ]} />);
+
+  await user.type(screen.getByRole("combobox", { name: "Search tags" }), "dinner");
+  expect(screen.queryByRole("option", { name: /Create/ })).toBeNull();
+  await user.click(screen.getByRole("option", { name: "dinner" }));
+  await user.click(screen.getByRole("button", { name: "Create recipe" }));
+
+  await waitFor(() => expect(create).toHaveBeenCalledWith(expect.objectContaining({
+    tagIds: ["lower"], newTagNames: [],
+  })));
+});
+
+it("disables tag chips during a pending save", async () => {
+  const user = userEvent.setup();
+  create.mockReturnValueOnce(new Promise(() => {}));
+  render(<RecipeForm mode="create" initial={validInitial} allTags={[{ id: "dinner", name: "Dinner" }]} />);
+
+  await user.type(screen.getByRole("combobox", { name: "Search tags" }), "Dinner");
+  await user.click(screen.getByRole("option", { name: "Dinner" }));
+  await user.type(screen.getByRole("combobox", { name: "Search tags" }), "Lunch");
+  await user.click(screen.getByRole("option", { name: "Create “Lunch”" }));
+  await user.click(screen.getByRole("button", { name: "Create recipe" }));
+
+  await waitFor(() => expect(create).toHaveBeenCalledOnce());
+  expect(screen.getByRole("button", { name: "Remove Dinner from recipe" }).hasAttribute("disabled")).toBe(true);
+  expect(screen.getByRole("button", { name: "Remove Lunch from recipe" }).hasAttribute("disabled")).toBe(true);
 });
 
 it.each<RecipeFormMode>(["create", "edit"])("requires quantity and unit in %s mode, then saves the reviewed strings", async (mode) => {

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { optionalHttpUrlSchema } from "@/lib/url";
+import { newRecipeTagNamesSchema } from "@/features/tags/tags.schemas";
 
 /**
  * Caps on free-text fields. Sized to comfortably hold real recipe data
@@ -43,6 +44,7 @@ export const recipeCreateSchema = z.object({
   instructions: instructionLinesRequired,
   notes: z.string().max(MAX_RECIPE_NOTES).optional(),
   tagIds: z.array(z.string().min(1)).max(50).optional().default([]),
+  newTagNames: newRecipeTagNamesSchema.optional(),
 });
 
 export const recipeUpdateSchema = recipeCreateSchema.partial().extend({
