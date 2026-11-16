@@ -4,6 +4,12 @@ export const createTagSchema = z.object({
   name: z.string().min(1, "Tag name is required").max(100),
 });
 
+export const newRecipeTagNamesSchema = z.array(z.string().trim().min(1).max(100)).max(50);
+
+export function recipeTagCountWithinLimit(value: { tagIds?: string[]; newTagNames?: string[] }) {
+  return (value.tagIds?.length ?? 0) + (value.newTagNames?.length ?? 0) <= 50;
+}
+
 export const deleteTagSchema = z.object({
   id: z.string().min(1, "Tag id is required"),
 });

@@ -36,6 +36,8 @@ import {
   removeRecipePhoto,
   storeRecipePhotoFile,
 } from "@/lib/recipes/recipe-photos";
+import { newRecipeTagStatements } from "@/features/recipes/recipe-tag-creation";
+import { recipeTagCountWithinLimit } from "@/features/tags/tags.schemas";
 import { getDb, getPhotoStorage, queueSearchSync, requireUser } from "./_shared";
 
 /**
@@ -72,13 +74,14 @@ const recipeCreateInputSchema = recipeCreateSchema.extend({
     .array(recipeEditorIngredientSchema)
     .optional()
     .default([]),
-});
+}).refine(recipeTagCountWithinLimit, { path: ["newTagNames"], message: "A recipe can have up to 50 tags." });
 
 const recipeUpdateInputSchema = recipeUpdateSchema.extend({
   // Omitted tags must not inherit the create schema's empty-array default.
   tagIds: recipeCreateSchema.shape.tagIds.unwrap(),
+  newTagNames: recipeCreateSchema.shape.newTagNames,
   ingredientsStructured: z.array(recipeEditorIngredientSchema).optional(),
-});
+}).refine(recipeTagCountWithinLimit, { path: ["newTagNames"], message: "A recipe can have up to 50 tags." });
 
 /**
  * Filter tagIds to ones the user actually owns. Prevents cross-user tag
@@ -306,6 +309,7 @@ export const recipes = {
           db.insert(recipeIngredient).values(chunk)
         ),
         ...chunkRows(tagRows, 3).map((chunk) => db.insert(recipeTag).values(chunk)),
+        ...newRecipeTagStatements(db, user.id, recipeId, input.newTagNames ?? []),
       ]);
 
       await queueSearchSync(ctx, db, [recipeId]);
@@ -373,6 +377,20 @@ export const recipes = {
       const validTagIds = input.tagIds !== undefined
         ? await filterOwnedTagIds(db, user.id, input.tagIds)
         : undefined;
+      if (validTagIds === undefined && input.newTagNames?.length) {
+        const existingTags = await db
+          .select({ name: tag.name })
+          .from(recipeTag)
+          .innerJoin(tag, eq(recipeTag.tagId, tag.id))
+          .where(eq(recipeTag.recipeId, input.id));
+        const resultingNames = new Set([
+          ...existingTags.map(({ name }) => name),
+          ...input.newTagNames,
+        ]);
+        if (resultingNames.size > 50) {
+          throw new ActionError({ code: "BAD_REQUEST", message: "A recipe can have up to 50 tags." });
+        }
+      }
 
       // Build partial update for core fields — only set what was provided.
       const patch: Partial<typeof recipe.$inferInsert> = {};
@@ -448,6 +466,10 @@ export const recipes = {
         for (const chunk of chunkRows(tagRows, 3)) {
           statements.push(db.insert(recipeTag).values(chunk));
         }
+      }
+
+      if (input.newTagNames?.length) {
+        statements.push(...newRecipeTagStatements(db, user.id, input.id, input.newTagNames));
       }
 
       const [first, ...rest] = statements;

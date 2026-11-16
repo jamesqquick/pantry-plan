@@ -62,9 +62,11 @@ Quick Pantry shows an offline message until you reconnect.
 
 Recipe URLs are parsed for structured recipe data, while photo-based recipe
 extraction uses Cloudflare Workers AI. Import features include clear error and
-loading states, and expensive import requests are rate limited. Photo import
-may be enabled selectively, so the **From photo** option is not guaranteed to
-appear for every account.
+loading states, and expensive import requests are rate limited. The new recipe
+form starts empty; entering a source URL and selecting **Import URL**, or
+uploading a recipe photo when available, fills that same editable form. A
+successful import replaces any existing form edits. Photo import may be
+enabled selectively, so the photo upload is not available for every account.
 
 ## MCP Integration
 
