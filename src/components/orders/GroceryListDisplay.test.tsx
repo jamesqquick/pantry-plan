@@ -86,11 +86,18 @@ describe("GroceryListDisplay", () => {
     expect(screen.queryByText("$0.00")).toBeNull();
   });
 
-  it("normalizes a pound basis and preserves pounds for automatic shopping display", () => {
+  it("uses shopping quantities for display and copying without view switches", async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn(async (_text: string) => {});
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
     render(<GroceryListDisplay grocery={{ ...grocery, totals: [{
       ...grocery.totals[0]!, groupKey: "sugar:G", basisUnit: "G", basisUnitLabel: "g", totalBasisQty: 226.796185, purchaseUnit: "LB",
     }] }} />);
-    expect(screen.getByText("0.5 lb")).toBeTruthy();
+    expect(screen.getByText("(0.5 lb)")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Shopper" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Kitchen" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Copy" }));
+    expect(writeText.mock.calls[0]?.[0]).toContain("Light brown sugar — 0.5 lb");
   });
 
   it("honors ounces for a volume-based total using saved density", () => {
@@ -98,7 +105,7 @@ describe("GroceryListDisplay", () => {
       ...grocery.totals[0]!, basisUnit: "CUP", basisUnitLabel: "cup", totalBasisQty: 2,
       gramsPerCup: 200, preferredDisplayUnit: "OZ",
     }] }} />);
-    expect(screen.getByText("14.11 oz")).toBeTruthy();
+    expect(screen.getByText("(14.11 oz)")).toBeTruthy();
   });
 
   it("labels a partially priced list as a known-cost subtotal and links the missing price", () => {
@@ -330,7 +337,7 @@ describe("GroceryListDisplay", () => {
     const { unmount } = render(<GroceryListDisplay grocery={grocery} />);
     await user.click(screen.getByRole("button", { name: "Share" }));
     expect(share).toHaveBeenCalledWith(expect.objectContaining({
-      title: "Grocery List",
+      title: "Ingredient List",
       text: expect.stringContaining("Light brown sugar"),
     }));
     unmount();
@@ -394,7 +401,7 @@ describe("GroceryListDisplay", () => {
       gramsPerCup: null,
     }] }} />);
 
-    expect(screen.getByText("1 cup")).toBeTruthy();
+    expect(screen.getByText("(1 cup)")).toBeTruthy();
     expect(screen.getByText(/volume-to-weight reference/i)).toBeTruthy();
   });
 });

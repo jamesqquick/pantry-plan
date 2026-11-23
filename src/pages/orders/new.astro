@@ -4,23 +4,25 @@ import { env } from "cloudflare:workers";
 import { asc, eq } from "drizzle-orm";
 import AppLayout from "@/layouts/AppLayout.astro";
 import OrderForm from "@/components/orders/OrderForm";
-import { createDb, recipe } from "@/db";
-import { loadOwnedRecipeAvailability } from "@/lib/grocery/recipes";
+import { createDb, material, recipe } from "@/db";
+import { loadOwnedOrderRecipeData } from "@/lib/grocery/recipes";
 
 export const prerender = false;
 
 const user = Astro.locals.user!;
 const db = createDb(env.DB);
 
-const recipes = await db
+const [recipes, materials] = await Promise.all([db
   .select({ id: recipe.id, title: recipe.title })
   .from(recipe)
   .where(eq(recipe.userId, user.id))
-  .orderBy(asc(recipe.title));
-const availabilityByRecipe = await loadOwnedRecipeAvailability(db, user.id, recipes.map(({ id }) => id));
+  .orderBy(asc(recipe.title)),
+  db.select().from(material).where(eq(material.userId, user.id)).orderBy(asc(material.name)),
+]);
+const recipeData = await loadOwnedOrderRecipeData(db, user.id, recipes.map(({ id }) => id));
 const recipeOptions = recipes.map((item) => ({
   ...item,
-  availability: availabilityByRecipe[item.id] ?? { status: "unavailable" as const, notices: [] },
+  availability: recipeData.availability[item.id] ?? { status: "unavailable" as const, notices: [] },
 }));
 ---
 
@@ -70,7 +72,7 @@ const recipeOptions = recipes.map((item) => ({
       </div>
     ) : (
       <div class="space-y-4">
-        <OrderForm client:load mode="create" recipeOptions={recipeOptions} />
+        <OrderForm client:load mode="create" recipeOptions={recipeOptions} materialOptions={materials} groceryRecipes={recipeData.recipes} />
       </div>
     )}
   </div>

@@ -9,6 +9,13 @@ import {
   mobileFormActionButtonClass,
 } from "@/components/ui/MobileFormActions";
 import { centsToDollarsInput, dollarsInputToCents } from "@/lib/money";
+import { MaterialForm } from "@/components/materials/MaterialForm";
+import { OrderMaterialsEditor, type OrderMaterialRow } from "./OrderMaterialsEditor";
+import { OrderCostSummary } from "./OrderCostSummary";
+import { materialLineCost, materialToUsage, type MaterialOption, type MaterialUsage } from "@/features/materials/materials";
+import { orderMaterialsSchema } from "@/features/materials/materials.schemas";
+import { buildGroceryList } from "@/lib/grocery/aggregate";
+import type { RecipeForGrocery } from "@/lib/grocery/recipes";
 import type {
   OrderFulfillmentMethod,
   OrderStatus,
@@ -45,7 +52,11 @@ interface EditProps {
   initialItems: OrderItemRow[];
 }
 
-type OrderFormProps = CreateProps | EditProps;
+type OrderFormProps = (CreateProps | EditProps) & {
+  materialOptions?: MaterialOption[];
+  initialMaterials?: MaterialUsage[];
+  groceryRecipes?: RecipeForGrocery[];
+};
 const SAVE_ERROR_FALLBACK = "Couldn't save the order. Check your connection and try again.";
 
 function defaultOrderName(): string {
@@ -87,13 +98,35 @@ export default function OrderForm(props: OrderFormProps) {
   const [items, setItems] = useState<OrderItemRow[]>(
     isEdit ? props.initialItems : [{ recipeId: "", batches: 1 }],
   );
+  const [materialOptions, setMaterialOptions] = useState(props.materialOptions ?? []);
+  const [materials, setMaterials] = useState<OrderMaterialRow[]>(() => props.initialMaterials?.length
+    ? props.initialMaterials.map((item) => ({ materialId: item.materialId, quantity: item.quantity, query: "" }))
+    : [{ materialId: "", quantity: "1", query: "" }]);
+  const [creatingMaterial, setCreatingMaterial] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const errorRef = useRef<HTMLDivElement>(null);
+  const materialsRef = useRef<HTMLDivElement>(null);
   const dismissToast = useCallback(() => setToastMessage(null), []);
 
+  function returnToOrder() {
+    setCreatingMaterial(null);
+    requestAnimationFrame(() => materialsRef.current?.focus());
+  }
+
   const validItems = items.filter((i) => i.recipeId);
+  const materialChoices = materialOptions.map((option) => props.initialMaterials?.find((item) => item.materialId === option.id) ?? materialToUsage(option));
+  for (const saved of props.initialMaterials ?? []) {
+    if (!materialChoices.some((item) => item.materialId === saved.materialId)) materialChoices.push(saved);
+  }
+  const activeMaterials = materials.filter((item) => item.materialId || item.query.trim() || item.quantity !== "1");
+  const materialInput = activeMaterials.map((item) => ({ materialId: item.materialId, quantity: Number(item.quantity) }));
+  const materialValidation = orderMaterialsSchema.safeParse(materialInput);
+  const materialsCostCents = materialValidation.success
+    ? activeMaterials.reduce((total, item) => total + materialLineCost(materialChoices.find((option) => option.materialId === item.materialId)!.unitCostCents, Number(item.quantity)), 0) : null;
+  const grocery = buildGroceryList({ orderItems: validItems, recipes: props.groceryRecipes ?? [] });
+  const hasUnavailableRecipes = validItems.some((item) => !props.groceryRecipes?.some((recipe) => recipe.id === item.recipeId));
 
   useEffect(() => {
     if (validationError) errorRef.current?.focus();
@@ -119,6 +152,14 @@ export default function OrderForm(props: OrderFormProps) {
       setValidationError("Select a recipe in each row, or remove the empty row.");
       return;
     }
+    if (activeMaterials.some((item) => !item.materialId)) {
+      setValidationError("Select a material in each started row, or remove the row.");
+      return;
+    }
+    if (!materialValidation.success) {
+      setValidationError(materialValidation.error.issues[0]!.message);
+      return;
+    }
     setSubmitting(true);
     setValidationError(null);
     setToastMessage(null);
@@ -136,6 +177,7 @@ export default function OrderForm(props: OrderFormProps) {
         details.fulfillmentMethod === "DELIVERY" ? details.deliveryAddress : "",
       status: details.status,
       items: validItems.map((i) => ({ recipeId: i.recipeId, batches: i.batches })),
+      materials: materialValidation.data,
     };
 
     try {
@@ -169,6 +211,16 @@ export default function OrderForm(props: OrderFormProps) {
     }
   }
 
+  if (creatingMaterial !== null) return <section className="space-y-6" aria-label="Create material for order">
+    <h2 className="font-display text-2xl" tabIndex={-1} ref={(node) => node?.focus()}>New material for this order</h2>
+    <MaterialForm onSaved={(material) => {
+      setMaterialOptions((options) => [...options, material]);
+      setMaterials((rows) => rows.map((row, index) => index === creatingMaterial
+        ? { ...row, materialId: material.id, query: "" } : row));
+      returnToOrder();
+    }} onCancel={returnToOrder} />
+  </section>;
+
   return (
     <form onSubmit={handleSubmit} className="w-full min-w-0 space-y-6">
       {validationError && (
@@ -193,6 +245,14 @@ export default function OrderForm(props: OrderFormProps) {
           setValidationError(null);
         }}
       />
+
+      <div ref={materialsRef} tabIndex={-1}>
+        <OrderMaterialsEditor options={materialChoices} items={materials} onChange={(next) => {
+          setMaterials(next);
+          setValidationError(null);
+        }} onCreate={setCreatingMaterial} />
+      </div>
+      <OrderCostSummary grocery={grocery} materialsCostCents={materialsCostCents} hasUnavailableRecipes={hasUnavailableRecipes} />
 
       {/* Notes */}
       <div className="border-t border-border pt-6">

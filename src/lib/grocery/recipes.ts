@@ -17,7 +17,7 @@ export type RecipeAvailability = {
   >>;
 };
 
-type RecipeForGrocery = Parameters<typeof buildGroceryList>[0]["recipes"][number];
+export type RecipeForGrocery = Parameters<typeof buildGroceryList>[0]["recipes"][number];
 
 function unavailableFor(recipeIds: string[]): Record<string, RecipeAvailability> {
   return Object.fromEntries([...new Set(recipeIds)].map((id) => [
@@ -45,8 +45,16 @@ export async function loadOwnedRecipeAvailability(
   userId: string,
   recipeIds: string[],
 ): Promise<Record<string, RecipeAvailability>> {
+  return (await loadOwnedOrderRecipeData(db, userId, recipeIds)).availability;
+}
+
+export async function loadOwnedOrderRecipeData(
+  db: Db,
+  userId: string,
+  recipeIds: string[],
+): Promise<{ recipes: RecipeForGrocery[]; availability: Record<string, RecipeAvailability> }> {
   const requestedIds = [...new Set(recipeIds)];
-  if (requestedIds.length === 0) return {};
+  if (requestedIds.length === 0) return { recipes: [], availability: {} };
 
   let ownedRecipes: Array<{ id: string; title: string }>;
   try {
@@ -59,10 +67,10 @@ export async function loadOwnedRecipeAvailability(
       ownedRecipes.push(...rows);
     }
   } catch {
-    return unavailableFor(requestedIds);
+    return { recipes: [], availability: unavailableFor(requestedIds) };
   }
 
-  if (ownedRecipes.length === 0) return {};
+  if (ownedRecipes.length === 0) return { recipes: [], availability: {} };
   const ownedIds = ownedRecipes.map(({ id }) => id);
   const availability: Record<string, RecipeAvailability> = Object.fromEntries(
     ownedRecipes.map(({ id }) => [id, { status: "checked", notices: [] }]),
@@ -189,11 +197,8 @@ export async function loadOwnedRecipeAvailability(
       }
     }
 
-    return availability;
+    return { recipes: [...recipes.values()], availability };
   } catch {
-    return Object.fromEntries(ownedIds.map((id) => [
-      id,
-      { status: "unavailable", notices: [] },
-    ]));
+    return { recipes: [], availability: unavailableFor(ownedIds) };
   }
 }

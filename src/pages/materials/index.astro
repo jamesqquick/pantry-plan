@@ -1,0 +1,90 @@
+---
+import { env } from "cloudflare:workers";
+import { and, asc, count, eq, like, or } from "drizzle-orm";
+import { createDb, material } from "@/db";
+import AppLayout from "@/layouts/AppLayout.astro";
+import PageHeader from "@/components/ui/PageHeader.astro";
+import { MATERIAL_CATEGORIES, formatMaterialUnit, formatMaterialUnitCost, materialUnitCost } from "@/features/materials/materials";
+import { formatDollars } from "@/lib/money";
+export const prerender = false;
+
+const db = createDb(env.DB);
+const search = Astro.url.searchParams.get("search")?.trim().slice(0, 200) ?? "";
+const category = Astro.url.searchParams.get("category") ?? "";
+const limit = 25;
+const requestedPage = Number.parseInt(Astro.url.searchParams.get("page") ?? "1", 10);
+const page = Number.isSafeInteger(requestedPage) && requestedPage > 0
+  && requestedPage <= Math.floor(Number.MAX_SAFE_INTEGER / limit) ? requestedPage : 1;
+const where = and(
+  eq(material.userId, Astro.locals.user!.id),
+  search ? or(like(material.name, `%${search}%`), like(material.supplier, `%${search}%`)) : undefined,
+  category ? eq(material.category, category) : undefined,
+);
+const [materials, [{ total }]] = await Promise.all([
+  db.select().from(material).where(where).orderBy(asc(material.name), asc(material.id)).limit(limit).offset((page - 1) * limit),
+  db.select({ total: count() }).from(material).where(where),
+]);
+const totalPages = Math.max(1, Math.ceil(total / limit));
+function pageHref(next: number) {
+  return `/materials?${new URLSearchParams({ search, category, page: String(next) })}`;
+}
+---
+<AppLayout title="Materials — Quick Pantry">
+  <div class="space-y-8">
+    <PageHeader>
+      <div slot="content" class="space-y-3">
+        <h1 class="font-display text-5xl tracking-tight sm:text-6xl">Materials</h1>
+        <p class="text-body text-muted-foreground">The boxes, bags, and finishing touches that go into every order.</p>
+      </div>
+      <a slot="actions" href="/materials/new" class="btn-primary shrink-0">+ New material</a>
+    </PageHeader>
+
+    <form method="get" class="flex flex-col gap-3 sm:flex-row sm:items-end" role="search" aria-label="Filter materials">
+      <div class="min-w-0 flex-1 space-y-1.5">
+        <label for="material-search" class="text-sm font-medium">Search materials</label>
+        <input id="material-search" type="search" name="search" value={search} placeholder="Search by name or supplier…" class="min-h-11 w-full rounded-input border border-input bg-card px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+      </div>
+      <div class="min-w-0 space-y-1.5 sm:w-60">
+        <label for="category" class="text-sm font-medium">Category</label>
+        <select id="category" name="category" class="min-h-11 w-full rounded-input border border-input bg-card px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <option value="">All categories</option>
+          {MATERIAL_CATEGORIES.map((item) => <option value={item} selected={item === category}>{item}</option>)}
+        </select>
+      </div>
+      <button type="submit" class="btn-secondary min-h-11">Filter</button>
+      {(search || category) && <a href="/materials" class="btn-ghost min-h-11">Clear filters</a>}
+    </form>
+
+    {materials.length > 0 ? <section aria-label="Materials catalog" class="min-w-0">
+      <p class="mb-4 text-sm text-muted-foreground">{total} {total === 1 ? "material" : "materials"}</p>
+      <div class="hidden grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_4.5rem] gap-6 border-b border-border px-4 py-3 text-sm font-medium text-muted-foreground lg:grid" aria-hidden="true">
+        <span>Material</span><span>Package</span><span>Unit cost</span><span>Edit</span>
+      </div>
+      <ul class="divide-y divide-border border-b border-border">
+        {materials.map((item) => <li class="grid min-w-0 gap-4 px-1 py-5 sm:px-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_4.5rem] lg:items-center lg:gap-6">
+          <div class="min-w-0 space-y-1">
+            <a href={`/materials/${item.id}/edit`} class="break-words text-lg font-semibold hover:text-primary-on-background hover:underline">{item.name}</a>
+            <p class="break-words text-sm text-muted-foreground">{item.category}{item.supplier && ` · ${item.supplier}`}</p>
+            {item.productUrl && <a href={item.productUrl} target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center text-sm text-primary-on-background underline underline-offset-2">View product<span class="sr-only"> for {item.name}, opens in a new tab</span> ↗</a>}
+          </div>
+          <div class="min-w-0 text-sm tabular-nums">
+            <span class="text-muted-foreground lg:hidden">Package: </span>
+            {formatDollars(item.packagePriceCents)} / {item.packageQuantity} {formatMaterialUnit(item.usageUnit, item.packageQuantity)}
+          </div>
+          <div class="min-w-0 break-words text-sm tabular-nums"><span class="text-muted-foreground lg:hidden">Unit cost: </span>{formatMaterialUnitCost(materialUnitCost(item))} / {formatMaterialUnit(item.usageUnit)}</div>
+          <a href={`/materials/${item.id}/edit`} class="btn-secondary min-h-11 justify-self-start">Edit<span class="sr-only"> {item.name}</span></a>
+        </li>)}
+      </ul>
+      {totalPages > 1 && <nav aria-label="Materials pages" class="mt-5 flex flex-wrap items-center gap-4 text-sm">
+        {page > 1 && <a href={pageHref(page - 1)} class="btn-secondary">Previous</a>}
+        <span>Page {page} of {totalPages}</span>
+        {page < totalPages && <a href={pageHref(page + 1)} class="btn-secondary">Next</a>}
+      </nav>}
+    </section> : <section class="space-y-3 rounded-xl border border-dashed border-border p-8 text-center">
+      <h2 class="font-display text-2xl">{search || category || page > 1 ? "No matching materials" : "Small supplies count, too."}</h2>
+      <p class="text-body text-muted-foreground">{search || category || page > 1 ? "Try a different name, supplier, or category." : "Track boxes by count, ribbon by length, wrap by area, or fill by weight."}</p>
+      <a href={search || category || page > 1 ? "/materials" : "/materials/new"} class="btn-secondary">{search || category || page > 1 ? "Clear filters" : "Add your first material"}</a>
+    </section>}
+    <p class="max-w-prose text-sm text-muted-foreground">Keep different sizes as separate materials, like 8-inch and 10-inch cake boards. All prices are in USD.</p>
+  </div>
+</AppLayout>

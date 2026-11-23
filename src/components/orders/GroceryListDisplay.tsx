@@ -2,7 +2,6 @@ import { useState } from "react";
 import { formatDollars } from "@/lib/money";
 import {
   toDisplayUnits,
-  formatCanonicalForKitchen,
   formatDisplayQty,
 } from "@/lib/grocery/display-units";
 import {
@@ -11,21 +10,15 @@ import {
 } from "@/lib/grocery/cost-basis-units";
 import type { GroceryListResult } from "@/lib/grocery/aggregate";
 
-type DisplayMode = "shopper" | "kitchen";
 type GroceryRow = GroceryListResult["totals"][number];
 
 interface GroceryListDisplayProps {
   grocery: GroceryListResult;
   showCost?: boolean;
+  showTotal?: boolean;
 }
 
-function formatIngredientLine(
-  row: GroceryRow,
-  mode: DisplayMode,
-): { text: string; reason?: string } {
-  if (mode === "kitchen") {
-    return { text: formatCanonicalForKitchen(row.totalBasisQty, row.basisUnitLabel) };
-  }
+function formatIngredientLine(row: GroceryRow): { text: string; reason?: string } {
   const canonicalUnit = costBasisToCanonicalDisplay(row.basisUnit);
   const canonicalQty = costBasisToCanonicalQuantity(
     row.totalBasisQty,
@@ -66,11 +59,10 @@ function missingCostMessage(reason: GroceryListResult["issues"]["missingCost"][n
 
 function buildPlainTextList(
   grocery: GroceryListResult,
-  mode: DisplayMode,
   showCost: boolean,
 ): string {
   const lines = grocery.totals.map((row) => {
-    const display = formatIngredientLine(row, mode);
+    const display = formatIngredientLine(row);
     const reason = display.reason ? ` — ${display.reason}` : "";
     const cost = showCost && row.estimatedCostCents != null ? ` — ${formatDollars(row.estimatedCostCents)}` : "";
     const sources = row.sources.length > 0 ? ` — From ${sourceContext(row.sources)}` : "";
@@ -115,21 +107,21 @@ function buildPlainTextList(
 export function GroceryListDisplay({
   grocery,
   showCost = true,
+  showTotal = true,
 }: GroceryListDisplayProps) {
-  const [mode, setMode] = useState<DisplayMode>("shopper");
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
-    const text = buildPlainTextList(grocery, mode, showCost);
+    const text = buildPlainTextList(grocery, showCost);
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
   async function handleShare() {
-    const text = buildPlainTextList(grocery, mode, showCost);
+    const text = buildPlainTextList(grocery, showCost);
     if (navigator.share) {
-      await navigator.share({ title: "Grocery List", text });
+      await navigator.share({ title: "Ingredient List", text });
     } else {
       await handleCopy();
     }
@@ -166,33 +158,6 @@ export function GroceryListDisplay({
     <div className="space-y-4">
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex rounded-lg border border-border bg-panel p-0.5">
-          <button
-            type="button"
-            className={`min-h-11 cursor-pointer rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-              mode === "shopper"
-                ? "bg-card text-card-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-            onClick={() => setMode("shopper")}
-            aria-pressed={mode === "shopper"}
-          >
-            Shopper
-          </button>
-          <button
-            type="button"
-            className={`min-h-11 cursor-pointer rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-              mode === "kitchen"
-                ? "bg-card text-card-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-            onClick={() => setMode("kitchen")}
-            aria-pressed={mode === "kitchen"}
-          >
-            Kitchen
-          </button>
-        </div>
-
         <button
           type="button"
           onClick={handleCopy}
@@ -241,33 +206,30 @@ export function GroceryListDisplay({
         </button>
       </div>
 
-      {/* Grocery list */}
+      {/* Ingredient list */}
       {grocery.totals.length > 0 && (
-        <ul className="divide-y divide-border rounded-lg border border-border bg-card">
+        <ul className="divide-y divide-border border-y border-border">
           {grocery.totals.map((row) => {
-            const display = formatIngredientLine(row, mode);
+            const display = formatIngredientLine(row);
             return (
               <li
                 key={row.groupKey}
-                className="grid grid-cols-1 items-start gap-x-4 gap-y-1 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto]"
+                className="grid min-w-0 grid-cols-1 items-center gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-6"
               >
                 <div className="min-w-0">
-                  <p className="whitespace-normal text-body font-medium text-card-foreground [overflow-wrap:anywhere]">
-                    {row.name}
-                  </p>
-                  <p className="whitespace-normal text-meta text-muted-foreground [overflow-wrap:anywhere]">
-                    {display.text}
+                  <p className="break-words font-medium [overflow-wrap:anywhere]">
+                    {row.name}{" "}<span className="font-normal text-muted-foreground">({display.text})</span>
                   </p>
                   {display.reason && (
-                    <p className="mt-1 text-meta text-muted-foreground [overflow-wrap:anywhere]">
+                    <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
                       {display.reason}
                     </p>
                   )}
                 </div>
                 {showCost && row.estimatedCostCents != null && (
-                  <span className="shrink-0 whitespace-nowrap text-left text-meta tabular-nums text-muted-foreground sm:text-right">
+                  <p className="shrink-0 whitespace-nowrap text-sm font-medium tabular-nums sm:text-right">
                     {formatDollars(row.estimatedCostCents)}
-                  </span>
+                  </p>
                 )}
               </li>
             );
@@ -336,7 +298,7 @@ export function GroceryListDisplay({
       )}
 
       {/* Total cost */}
-      {showCost && (
+      {showCost && showTotal && (
         <div className="flex min-w-0 items-baseline justify-between gap-4 rounded-lg border border-border bg-card px-4 py-3">
           <span className="text-sm font-medium text-card-foreground">
             {costLabel}

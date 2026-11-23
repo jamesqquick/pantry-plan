@@ -3,6 +3,7 @@ import { ingredients } from "./ingredients";
 import { recipes } from "./recipes";
 import { recipeIngredients } from "./recipe-ingredients";
 import { orders } from "./orders";
+import { materials } from "./materials";
 import { mealPlan } from "./meal-plan";
 import { parse } from "./parse";
 import { recipeImport } from "./import";
@@ -21,6 +22,7 @@ export const server = {
   recipes,
   recipeIngredients,
   orders,
+  materials,
   mealPlan,
   parse,
   recipeImport: {

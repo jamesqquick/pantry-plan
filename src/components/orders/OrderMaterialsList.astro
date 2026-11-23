@@ -1,0 +1,22 @@
+---
+import type { OrderMaterial } from "@/db/schema/materials";
+import { formatMaterialUnit, formatMaterialUnitCost, materialLineCost } from "@/features/materials/materials";
+import { formatDollars } from "@/lib/money";
+import OrderListSection from "./OrderListSection.astro";
+interface Props { items: OrderMaterial[] }
+const { items } = Astro.props;
+---
+<OrderListSection id="order-materials" title="Materials" countLabel={`${items.length} ${items.length === 1 ? "material" : "materials"}`}>
+  {items.length ? <>
+    <ul class="divide-y divide-border border-y border-border">
+      {items.map((item) => <li class="grid min-w-0 grid-cols-1 items-center gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-6">
+        <div class="min-w-0">
+          <p class="break-words font-medium [overflow-wrap:anywhere]">{item.name} <span class="font-normal text-muted-foreground">({item.quantity}{item.usageUnit !== "each" && ` ${formatMaterialUnit(item.usageUnit).replace("-", " ")}`})</span></p>
+          <p class="text-sm text-muted-foreground [overflow-wrap:anywhere]">{formatMaterialUnitCost(item.unitCostCents)} / {formatMaterialUnit(item.usageUnit)}{item.supplier && ` · ${item.supplier}`}</p>
+          {item.productUrl && <a href={item.productUrl} target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center text-sm text-primary-on-background underline underline-offset-2">View product<span class="sr-only"> for {item.name}, opens in a new tab</span> ↗</a>}
+        </div>
+        <p class="shrink-0 whitespace-nowrap text-sm font-medium tabular-nums sm:text-right">{formatDollars(materialLineCost(item.unitCostCents, item.quantity))}</p>
+      </li>)}
+    </ul>
+  </> : <p class="text-sm text-muted-foreground">No materials added to this order.</p>}
+</OrderListSection>

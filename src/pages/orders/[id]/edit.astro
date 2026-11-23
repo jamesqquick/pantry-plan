@@ -4,8 +4,8 @@ import { env } from "cloudflare:workers";
 import { and, asc, eq } from "drizzle-orm";
 import AppLayout from "@/layouts/AppLayout.astro";
 import OrderForm from "@/components/orders/OrderForm";
-import { createDb, order, orderItem, recipe } from "@/db";
-import { loadOwnedRecipeAvailability } from "@/lib/grocery/recipes";
+import { createDb, material, order, orderItem, orderMaterial, recipe } from "@/db";
+import { loadOwnedOrderRecipeData } from "@/lib/grocery/recipes";
 
 export const prerender = false;
 
@@ -28,7 +28,7 @@ if (orderRows.length === 0) {
 const o = orderRows[0]!;
 
 // Load existing items + recipe options in parallel.
-const [existingItems, recipes] = await Promise.all([
+const [existingItems, recipes, materials, savedMaterials] = await Promise.all([
   db
     .select({
       recipeId: orderItem.recipeId,
@@ -41,11 +41,13 @@ const [existingItems, recipes] = await Promise.all([
     .from(recipe)
     .where(eq(recipe.userId, user.id))
     .orderBy(asc(recipe.title)),
+  db.select().from(material).where(eq(material.userId, user.id)).orderBy(asc(material.name)),
+  db.select().from(orderMaterial).where(eq(orderMaterial.orderId, id)).orderBy(asc(orderMaterial.createdAt), asc(orderMaterial.name)),
 ]);
-const availabilityByRecipe = await loadOwnedRecipeAvailability(db, user.id, recipes.map(({ id }) => id));
+const recipeData = await loadOwnedOrderRecipeData(db, user.id, recipes.map(({ id }) => id));
 const recipeOptions = recipes.map((item) => ({
   ...item,
-  availability: availabilityByRecipe[item.id] ?? { status: "unavailable" as const, notices: [] },
+  availability: recipeData.availability[item.id] ?? { status: "unavailable" as const, notices: [] },
 }));
 ---
 
@@ -97,6 +99,9 @@ const recipeOptions = recipes.map((item) => ({
       initialDeliveryAddress={o.deliveryAddress ?? ""}
       initialStatus={o.status}
       initialItems={existingItems}
+      materialOptions={materials}
+      initialMaterials={savedMaterials.map((item) => ({ ...item, quantity: String(item.quantity) }))}
+      groceryRecipes={recipeData.recipes}
     />
   </div>
 </AppLayout>

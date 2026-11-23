@@ -1,6 +1,6 @@
-import { useId, useRef, useState } from "react";
-import { Input } from "@/components/ui/Input";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { OrderItemPicker } from "./OrderItemPicker";
 import {
   Select,
   SelectContent,
@@ -225,7 +225,6 @@ export function OrderItemsEditor({
   );
 }
 
-// ── Inline recipe picker with search dropdown ───────────────────────
 function RecipePickerInput({
   label,
   value,
@@ -239,100 +238,16 @@ function RecipePickerInput({
   options: RecipeOption[];
   onSelect: (id: string) => void;
 }) {
-  const id = useId();
-  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const matches = options
-    .filter((r) => r.title.toLowerCase().includes(query.trim().toLowerCase()))
-    .slice(0, 15);
-
-  function selectRecipe(id: string) {
-    onSelect(id);
-    setQuery("");
-    setOpen(false);
-  }
-
-  return (
-    <div
-      className="relative"
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
-      }}
-    >
-      <label htmlFor={id} className="sr-only">{label}</label>
-      <Input
-        id={id}
-        type="text"
-        role="combobox"
-        aria-autocomplete="list"
-        aria-expanded={open}
-        aria-controls={open ? `${id}-options` : undefined}
-        aria-activedescendant={open && activeIndex >= 0 && matches.length > 0
-          ? `${id}-option-${Math.min(activeIndex, matches.length - 1)}`
-          : undefined}
-        value={open ? query : displayName}
-        placeholder="Search recipes…"
-        onFocus={() => {
-          setOpen(true);
-          setQuery("");
-          setActiveIndex(-1);
-        }}
-        onChange={(event) => {
-          setOpen(true);
-          setQuery(event.target.value);
-          setActiveIndex(-1);
-          if (value) onSelect("");
-        }}
-        onKeyDown={(event) => {
-          if (event.nativeEvent.isComposing) return;
-          if (!open && event.key.length === 1 && !event.altKey && !event.ctrlKey && !event.metaKey) {
-            event.preventDefault();
-            setQuery(event.key);
-            setActiveIndex(-1);
-            setOpen(true);
-            if (value) onSelect("");
-          } else if (event.key === "Escape") {
-            setOpen(false);
-            event.currentTarget.blur();
-          } else if (event.key === "ArrowDown" && matches.length > 0) {
-            event.preventDefault();
-            setOpen(true);
-            setActiveIndex((index) => Math.min(index + 1, matches.length - 1));
-          } else if (event.key === "ArrowUp" && matches.length > 0) {
-            event.preventDefault();
-            setOpen(true);
-            setActiveIndex((index) => index < 0 ? matches.length - 1 : Math.max(index - 1, 0));
-          } else if (event.key === "Enter" && open && matches.length > 0) {
-            event.preventDefault();
-            selectRecipe(matches[Math.max(0, Math.min(activeIndex, matches.length - 1))]!.id);
-          }
-        }}
-        autoComplete="off"
-      />
-      {open && (
-        <ul
-          id={`${id}-options`}
-          role="listbox"
-          aria-label={label}
-          className="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-border bg-card shadow-lg"
-        >
-          {matches.map((r, index) => (
-            <li
-              key={r.id}
-              id={`${id}-option-${index}`}
-              role="option"
-              aria-selected={r.id === value}
-              className={`min-h-11 cursor-pointer px-3 py-2 text-body hover:bg-primary/10 ${index === activeIndex ? "bg-primary/10" : ""} ${r.id === value ? "font-semibold text-primary-on-card" : "text-card-foreground"}`}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => selectRecipe(r.id)}
-            >
-              {r.title}
-            </li>
-          ))}
-          {matches.length === 0 && <li role="presentation" className="px-3 py-2 text-body text-muted-foreground">No matching recipes</li>}
-        </ul>
-      )}
-    </div>
-  );
+  return <OrderItemPicker
+    label={label}
+    value={value}
+    displayName={displayName}
+    query={query}
+    options={options.map((recipe) => ({ id: recipe.id, name: recipe.title }))}
+    placeholder="Search recipes…"
+    emptyMessage="No matching recipes"
+    onSearchChange={(next) => { setQuery(next); if (value) onSelect(""); }}
+    onSelect={(id) => { setQuery(""); onSelect(id); }}
+  />;
 }

@@ -5,6 +5,7 @@ const NAV_ITEMS = [
   { href: "/meal-plan", label: "Meal plan" },
   { href: "/orders", label: "Orders" },
   { href: "/ingredients", label: "Ingredients" },
+  { href: "/materials", label: "Materials" },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {
