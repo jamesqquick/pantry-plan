@@ -7,6 +7,7 @@ export * from "./ingredients";
 export * from "./recipes";
 export * from "./tags";
 export * from "./orders";
+export * from "./materials";
 export * from "./meal-plan";
 export * from "./mcp-api-keys";
 export * from "./search-index";

@@ -1,22 +1,26 @@
 ---
 import { env } from "cloudflare:workers";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import AppLayout from "@/layouts/AppLayout.astro";
 import PageHeader from "@/components/ui/PageHeader.astro";
 import { GroceryListDisplay } from "@/components/orders/GroceryListDisplay";
+import OrderMaterialsList from "@/components/orders/OrderMaterialsList.astro";
+import OrderListSection from "@/components/orders/OrderListSection.astro";
+import { OrderCostSummary } from "@/components/orders/OrderCostSummary";
+import { materialLineCost } from "@/features/materials/materials";
 import { DeleteOrderButton } from "@/components/orders/DeleteOrderButton";
 import { OrderStatusSelect } from "@/components/orders/OrderStatusSelect";
 import { formatDueDate, formatDueTime } from "@/components/orders/formatDue";
 import { formatDollars } from "@/lib/money";
 import { renderMarkdownToHtml } from "@/features/markdown/render-markdown";
-import { buildGroceryList, type GroceryListResult } from "@/lib/grocery/aggregate";
+import { buildGroceryList } from "@/lib/grocery/aggregate";
+import { loadOwnedOrderRecipeData } from "@/lib/grocery/recipes";
 import {
   createDb,
   order,
   orderItem,
+  orderMaterial,
   recipe,
-  recipeIngredient,
-  ingredient,
 } from "@/db";
 
 export const prerender = false;
@@ -52,87 +56,14 @@ const items = await db
   .where(eq(orderItem.orderId, id))
   .orderBy(asc(recipe.title));
 
-// Load recipe ingredients with their ingredient data for grocery aggregation.
 const recipeIds = [...new Set(items.map((i) => i.recipeId))];
-type GroceryRecipe = Parameters<typeof buildGroceryList>[0]["recipes"][number];
-let groceryResult: GroceryListResult = {
-  totals: [],
-  issues: { unmapped: [], missingQuantityOrUnit: [], cannotConvert: [], missingCost: [] },
-  totalEstimatedCostCents: null,
-};
-
-if (recipeIds.length > 0) {
-  // Fetch all recipe ingredients for the relevant recipes with their ingredient data.
-  const riRows = await db
-    .select({
-      riId: recipeIngredient.id,
-      recipeId: recipeIngredient.recipeId,
-      ingredientId: recipeIngredient.ingredientId,
-      quantity: recipeIngredient.quantity,
-      unit: recipeIngredient.unit,
-      displayText: recipeIngredient.displayText,
-      ingId: ingredient.id,
-      ingName: ingredient.name,
-      ingCostBasisUnit: ingredient.costBasisUnit,
-      ingEstimatedCentsPerBasisUnit: ingredient.estimatedCentsPerBasisUnit,
-      ingPurchasePriceCents: ingredient.purchasePriceCents,
-      ingPurchaseQuantity: ingredient.purchaseQuantity,
-      ingGramsPerCup: ingredient.gramsPerCup,
-      ingGramsPerEach: ingredient.gramsPerEach,
-      ingCupsPerEach: ingredient.cupsPerEach,
-      ingPreferredDisplayUnit: ingredient.preferredDisplayUnit,
-      ingPurchaseUnit: ingredient.purchaseUnit,
-    })
-    .from(recipeIngredient)
-    .leftJoin(ingredient, eq(recipeIngredient.ingredientId, ingredient.id))
-    .where(inArray(recipeIngredient.recipeId, recipeIds))
-    .orderBy(asc(recipeIngredient.sortOrder));
-
-  // Group by recipe.
-  const recipesForGrocery = new Map<string, GroceryRecipe>();
-
-  for (const item of items) {
-    if (!recipesForGrocery.has(item.recipeId)) {
-      recipesForGrocery.set(item.recipeId, {
-        id: item.recipeId,
-        title: item.recipeTitle,
-        ingredients: [],
-      });
-    }
-  }
-
-  for (const ri of riRows) {
-    const r = recipesForGrocery.get(ri.recipeId);
-    if (!r) continue;
-    r.ingredients.push({
-      id: ri.riId,
-      ingredientId: ri.ingredientId,
-      ingredient: ri.ingId
-        ? {
-            id: ri.ingId,
-            name: ri.ingName!,
-            costBasisUnit: ri.ingCostBasisUnit!,
-            estimatedCentsPerBasisUnit: ri.ingEstimatedCentsPerBasisUnit ?? null,
-            purchasePriceCents: ri.ingPurchasePriceCents ?? null,
-            purchaseQuantity: ri.ingPurchaseQuantity ?? null,
-            gramsPerCup: ri.ingGramsPerCup ?? null,
-            gramsPerEach: ri.ingGramsPerEach ?? null,
-            cupsPerEach: ri.ingCupsPerEach ?? null,
-            preferredDisplayUnit: ri.ingPreferredDisplayUnit ?? null,
-            purchaseUnit: ri.ingPurchaseUnit ?? null,
-          }
-        : null,
-      quantity: ri.quantity,
-      unit: ri.unit,
-      displayText: ri.displayText ?? "",
-    });
-  }
-
-  groceryResult = buildGroceryList({
-    orderItems: items.map((i) => ({ recipeId: i.recipeId, batches: i.batches })),
-    recipes: [...recipesForGrocery.values()],
-  });
-}
+const [recipeData, savedMaterials] = await Promise.all([
+  loadOwnedOrderRecipeData(db, user.id, recipeIds),
+  db.select().from(orderMaterial).where(eq(orderMaterial.orderId, id)).orderBy(asc(orderMaterial.createdAt), asc(orderMaterial.name)),
+]);
+const groceryResult = buildGroceryList({ orderItems: items, recipes: recipeData.recipes });
+const hasUnavailableRecipes = recipeIds.some((id) => recipeData.availability[id]?.status !== "checked");
+const materialsCostCents = savedMaterials.reduce((total, item) => total + materialLineCost(item.unitCostCents, item.quantity), 0);
 
 // Render markdown notes.
 const notesHtml = o.notes?.trim()
@@ -292,18 +223,12 @@ const dueTimeLabel = formatDueTime(o.dueTime);
       </ul>
     </section>
 
-    {/* Grocery list */}
-    <section>
-      <h2 class="font-display text-xl text-foreground mb-4">
-        Grocery list
-        {groceryResult.totals.length > 0 && (
-          <span class="ml-2 text-sm font-normal text-muted-foreground">
-            ({groceryResult.totals.length} items)
-          </span>
-        )}
-      </h2>
-      <GroceryListDisplay client:load grocery={groceryResult} showCost={true} />
-    </section>
+    <OrderListSection id="order-ingredients" title="Ingredient List" countLabel={`${groceryResult.totals.length} ${groceryResult.totals.length === 1 ? "ingredient" : "ingredients"}`}>
+      <GroceryListDisplay client:load grocery={groceryResult} showCost={true} showTotal={false} />
+    </OrderListSection>
+
+    <OrderMaterialsList items={savedMaterials} />
+    <OrderCostSummary grocery={groceryResult} materialsCostCents={materialsCostCents} hasUnavailableRecipes={hasUnavailableRecipes} />
 
     {/* Delete */}
     <section class="pt-4 border-t border-border">

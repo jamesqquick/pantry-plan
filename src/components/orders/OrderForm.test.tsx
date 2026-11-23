@@ -6,6 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { actions } from "astro:actions";
 import OrderForm from "./OrderForm";
 import type { RecipeOption } from "./OrderItemsEditor";
+import { materialToUsage, type MaterialOption } from "@/features/materials/materials";
 
 vi.mock("astro:actions", () => ({
   actions: {
@@ -13,6 +14,7 @@ vi.mock("astro:actions", () => ({
       create: vi.fn(),
       update: vi.fn(),
     },
+    materials: { create: vi.fn(), update: vi.fn() },
   },
 }));
 
@@ -56,7 +58,167 @@ const editProps = {
   initialItems: [{ recipeId: "recipe-123", batches: 1 }],
 };
 
+const labels: MaterialOption = {
+  id: "labels", name: "Logo labels", category: "Labels & print", usageUnit: "each",
+  packagePriceCents: 625, packageQuantity: 500, supplier: "Shop", productUrl: "https://shop.example.com/labels",
+};
+
 describe("OrderForm", () => {
+  it("adds measured materials, updates live costs, and submits only IDs and usage", async () => {
+    vi.mocked(actions.orders.update).mockResolvedValue({ data: undefined, error: { code: "BAD_REQUEST", message: "Stopped before navigation." } } as never);
+    const user = userEvent.setup();
+    render(<OrderForm {...editProps} materialOptions={[labels]} />);
+    await user.click(screen.getByRole("combobox", { name: "Material 1" }));
+    await user.click(screen.getByRole("option", { name: "Logo labels" }));
+    fireEvent.change(screen.getByLabelText(/Amount used.*Logo labels/), { target: { value: "24" } });
+    expect(screen.getByLabelText("Cost for Logo labels").textContent).toBe("$0.30");
+    const productLink = screen.getByRole("link", { name: /View product for Logo labels/ });
+    expect(productLink.getAttribute("rel")).toBe("noopener noreferrer");
+    await user.click(screen.getByRole("button", { name: "Add material" }));
+    await user.click(screen.getByRole("button", { name: "Save order" }));
+    await waitFor(() => expect(actions.orders.update).toHaveBeenCalledWith(expect.objectContaining({
+      materials: [{ materialId: "labels", quantity: 24 }], totalCostCents: 2000,
+    })));
+  });
+
+  it("keeps historical prices and units when a saved material is removed and re-added before saving", async () => {
+    const user = userEvent.setup();
+    render(<OrderForm {...editProps} initialMaterials={[materialToUsage(labels)]} materialOptions={[{
+      ...labels, name: "New catalog label", packagePriceCents: 5000, usageUnit: "ft",
+    }]} />);
+    await user.click(screen.getByRole("button", { name: "Remove material 1" }));
+    await user.click(screen.getByRole("combobox", { name: "Material 1" }));
+    await user.click(screen.getByRole("option", { name: "Logo labels" }));
+    expect(screen.queryByLabelText(/Amount used.*New catalog label/)).toBeNull();
+    expect(screen.getByText("$0.0125 / item")).toBeTruthy();
+    expect(screen.getByLabelText("Cost for Logo labels").textContent).toBe("$0.01");
+  });
+
+  it("creates and attaches a catalog material without losing unsaved order details", async () => {
+    vi.mocked(actions.materials.create).mockResolvedValue({ data: {
+      ...labels, userId: "cook", notes: null, createdAt: new Date(), updatedAt: new Date(),
+    }, error: undefined });
+    const user = userEvent.setup();
+    render(<OrderForm {...editProps} />);
+    fireEvent.change(screen.getByRole("textbox", { name: /^Name/ }), { target: { value: "Unsaved birthday" } });
+    fireEvent.change(screen.getByLabelText("Amount used for material 1"), { target: { value: "2.5" } });
+    await user.click(screen.getByRole("button", { name: "Add material" }));
+    await user.click(screen.getByRole("combobox", { name: "Material 1" }));
+    await user.click(screen.getByRole("button", { name: "New material" }));
+    fireEvent.change(screen.getByLabelText(/^Material name/), { target: { value: "Logo labels" } });
+    fireEvent.change(screen.getByLabelText(/^Total amount in package/), { target: { value: "500" } });
+    fireEvent.change(screen.getByLabelText(/^Package price/), { target: { value: "6.25" } });
+    await user.click(screen.getByRole("button", { name: "Save and add to order" }));
+    await waitFor(() => expect(screen.getByRole("textbox", { name: /^Name/ })).toHaveProperty("value", "Unsaved birthday"));
+    expect(screen.getByLabelText(/Amount used.*Logo labels/)).toHaveProperty("value", "2.5");
+    expect(screen.getByRole("combobox", { name: "Material 1" })).toHaveProperty("value", "Logo labels");
+    expect(screen.getByRole("combobox", { name: "Material 2" })).toHaveProperty("value", "");
+    expect(actions.orders.update).not.toHaveBeenCalled();
+  });
+
+  it("calculates ingredient and material totals together without scaling material usage by batches", () => {
+    render(<OrderForm {...editProps} initialItems={[{ recipeId: "recipe-123", batches: 2 }]}
+      initialMaterials={[{ ...materialToUsage(labels), quantity: "24" }]}
+      groceryRecipes={[{
+        id: "recipe-123", title: "Cookies", ingredients: [{
+          id: "flour-line", ingredientId: "flour", quantity: 100, unit: "G", displayText: "Flour",
+          ingredient: { id: "flour", name: "Flour", costBasisUnit: "G", estimatedCentsPerBasisUnit: 1 },
+        }],
+      }]} />);
+    const summary = screen.getByRole("region", { name: "Order cost summary" });
+    expect(summary.textContent).toContain("$2.00");
+    expect(summary.textContent).toContain("$0.30");
+    expect(summary.textContent).toContain("$2.30");
+    fireEvent.change(screen.getByLabelText(/Amount used.*Logo labels/), { target: { value: "0.5" } });
+    expect(summary.textContent).toContain("$2.01");
+    fireEvent.change(screen.getByLabelText(/Amount used.*Logo labels/), { target: { value: "0" } });
+    expect(summary.textContent).toContain("Check amounts");
+  });
+
+  it("starts with one optional blank material row and saves an order without materials", async () => {
+    vi.mocked(actions.orders.update).mockResolvedValue({ data: undefined, error: { code: "BAD_REQUEST", message: "Stopped before navigation." } } as never);
+    const user = userEvent.setup();
+    render(<OrderForm {...editProps} initialMaterials={[]} />);
+    expect(screen.getByRole("combobox", { name: "Material 1" })).toHaveProperty("value", "");
+    expect(screen.queryByRole("combobox", { name: "Material 2" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Remove material 1" })).toHaveProperty("disabled", true);
+    await user.click(screen.getByRole("button", { name: "Save order" }));
+    await waitFor(() => expect(actions.orders.update).toHaveBeenCalledWith(expect.objectContaining({ materials: [] })));
+  });
+
+  it.each(["query", "quantity"])("requires selection for a material row started with a %s", async (field) => {
+    const user = userEvent.setup();
+    render(<OrderForm {...editProps} materialOptions={[labels]} />);
+    if (field === "query") {
+      await user.type(screen.getByRole("combobox", { name: "Material 1" }), "Unknown supply");
+      expect(screen.getByText("No matching materials")).toBeTruthy();
+      await user.keyboard("{Enter}{Escape}");
+      expect(actions.orders.update).not.toHaveBeenCalled();
+    } else {
+      fireEvent.change(screen.getByLabelText("Amount used for material 1"), { target: { value: "4.5" } });
+    }
+    await user.click(screen.getByRole("button", { name: "Save order" }));
+    expect(screen.getByRole("alert").textContent).toBe("Select a material in each started row, or remove the row.");
+    expect(actions.orders.update).not.toHaveBeenCalled();
+  });
+
+  it("searches materials by supplier with keyboard selection and excludes duplicates", async () => {
+    vi.mocked(actions.orders.update).mockResolvedValue({ data: undefined, error: { code: "BAD_REQUEST", message: "Stopped before navigation." } } as never);
+    const user = userEvent.setup();
+    const ribbon: MaterialOption = { ...labels, id: "ribbon", name: "Ribbon", supplier: "Ribbon shop", usageUnit: "ft", packagePriceCents: 1200, packageQuantity: 30 };
+    render(<OrderForm {...editProps} materialOptions={[labels, ribbon]} />);
+    await user.type(screen.getByRole("combobox", { name: "Material 1" }), "ribbon shop");
+    expect(screen.queryByRole("option", { name: "Logo labels" })).toBeNull();
+    await user.keyboard("{ArrowDown}{Enter}");
+    fireEvent.change(screen.getByLabelText(/Amount used.*Ribbon/), { target: { value: "4.5" } });
+    expect(screen.getByLabelText("Cost for Ribbon").textContent).toBe("$1.80");
+    await user.click(screen.getByRole("button", { name: "Add material" }));
+    await user.click(screen.getByRole("combobox", { name: "Material 2" }));
+    expect(screen.queryByRole("option", { name: "Ribbon" })).toBeNull();
+    await user.keyboard("{ArrowUp}{Enter}");
+    await user.click(screen.getByRole("button", { name: "Remove material 1" }));
+    expect(screen.getByRole("combobox", { name: "Material 1" })).toHaveProperty("value", "Logo labels");
+    expect(screen.getByLabelText(/Amount used.*Logo labels/)).toHaveProperty("value", "1");
+    await user.click(screen.getByRole("button", { name: "Save order" }));
+    await waitFor(() => expect(actions.orders.update).toHaveBeenCalledWith(expect.objectContaining({ materials: [{ materialId: "labels", quantity: 1 }] })));
+  });
+
+  it("preserves another row's search and amount when an earlier row is removed", async () => {
+    const user = userEvent.setup();
+    render(<OrderForm {...editProps} initialMaterials={[materialToUsage(labels)]} materialOptions={[labels]} />);
+    await user.click(screen.getByRole("button", { name: "Add material" }));
+    fireEvent.change(screen.getByLabelText("Amount used for material 2"), { target: { value: "0.5" } });
+    await user.type(screen.getByRole("combobox", { name: "Material 2" }), "Unlisted ribbon");
+    await user.click(screen.getByRole("button", { name: "Remove material 1" }));
+    expect(screen.getByRole("combobox", { name: "Material 1" })).toHaveProperty("value", "Unlisted ribbon");
+    expect(screen.getByLabelText("Amount used for material 1")).toHaveProperty("value", "0.5");
+  });
+
+  it("clears saved materials when the last selected row is removed", async () => {
+    vi.mocked(actions.orders.update).mockResolvedValue({ data: undefined, error: { code: "BAD_REQUEST", message: "Stopped before navigation." } } as never);
+    const user = userEvent.setup();
+    render(<OrderForm {...editProps} initialMaterials={[materialToUsage(labels)]} materialOptions={[labels]} />);
+    await user.click(screen.getByRole("button", { name: "Remove material 1" }));
+    expect(screen.getByRole("combobox", { name: "Material 1" })).toHaveProperty("value", "");
+    expect(screen.queryByLabelText("Cost for Logo labels")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Save order" }));
+    await waitFor(() => expect(actions.orders.update).toHaveBeenCalledWith(expect.objectContaining({ materials: [] })));
+  });
+
+  it("keeps selected rows, draft searches, and quantities after canceling inline creation", async () => {
+    const user = userEvent.setup();
+    render(<OrderForm {...editProps} initialMaterials={[{ ...materialToUsage(labels), quantity: "24" }]} materialOptions={[labels]} />);
+    await user.click(screen.getByRole("button", { name: "Add material" }));
+    fireEvent.change(screen.getByLabelText("Amount used for material 2"), { target: { value: "0.5" } });
+    await user.type(screen.getByRole("combobox", { name: "Material 2" }), "New board");
+    await user.click(screen.getByRole("button", { name: "New material" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("combobox", { name: "Material 2" })).toHaveProperty("value", "New board");
+    expect(screen.getByLabelText("Amount used for material 2")).toHaveProperty("value", "0.5");
+    expect(screen.getByLabelText(/Amount used.*Logo labels/)).toHaveProperty("value", "24");
+    expect(screen.getByLabelText("Cost for Logo labels").textContent).toBe("$0.30");
+  });
+
   it("defaults new orders to seven days from today at 9:00 AM", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 9, 28, 12, 0));
@@ -81,7 +243,7 @@ describe("OrderForm", () => {
     await user.click(screen.getByRole("button", { name: "Create order" }));
 
     await waitFor(() => expect(actions.orders.create).toHaveBeenCalledWith(
-      expect.objectContaining({ totalCostCents: 0 }),
+      expect.objectContaining({ totalCostCents: 0, materials: [] }),
     ));
   });
 

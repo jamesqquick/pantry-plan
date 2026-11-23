@@ -10,6 +10,7 @@ import {
 import { order, orderItem, recipe } from "@/db";
 import { getDb, requireUser } from "./_shared";
 import { withSafeActionError } from "./action-error";
+import { orderMaterialStatements } from "@/features/materials/order-materials.server";
 
 /**
  * Ensure every recipeId in `items` belongs to the given user. Throws
@@ -52,6 +53,7 @@ export const orders = {
           );
 
           const id = createId();
+          const materialWrites = await orderMaterialStatements(db, user.id, id, input.materials);
           await db.batch([
             db.insert(order).values({
               id,
@@ -72,6 +74,7 @@ export const orders = {
               recipeId: item.recipeId,
               batches: item.batches,
             }))),
+            ...materialWrites,
           ]);
 
           return { id };
@@ -127,6 +130,9 @@ export const orders = {
           }
           if (input.status !== undefined) patch.status = input.status;
 
+          const materialWrites = input.materials === undefined ? []
+            : await orderMaterialStatements(db, user.id, input.id, input.materials);
+
           await db.batch([
             db.update(order).set(patch).where(eq(order.id, input.id)),
             db.delete(orderItem).where(eq(orderItem.orderId, input.id)),
@@ -135,6 +141,7 @@ export const orders = {
               recipeId: item.recipeId,
               batches: item.batches,
             }))),
+            ...materialWrites,
           ]);
 
           return { id: input.id };

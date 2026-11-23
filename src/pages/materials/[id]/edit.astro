@@ -1,0 +1,27 @@
+---
+import { env } from "cloudflare:workers";
+import { and, eq } from "drizzle-orm";
+import { createDb, material } from "@/db";
+import AppLayout from "@/layouts/AppLayout.astro";
+import PageHeader from "@/components/ui/PageHeader.astro";
+import { MaterialForm } from "@/components/materials/MaterialForm";
+export const prerender = false;
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect("/materials");
+const [saved] = await createDb(env.DB).select().from(material)
+  .where(and(eq(material.id, id), eq(material.userId, Astro.locals.user!.id))).limit(1);
+if (!saved) return new Response("Material not found", { status: 404 });
+---
+<AppLayout title={`Edit ${saved.name} — Quick Pantry`}>
+  <div class="space-y-8">
+    <PageHeader>
+      <a slot="eyebrow" href="/materials" class="mobile-action-control text-sm text-muted-foreground hover:text-foreground">← Materials</a>
+      <div slot="content" class="space-y-3">
+        <h1 class="font-display text-4xl tracking-tight sm:text-5xl">Edit material</h1>
+        <p class="text-body text-muted-foreground">Saved orders keep their original material prices and usage units.</p>
+      </div>
+    </PageHeader>
+    <MaterialForm client:load initialMaterial={saved} />
+  </div>
+</AppLayout>

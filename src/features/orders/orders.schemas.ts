@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { orderMaterialsSchema } from "@/features/materials/materials.schemas";
 import {
   ORDER_FULFILLMENT_METHODS,
   ORDER_STATUSES,
@@ -84,6 +85,7 @@ export const orderCreateSchema = z.object({
   ...optionalOrderDetails,
   fulfillmentMethod: fulfillmentMethodSchema.default("PICKUP"),
   status: orderStatusSchema.default("DRAFT"),
+  materials: orderMaterialsSchema.default([]),
   items: z
     .array(orderItemSchema)
     .max(MAX_ORDER_ITEMS)
@@ -102,6 +104,7 @@ export const orderUpdateSchema = z.object({
   ...optionalOrderDetails,
   fulfillmentMethod: fulfillmentMethodSchema.optional(),
   status: orderStatusSchema.optional(),
+  materials: orderMaterialsSchema.optional(),
   items: z
     .array(orderItemSchema)
     .max(MAX_ORDER_ITEMS)
