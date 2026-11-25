@@ -39,6 +39,8 @@ it("creates and links a staged tag in the mapped import batch", async () => {
   });
 
   expect(batch).toHaveBeenCalledOnce();
+  expect(test.sqlite.prepare("SELECT isPublic, publicSlug, publishedAt FROM Recipe WHERE id = ?").get(result.recipeId))
+    .toEqual({ isPublic: 0, publicSlug: null, publishedAt: null });
   expect(test.sqlite.prepare(`SELECT t.name FROM RecipeTag rt JOIN Tag t ON t.id = rt.tagId
     WHERE rt.recipeId = ?`).all(result.recipeId)).toEqual([{ name: "Dinner" }]);
 });

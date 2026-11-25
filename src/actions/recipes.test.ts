@@ -109,16 +109,24 @@ describe("managed recipe photos", () => {
     expect(runtime.bucket.delete).toHaveBeenCalledWith("recipe-photos/existing");
   });
 
-  it("duplicates managed photos into an independent object", async () => {
-    test.sqlite.exec("UPDATE Recipe SET imageUrl = 'https://photos.example.test/recipe-photos/existing?v=1', imageStorageKey = 'recipe-photos/existing' WHERE id = 'existing'");
+  it("duplicates a public recipe with an independent photo and no sharing state", async () => {
+    test.sqlite.exec(`UPDATE Recipe SET
+      imageUrl = 'https://photos.example.test/recipe-photos/existing?v=1',
+      imageStorageKey = 'recipe-photos/existing',
+      isPublic = 1, publicSlug = 'original-soup', publishedAt = 1795600000123
+      WHERE id = 'existing'`);
     const body = new Blob([png]).stream();
     runtime.bucket.get.mockResolvedValue({ body, httpMetadata: { contentType: "image/png" } });
     const form = new FormData();
     form.set("recipeId", "existing");
     const { id } = await recipes.duplicate.orThrow.call(ctx, form);
     expect(runtime.bucket.put).toHaveBeenCalledWith(`recipe-photos/${id}`, body, { httpMetadata: { contentType: "image/png" } });
-    expect(test.sqlite.prepare("SELECT imageStorageKey, imageUrl FROM Recipe WHERE id = ?").get(id))
-      .toMatchObject({ imageStorageKey: `recipe-photos/${id}`, imageUrl: expect.stringContaining(`recipe-photos/${id}?v=`) });
+    expect(test.sqlite.prepare("SELECT imageStorageKey, imageUrl, isPublic, publicSlug, publishedAt FROM Recipe WHERE id = ?").get(id))
+      .toEqual({
+        imageStorageKey: `recipe-photos/${id}`,
+        imageUrl: expect.stringContaining(`recipe-photos/${id}?v=`),
+        isPublic: 0, publicSlug: null, publishedAt: null,
+      });
     const deleteForm = new FormData();
     deleteForm.set("id", id);
     await recipes.delete.orThrow.call(ctx, deleteForm);
@@ -131,6 +139,27 @@ afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
   test.sqlite.close();
+});
+
+it("ignores sharing fields submitted to the ordinary recipe create action", async () => {
+  const result = await recipes.create.orThrow.call(ctx, {
+    ...submittedRecipe(), isPublic: true, publicSlug: "changed-soup", publishedAt: 1795600000123,
+  });
+
+  expect(test.sqlite.prepare("SELECT isPublic, publicSlug, publishedAt FROM Recipe WHERE id = ?").get(result.id))
+    .toEqual({ isPublic: 0, publicSlug: null, publishedAt: null });
+});
+
+it("preserves sharing state when editing a public recipe", async () => {
+  test.sqlite.exec(`UPDATE Recipe SET isPublic = 1, publicSlug = 'original-soup', publishedAt = 1795600000123
+    WHERE id = 'existing'`);
+
+  await recipes.update.orThrow.call(ctx, {
+    id: "existing", title: "Renamed soup", isPublic: false, publicSlug: "renamed-soup", publishedAt: null,
+  });
+
+  expect(test.sqlite.prepare("SELECT title, isPublic, publicSlug, publishedAt FROM Recipe WHERE id = 'existing'").get())
+    .toEqual({ title: "Renamed soup", isPublic: 1, publicSlug: "original-soup", publishedAt: 1795600000123 });
 });
 
 function snapshot() {

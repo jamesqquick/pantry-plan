@@ -416,6 +416,8 @@ describe("MCP measurement errors", () => {
 
     const result = await callTool(db, "import_recipe_from_url", { url: "https://example.test/pancakes" });
     expect(result.isError).toBeUndefined();
+    expect(await db.select({ isPublic: recipe.isPublic, publicSlug: recipe.publicSlug, publishedAt: recipe.publishedAt }).from(recipe))
+      .toEqual([{ isPublic: false, publicSlug: null, publishedAt: null }]);
     expect(await db.select().from(recipeIngredient).orderBy(recipeIngredient.sortOrder)).toMatchObject([
       { quantity: 1.5, unit: "CUP", displayText: "flour", rawText: "1½ cups flour" },
       { quantity: 3, unit: "COUNT", displayText: "eggs", rawText: "3 eggs" },
