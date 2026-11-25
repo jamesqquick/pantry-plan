@@ -43,7 +43,12 @@ describe("createMcpRecipe", () => {
 
     const { recipeId } = await createMcpRecipe(test.db, "cook", input, storage);
     expect(bucket.put).toHaveBeenCalledWith(`recipe-photos/${recipeId}`, png, expect.objectContaining({ httpMetadata: { contentType: "image/png", cacheControl: "public, no-cache" } }));
-    expect(sqlite.prepare("SELECT imageStorageKey, imageUrl FROM Recipe WHERE id = ?").get(recipeId)).toMatchObject({ imageStorageKey: `recipe-photos/${recipeId}`, imageUrl: expect.stringContaining(`recipe-photos/${recipeId}?v=`) });
+    expect(sqlite.prepare("SELECT imageStorageKey, imageUrl, isPublic, publicSlug, publishedAt FROM Recipe WHERE id = ?").get(recipeId))
+      .toEqual({
+        imageStorageKey: `recipe-photos/${recipeId}`,
+        imageUrl: expect.stringContaining(`recipe-photos/${recipeId}?v=`),
+        isPublic: 0, publicSlug: null, publishedAt: null,
+      });
 
     sqlite.exec("CREATE TRIGGER fail_recipe BEFORE INSERT ON Recipe BEGIN SELECT RAISE(ABORT, 'injected failure'); END;");
     await expect(createMcpRecipe(test.db, "cook", input, storage)).rejects.toThrow("injected failure");

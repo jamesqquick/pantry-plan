@@ -120,6 +120,13 @@
       "when": 1795119607803,
       "tag": "0016_materials",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1795633756226,
+      "tag": "0017_recipe_visibility",
+      "breakpoints": true
     }
   ]
 }

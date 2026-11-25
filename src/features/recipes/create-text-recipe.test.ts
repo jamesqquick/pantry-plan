@@ -27,11 +27,13 @@ describe("quick recipe saves", () => {
       "2 cups semisweet chocolate chips ((12 oz))",
     ];
 
-    await createTextOnlyRecipe(test.db, "cook", {
+    const { recipeId } = await createTextOnlyRecipe(test.db, "cook", {
       recipe: recipeData,
       ingredients: lines,
     });
 
+    expect(test.sqlite.prepare("SELECT isPublic, publicSlug, publishedAt FROM Recipe WHERE id = ?").get(recipeId))
+      .toEqual({ isPublic: 0, publicSlug: null, publishedAt: null });
     const rows = await test.db.select().from(recipeIngredient);
     expect(rows.map(({ ingredientId }) => ingredientId)).toEqual(lines.map(() => null));
     expect(rows.map(({ quantity, unit, displayText, rawText }) => ({ quantity, unit, displayText, rawText })))

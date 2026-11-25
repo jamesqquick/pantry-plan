@@ -4,6 +4,7 @@ import {
   real,
   sqliteTable,
   text,
+  uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import { cuidPk, createdAt, updatedAt } from "./_shared";
 import { user } from "./users";
@@ -26,6 +27,9 @@ export const recipe = sqliteTable(
     cookTimeMinutes: integer("cookTimeMinutes"),
     totalTimeMinutes: integer("totalTimeMinutes"),
     notes: text("notes"),
+    isPublic: integer("isPublic", { mode: "boolean" }).notNull().default(false),
+    publicSlug: text("publicSlug"),
+    publishedAt: integer("publishedAt", { mode: "timestamp_ms" }),
     lastViewedAt: integer("lastViewedAt", { mode: "timestamp_ms" }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -33,6 +37,7 @@ export const recipe = sqliteTable(
   (t) => [
     index("Recipe_userId_idx").on(t.userId),
     index("Recipe_userId_lastViewedAt_idx").on(t.userId, t.lastViewedAt),
+    uniqueIndex("Recipe_publicSlug_key").on(t.publicSlug),
   ]
 );
 
