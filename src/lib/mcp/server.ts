@@ -194,7 +194,7 @@ export function createServer(
     toolConfig("get_recipe", "recipes:read", {
       title: "Get recipe",
       description:
-        "Get the complete editable recipe, including structured ingredients, ordered instructions, and tag names, from the authenticated user's Quick Pantry account.",
+        "Get the complete editable recipe, including structured ingredients, ordered instructions, and tag names, from the authenticated user's Quick Pantry account. Quick Pantry-hosted photo URLs require the owner's browser session.",
       inputSchema: getRecipeToolSchema,
       outputSchema: recipeDetailsOutputSchema,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
@@ -206,7 +206,7 @@ export function createServer(
         return toolError("Too many requests. Please try again later.");
       }
       try {
-        const result = await getMcpRecipe(db, userId, recipeId);
+        const result = await getMcpRecipe(db, userId, recipeId, origin);
         return recipeDetailsResult(origin, result, "Recipe");
       } catch (error) {
         console.error(
@@ -241,9 +241,9 @@ export function createServer(
         return toolError("Too many requests. Please try again later.");
       }
       try {
-        await editMcpRecipe(db, userId, input, photos);
+        await editMcpRecipe(db, userId, input, photos, origin);
         await queueIndexSync([input.recipeId]);
-        const result = await getMcpRecipe(db, userId, input.recipeId);
+        const result = await getMcpRecipe(db, userId, input.recipeId, origin);
         return recipeDetailsResult(origin, result, "Updated recipe");
       } catch (error) {
         if (error instanceof IngredientMeasurementValidationError) {
@@ -360,6 +360,7 @@ export function createServer(
           },
           userId,
           { query, limit, tag },
+          origin,
         );
         const recipes = results.map((result) => ({
           ...result,
@@ -465,7 +466,7 @@ export async function handleMcpRequest(
       createServer(db, auth.userId, origin, env.AI_RATE_LIMIT, {
         env,
         waitUntil: ctx.waitUntil.bind(ctx),
-      }, auth.scopes, { bucket: env.RECIPE_PHOTOS, publicUrl: env.RECIPE_PHOTO_PUBLIC_URL }),
+      }, auth.scopes, { bucket: env.RECIPE_PHOTOS }),
     {
       route: "/mcp",
       authContext: { props: { userId: auth.userId, scopes: auth.scopes } },

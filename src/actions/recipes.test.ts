@@ -21,7 +21,7 @@ vi.mock("./_shared", () => ({
   getDb: () => runtime.db,
   requireUser: (ctx: { locals: { user: { id: string } } }) => ctx.locals.user,
   queueSearchSync: runtime.queueSearchSync,
-  getPhotoStorage: () => ({ bucket: runtime.bucket, publicUrl: "https://photos.example.test" }),
+  getPhotoStorage: () => ({ bucket: runtime.bucket }),
 }));
 
 let test: ReturnType<typeof createTestDb>;
@@ -68,12 +68,12 @@ beforeEach(() => {
 const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1]);
 
 describe("managed recipe photos", () => {
-  it("only uploads a valid photo for the owning user and records its public URL", async () => {
+  it("only uploads a valid photo for the owning user and records its owner-only URL", async () => {
     const form = new FormData();
     form.set("recipeId", "existing");
     form.set("image", new File([png], "pasta.png", { type: "image/png" }));
     const result = await recipes.uploadPhoto.orThrow.call(ctx, form);
-    expect(result.imageUrl).toMatch(/^https:\/\/photos\.example\.test\/recipe-photos\/existing\?v=/);
+    expect(result.imageUrl).toMatch(/^\/recipe-photos\/existing\?v=/);
     expect(runtime.bucket.put).toHaveBeenCalledOnce();
     expect(runtime.bucket.put.mock.calls[0][0]).toBe("recipe-photos/existing");
     expect(test.sqlite.prepare("SELECT imageStorageKey, imageUrl FROM Recipe WHERE id = 'existing'").get())

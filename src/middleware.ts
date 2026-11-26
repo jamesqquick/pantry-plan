@@ -52,7 +52,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;
   // MCP and OAuth discovery authenticate independently of browser sessions.
   if (pathname === "/mcp" || pathname.startsWith("/.well-known/")) return next();
-  if (pathname.startsWith("/recipe-photos/")) return next();
+  const isRead = context.request.method === "GET" || context.request.method === "HEAD";
+  const isSharedRecipePage = isRead && context.routePattern === "/r/[slug]";
+  const isSharedRecipeRead = isSharedRecipePage || (isRead && context.routePattern === "/r/[slug]/photo");
+  const isOwnerPhotoRead = isRead && context.routePattern === "/recipe-photos/[id]";
 
   const isAction = pathname.startsWith("/_actions/");
   const budget = new DatabaseBudget({
@@ -60,10 +63,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
     requestId: context.request.headers.get("cf-ray") ?? undefined,
     databaseTimeOnly: isAction,
   });
+  const unavailable = () => {
+    const response = databaseUnavailableResponse(context, budget);
+    if (isSharedRecipePage) response.headers.set("X-Robots-Tag", "noindex");
+    return response;
+  };
   return withDatabaseBudget(budget, async () => {
     try {
       const waitUntil = context.locals.cfContext?.waitUntil.bind(context.locals.cfContext);
-      const result = getSessionCookie(context.request)
+      const result = !isSharedRecipeRead && getSessionCookie(context.request)
         ? await budget.run("auth.session", () => createAuth(env, waitUntil).api.getSession({
             headers: context.request.headers,
           }))
@@ -82,7 +90,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
       }
 
       // Protected area: anything not in the public list requires auth.
-      if (!isAuthed && !isPublicPath(pathname)) {
+      // The legacy photo handler returns its own 404 when there is no owner session.
+      if (!isAuthed && !isSharedRecipeRead && !isOwnerPhotoRead && !isPublicPath(pathname)) {
         const next = pathname + context.url.search;
         return context.redirect(
           `/login?next=${encodeURIComponent(next)}`
@@ -93,10 +102,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
       // Observe our typed failure independently; never race a multi-step action handler.
       const response = isAction
         ? await next()
-        : await Promise.race([next(), budget.timedOut.then(() => databaseUnavailableResponse(context, budget))]);
-      return budget.error ? databaseUnavailableResponse(context, budget) : response;
+        : await Promise.race([next(), budget.timedOut.then(unavailable)]);
+      return budget.error ? unavailable() : response;
     } catch (error) {
-      if (budget.error) return databaseUnavailableResponse(context, budget);
+      if (budget.error) return unavailable();
       throw error;
     }
   });

@@ -14,6 +14,7 @@ export async function editMcpRecipe(
   userId: string,
   input: EditRecipeToolInput,
   photoStorage?: RecipePhotoStorage,
+  origin?: string,
 ): Promise<{ recipeId: string }> {
   const existingRows = await db
     .select({ id: recipe.id, imageUrl: recipe.imageUrl, imageStorageKey: recipe.imageStorageKey })
@@ -38,6 +39,10 @@ export async function editMcpRecipe(
   const photo = input.photoSourceUrl ? await fetchRecipePhoto(input.photoSourceUrl) : null;
   if (photo && !photoStorage) throw new RecipePhotoStorageUnavailableError();
   const previous = existingRows[0]!;
+  const currentPhotoKey = recipePhotoKey(previous.id);
+  const suppliedImageUrl = input.imageUrl ? URL.parse(input.imageUrl) : null;
+  const echoesManagedPhoto = !!origin && !!suppliedImageUrl && previous.imageStorageKey === currentPhotoKey
+    && suppliedImageUrl.origin === origin && suppliedImageUrl.pathname === `/${recipePhotoKey(encodeURIComponent(previous.id))}`;
   const previousObject = photo && previous.imageStorageKey && photoStorage
     ? await photoStorage.bucket.get(previous.imageStorageKey)
     : null;
@@ -47,12 +52,13 @@ export async function editMcpRecipe(
   if (input.title !== undefined) patch.title = input.title;
   if (input.sourceUrl !== undefined) patch.sourceUrl = input.sourceUrl || null;
   if (photo) {
-    patch.imageUrl = recipePhotoUrl(input.recipeId, photoStorage?.publicUrl);
+    patch.imageUrl = recipePhotoUrl(input.recipeId);
     patch.imageStorageKey = recipePhotoKey(input.recipeId);
-  } else if (input.imageUrl !== undefined && input.imageUrl !== previous.imageUrl) {
+  } else if (input.imageUrl !== undefined && input.imageUrl !== previous.imageUrl && !echoesManagedPhoto) {
     patch.imageUrl = input.imageUrl || null;
     patch.imageStorageKey = null;
   }
+
   if (input.servings !== undefined) patch.servings = input.servings;
   if (input.prepTimeMinutes !== undefined) {
     patch.prepTimeMinutes = input.prepTimeMinutes;

@@ -8,6 +8,7 @@ import RecipeForm, {
   type RecipeIngredientDraft,
 } from "@/components/recipes/RecipeForm";
 import { formatQuantityForInput } from "@/lib/quantity/quantity";
+import { ownerRecipeImageUrl } from "@/lib/recipes/recipe-photos";
 import {
   createDb,
   ingredient,
@@ -81,7 +82,7 @@ const initial: RecipeFormInitial = {
   id: r.id,
   title: r.title,
   sourceUrl: r.sourceUrl ?? "",
-  imageUrl: r.imageUrl ?? "",
+  imageUrl: ownerRecipeImageUrl(r) ?? "",
   servings: r.servings != null ? String(r.servings) : "",
   prepTimeMinutes: r.prepTimeMinutes != null ? String(r.prepTimeMinutes) : "",
   cookTimeMinutes: r.cookTimeMinutes != null ? String(r.cookTimeMinutes) : "",

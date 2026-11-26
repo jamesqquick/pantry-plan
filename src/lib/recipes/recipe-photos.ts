@@ -14,12 +14,20 @@ export class RecipePhotoValidationError extends Error {
 }
 
 export const recipePhotoKey = (recipeId: string) => `recipe-photos/${recipeId}`;
-export type RecipePhotoStorage = { bucket: R2Bucket; publicUrl?: string };
+export type RecipePhotoStorage = { bucket: R2Bucket };
 
-export function recipePhotoUrl(recipeId: string, publicUrl?: string) {
-  const path = recipePhotoKey(recipeId);
-  const base = publicUrl?.replace(/\/$/, "") ?? "";
-  return `${base}/${path}?v=${crypto.randomUUID()}`;
+export function recipePhotoUrl(recipeId: string) {
+  return `/${recipePhotoKey(recipeId)}?v=${crypto.randomUUID()}`;
+}
+
+export function ownerRecipeImageUrl(row: Pick<typeof recipe.$inferSelect, "id" | "imageUrl" | "imageStorageKey">, origin?: string) {
+  if (row.imageStorageKey !== recipePhotoKey(row.id)) return row.imageUrl;
+
+  const path = `/${recipePhotoKey(encodeURIComponent(row.id))}`;
+  const legacy = row.imageUrl && URL.parse(row.imageUrl, "https://recipe-photo.invalid");
+  const version = legacy ? legacy.searchParams.get("v") : null;
+  const url = version && /^[a-zA-Z0-9_-]{1,100}$/.test(version) ? `${path}?v=${version}` : path;
+  return origin ? new URL(url, origin).href : url;
 }
 
 function verifiedType(bytes: Uint8Array): string | null {
@@ -40,7 +48,7 @@ export function validatePhotoBytes(bytes: Uint8Array, contentType: string): void
 
 export async function putRecipePhoto(bucket: R2Bucket, recipeId: string, bytes: Uint8Array, contentType: string): Promise<void> {
   validatePhotoBytes(bytes, contentType);
-  await bucket.put(recipePhotoKey(recipeId), bytes, { httpMetadata: { contentType, cacheControl: "public, no-cache" } });
+  await bucket.put(recipePhotoKey(recipeId), bytes, { httpMetadata: { contentType, cacheControl: "no-store" } });
 }
 
 export async function storeRecipePhoto(
@@ -50,7 +58,6 @@ export async function storeRecipePhoto(
   recipeId: string,
   bytes: Uint8Array,
   contentType: string,
-  publicUrl?: string,
 ): Promise<string> {
   validatePhotoBytes(bytes, contentType);
   const [owned] = await db.select({ id: recipe.id, imageStorageKey: recipe.imageStorageKey }).from(recipe)
@@ -60,7 +67,7 @@ export async function storeRecipePhoto(
   const key = recipePhotoKey(recipeId);
   const previous = owned.imageStorageKey ? await bucket.get(key) : null;
   await putRecipePhoto(bucket, recipeId, bytes, contentType);
-  const imageUrl = recipePhotoUrl(recipeId, publicUrl);
+  const imageUrl = recipePhotoUrl(recipeId);
   try {
     const updated = await db.update(recipe).set({ imageUrl, imageStorageKey: key })
       .where(and(eq(recipe.id, recipeId), eq(recipe.userId, userId))).returning({ id: recipe.id });
@@ -77,11 +84,11 @@ export async function storeRecipePhoto(
 }
 
 export async function storeRecipePhotoFile(
-  db: Db, bucket: R2Bucket, userId: string, recipeId: string, file: File, publicUrl?: string,
+  db: Db, bucket: R2Bucket, userId: string, recipeId: string, file: File,
 ): Promise<string> {
   const error = validateRecipeImageFile(file);
   if (error) throw new RecipePhotoValidationError(error);
-  return storeRecipePhoto(db, bucket, userId, recipeId, new Uint8Array(await file.arrayBuffer()), file.type, publicUrl);
+  return storeRecipePhoto(db, bucket, userId, recipeId, new Uint8Array(await file.arrayBuffer()), file.type);
 }
 
 export async function removeRecipePhoto(bucket: R2Bucket, key: string): Promise<void> {

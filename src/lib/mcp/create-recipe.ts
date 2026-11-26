@@ -41,7 +41,7 @@ export async function createMcpRecipe(
       userId,
       title: input.title,
       sourceUrl: input.sourceUrl || null,
-      imageUrl: photo ? recipePhotoUrl(recipeId, photoStorage?.publicUrl) : input.imageUrl || null,
+      imageUrl: photo ? recipePhotoUrl(recipeId) : input.imageUrl || null,
       imageStorageKey: photo ? recipePhotoKey(recipeId) : null,
       servings: input.servings ?? null,
       prepTimeMinutes: input.prepTimeMinutes ?? null,

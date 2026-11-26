@@ -77,6 +77,33 @@ async function setupDb() {
   return test;
 }
 
+it("returns an app URL for managed photos and preserves the object when an edit echoes that URL", async () => {
+  const { db, sqlite } = await setupDb();
+  const imageStorageKey = "recipe-photos/managed-recipe";
+  const imageUrl = "https://quickpantry.test/recipe-photos/managed-recipe?v=legacy";
+  await db.insert(recipe).values({
+    id: "managed-recipe", userId: "cook", title: "Photo soup", imageStorageKey,
+    imageUrl: `https://old-bucket.example.com/${imageStorageKey}?v=legacy`,
+  });
+  await db.insert(recipeIngredient).values({
+    recipeId: "managed-recipe", displayText: "broth", quantity: 1, unit: "CUP", sortOrder: 0,
+  });
+
+  const detail = await callTool(db, "get_recipe", { recipeId: "managed-recipe" });
+  expect(detail.structuredContent).toMatchObject({ imageUrl });
+  expect(detail.structuredContent).not.toHaveProperty("imageStorageKey");
+  const search = await callTool(db, "search_recipes", { query: "Photo soup" });
+  expect(search.structuredContent).toMatchObject({ recipes: [{ id: "managed-recipe", imageUrl }] });
+  expect(JSON.stringify(search.structuredContent)).not.toContain("imageStorageKey");
+
+  const newImageUrl = `https://quickpantry.test/${imageStorageKey}?v=new`;
+  await db.update(recipe).set({ imageUrl: newImageUrl });
+  const edited = await callTool(db, "edit_recipe", { recipeId: "managed-recipe", title: "New soup", imageUrl });
+  expect(edited.structuredContent).toMatchObject({ title: "New soup", imageUrl: newImageUrl });
+  expect(sqlite.prepare("SELECT imageStorageKey FROM Recipe WHERE id = 'managed-recipe'").get())
+    .toEqual({ imageStorageKey });
+});
+
 describe("isRecipeAiSearchEnabled", () => {
   it("evaluates the flag with the key owner's email and user id", async () => {
     const { db, sqlite } = createTestDb();

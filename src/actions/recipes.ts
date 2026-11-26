@@ -231,9 +231,9 @@ export const recipes = {
     }),
     handler: async ({ recipeId, image }, ctx) => {
       const user = requireUser(ctx);
-      const { bucket, publicUrl } = getPhotoStorage();
+      const { bucket } = getPhotoStorage();
       try {
-        const imageUrl = await storeRecipePhotoFile(getDb(), bucket, user.id, recipeId, image, publicUrl);
+        const imageUrl = await storeRecipePhotoFile(getDb(), bucket, user.id, recipeId, image);
         return { imageUrl };
       } catch (error) {
         if (error instanceof RecipePhotoValidationError) {
@@ -597,7 +597,7 @@ export const recipes = {
             userId: user.id,
             title: `Copy of ${source.title}`,
             sourceUrl: source.sourceUrl,
-            imageUrl: copyKey ? recipePhotoUrl(copyId, photoStorage?.publicUrl) : source.imageUrl,
+            imageUrl: copyKey ? recipePhotoUrl(copyId) : source.imageUrl,
             imageStorageKey: copyKey,
             servings: source.servings,
             prepTimeMinutes: source.prepTimeMinutes,

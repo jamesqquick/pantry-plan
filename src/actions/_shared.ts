@@ -54,7 +54,7 @@ export function getDb(): Db {
 }
 
 export function getPhotoStorage() {
-  return { bucket: env.RECIPE_PHOTOS, publicUrl: env.RECIPE_PHOTO_PUBLIC_URL };
+  return { bucket: env.RECIPE_PHOTOS };
 }
 
 /** Wrap a unique-like constraint violation into a clean ActionError. */

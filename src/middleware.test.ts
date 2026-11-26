@@ -215,6 +215,37 @@ describe("browser session middleware", () => {
     },
   );
 
+  it.each([
+    ["/r/invalid", "/r/[slug]", "GET"],
+    ["/r/invalid/photo", "/r/[slug]/photo", "HEAD"],
+  ])("dispatches %s without looking up the visitor's session", async (path, routePattern, method) => {
+    const { context, next, rendered } = request(path, { method, headers: { cookie: await signUp() } });
+    Object.assign(context, { routePattern });
+    expect(await onRequest(context, next)).toBe(rendered);
+    expect(context.locals.session).toBeNull();
+    expect(createAuth).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["/r/anything", "/r/[slug]", "POST"],
+    ["/r/anything/editor", "/r/[slug]/editor", "GET"],
+    ["/recipe-photos/anything/editor", "/recipe-photos/[id]/editor", "GET"],
+  ])("keeps %s protected for %s (%s)", async (path, routePattern, method) => {
+    const { context, next } = request(path, { method, headers: { origin: runtime.env.AUTH_URL } });
+    Object.assign(context, { routePattern });
+    expect((await onRequest(context, next))?.status).toBe(302);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("validates the browser session before dispatching the legacy photo endpoint", async () => {
+    const { context, next, rendered } = request("/recipe-photos/recipe-1", { headers: { cookie: await signUp() } });
+    Object.assign(context, { routePattern: "/recipe-photos/[id]" });
+    expect(await onRequest(context, next)).toBe(rendered);
+    expect(createAuth).toHaveBeenCalledOnce();
+    expect(context.locals.session?.userId).toBe(context.locals.user?.id);
+    expect(context.locals.session).not.toBeNull();
+  });
+
   it("bypasses browser auth during prerendering", async () => {
     const { context, next, rendered } = request("/privacy", { headers: { cookie: "better-auth.session_token=invalid" } });
     context.isPrerendered = true;

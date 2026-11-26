@@ -4,6 +4,7 @@ import { asc, count, desc, eq, gt } from "drizzle-orm";
 import AppLayout from "@/layouts/AppLayout.astro";
 import PageHeader from "@/components/ui/PageHeader.astro";
 import RecipeList from "@/components/recipes/RecipeList";
+import { ownerRecipeImageUrl } from "@/lib/recipes/recipe-photos";
 import {
   createDb,
   recipe,
@@ -23,6 +24,7 @@ const recipes = await db
     id: recipe.id,
     title: recipe.title,
     imageUrl: recipe.imageUrl,
+    imageStorageKey: recipe.imageStorageKey,
     sourceUrl: recipe.sourceUrl,
     servings: recipe.servings,
     prepTimeMinutes: recipe.prepTimeMinutes,
@@ -53,8 +55,9 @@ for (const row of tagRows) {
   tagsByRecipe.set(row.recipeId, list);
 }
 
-const recipesWithTags = recipes.map((r) => ({
+const recipesWithTags = recipes.map(({ imageStorageKey, ...r }) => ({
   ...r,
+  imageUrl: ownerRecipeImageUrl({ ...r, imageStorageKey }),
   // Serialize dates to timestamps for the React island (Date → number).
   lastViewedAt: r.lastViewedAt ? r.lastViewedAt.getTime() : null,
   updatedAt: r.updatedAt.getTime(),
