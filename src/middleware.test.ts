@@ -7,6 +7,10 @@ import { getDatabaseBudget } from "@/lib/database-timeout";
 import { DATABASE_UNAVAILABLE_MESSAGE, DATABASE_WRITE_UNCERTAIN_MESSAGE } from "@/lib/database-unavailable";
 import * as auth from "@/lib/auth";
 import { createTestDb } from "@/test/d1";
+import { ACTION_RPC_ROUTE_PATTERN } from "../node_modules/astro/dist/actions/consts.js";
+import { getActionContext } from "../node_modules/astro/dist/actions/runtime/server.js";
+import { fetchStateSymbol } from "../node_modules/astro/dist/core/constants.js";
+import { recipes } from "./actions/recipes";
 import { onRequest } from "./middleware";
 import { ALL } from "./pages/api/auth/[...all]";
 
@@ -16,9 +20,9 @@ vi.mock("astro:middleware", () => ({
   defineMiddleware: (middleware: MiddlewareHandler) => middleware,
 }));
 vi.mock("astro:actions", async () => {
-  const { getActionContext } = await import("../node_modules/astro/dist/actions/runtime/server.js");
+  const { defineAction, getActionContext } = await import("../node_modules/astro/dist/actions/runtime/server.js");
   const { ActionError } = await import("../node_modules/astro/dist/actions/runtime/client.js");
-  return { getActionContext, ActionError };
+  return { defineAction, getActionContext, ActionError };
 });
 
 class DatabaseUnavailableError extends Error {
@@ -39,6 +43,7 @@ beforeEach(() => {
     AUTH_SECRET: crypto.randomUUID() + crypto.randomUUID(),
     GOOGLE_CLIENT_ID: "test-client",
     GOOGLE_CLIENT_SECRET: "test-client-secret",
+    FLAGS: undefined,
   });
   createAuth = vi.spyOn(auth, "createAuth");
 });
@@ -290,6 +295,48 @@ describe("browser session middleware", () => {
     expect(response?.status).toBeLessThan(500);
     expect(createAuth).toHaveBeenCalledOnce();
     expect(context.locals.session).toBeNull();
+  });
+});
+
+describe("recipe sharing action origin protection", () => {
+  it.each(["publish", "unpublish"] as const)("blocks a signed-in cross-origin form for %s and accepts same-origin JSON", async (action) => {
+    const cookie = await signUp();
+    const userId = test.sqlite.prepare("SELECT id FROM user").get()!.id as string;
+    const isPublic = action === "unpublish";
+    await test.db.insert(recipe).values({
+      id: "soup", userId, title: "Soup", isPublic,
+      publicSlug: isPublic ? "asoupslug000000000000000" : null,
+      publishedAt: isPublic ? new Date(1) : null,
+    });
+    Object.assign(runtime.env, { FLAGS: { getBooleanValue: vi.fn(async () => true) } });
+
+    const path = `/_actions/recipes.${action}`;
+    const form = new URLSearchParams({ id: "soup" });
+    const crossOrigin = request(path, {
+      method: "POST", headers: { cookie, origin: "https://other.example" }, body: form,
+    });
+    expect((await onRequest(crossOrigin.context, crossOrigin.next))?.status).toBe(403);
+    expect(crossOrigin.next).not.toHaveBeenCalled();
+    expect(createAuth).not.toHaveBeenCalled();
+    const readVisibility = () => test.sqlite.prepare("SELECT isPublic FROM Recipe WHERE id = 'soup'").get();
+    expect(readVisibility()).toEqual({ isPublic: Number(isPublic) });
+
+    const sameOrigin = request(path, {
+      method: "POST",
+      headers: { cookie, origin: runtime.env.AUTH_URL, "content-type": "application/json" },
+      body: JSON.stringify({ id: "soup" }),
+    });
+    Object.assign(sameOrigin.context, {
+      routePattern: ACTION_RPC_ROUTE_PATTERN,
+      [fetchStateSymbol]: { manifest: { actionBodySizeLimit: 4096, actions: async () => ({ server: { recipes } }) } },
+    });
+    const response = await onRequest(sameOrigin.context, async () => {
+      const { action, serializeActionResult } = getActionContext(sameOrigin.context);
+      const result = serializeActionResult(await action!.handler());
+      return new Response(result.type === "empty" ? null : result.body, { status: result.status });
+    });
+    expect(response?.status).toBe(200);
+    expect(readVisibility()).toEqual({ isPublic: Number(!isPublic) });
   });
 });
 

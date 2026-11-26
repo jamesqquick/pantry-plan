@@ -39,6 +39,7 @@ import {
 import { newRecipeTagStatements } from "@/features/recipes/recipe-tag-creation";
 import { recipeTagCountWithinLimit } from "@/features/tags/tags.schemas";
 import { getDb, getPhotoStorage, queueSearchSync, requireUser } from "./_shared";
+import { recipeSharingActions } from "./recipe-sharing";
 
 /**
  * Recipes submit complex nested data (ingredients + instructions + tags).
@@ -223,6 +224,8 @@ async function resolveRecipeIngredientCreates(
 }
 
 export const recipes = {
+  ...recipeSharingActions,
+
   uploadPhoto: defineAction({
     accept: "form",
     input: z.object({
