@@ -12,6 +12,7 @@ const runtime = vi.hoisted(() => ({
   bucket: { put: vi.fn(), get: vi.fn(), delete: vi.fn() },
 }));
 
+vi.mock("cloudflare:workers", () => ({ env: {} }));
 vi.mock("astro:actions", async () => {
   const { defineAction } = await import("../../node_modules/astro/dist/actions/runtime/server.js");
   const { ActionError } = await import("../../node_modules/astro/dist/actions/runtime/client.js");

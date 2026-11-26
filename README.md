@@ -173,6 +173,22 @@ local values in `.dev.vars` before using authenticated or AI-backed features.
 For Google sign-in locally, configure `GOOGLE_CLIENT_ID` and
 `GOOGLE_CLIENT_SECRET`.
 
+### Testing the recipe sharing flag
+
+The `public-recipe-sharing` Flagship flag defaults to off. To enable it in a
+local Worker only, use the `app_id` for `FLAGS` in `wrangler.jsonc`:
+
+```bash
+pnpm exec wrangler flagship flags create <app-id> public-recipe-sharing --local --default on
+pnpm build
+pnpm exec wrangler dev --local --port 4321
+```
+
+Use the local app origin in `AUTH_URL`. For a Worker Preview, use a dedicated
+Flagship app as `previews.flagship`'s `FLAGS` binding and set `previews.vars.AUTH_URL`
+to that Preview's origin. Apply the recipe visibility migration to the Preview
+database before enabling `public-recipe-sharing` in the Preview Flagship app.
+
 Production email uses the `EMAIL` Cloudflare Email Sending binding and the
 onboarded `quickpantry.app` domain. Local development keeps using the remote
 Email Sending binding from `wrangler.jsonc`.
