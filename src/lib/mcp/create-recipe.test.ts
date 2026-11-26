@@ -38,11 +38,11 @@ describe("createMcpRecipe", () => {
     const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1]);
     vi.spyOn(globalThis, "fetch").mockImplementation(async () => new Response(png, { headers: { "content-type": "image/png" } }));
     const bucket = { put: vi.fn(), delete: vi.fn() };
-    const storage = { bucket: bucket as unknown as R2Bucket, publicUrl: "https://photos.example.test" };
+    const storage = { bucket: bucket as unknown as R2Bucket };
     const input: CreateRecipeToolInput = { title: "Soup", ingredients: [{ quantity: 1, unit: "CUP", displayText: "stock" }], instructions: ["Heat"], photoSourceUrl: "https://example.test/soup.png" };
 
     const { recipeId } = await createMcpRecipe(test.db, "cook", input, storage);
-    expect(bucket.put).toHaveBeenCalledWith(`recipe-photos/${recipeId}`, png, expect.objectContaining({ httpMetadata: { contentType: "image/png", cacheControl: "public, no-cache" } }));
+    expect(bucket.put).toHaveBeenCalledWith(`recipe-photos/${recipeId}`, png, expect.objectContaining({ httpMetadata: { contentType: "image/png", cacheControl: "no-store" } }));
     expect(sqlite.prepare("SELECT imageStorageKey, imageUrl, isPublic, publicSlug, publishedAt FROM Recipe WHERE id = ?").get(recipeId))
       .toEqual({
         imageStorageKey: `recipe-photos/${recipeId}`,

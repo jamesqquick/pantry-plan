@@ -8,6 +8,7 @@ import { RecipeCookMode } from "@/components/recipes/RecipeCookMode";
 import { TagBadge } from "@/components/ui/TagBadge";
 import { renderMarkdownToHtml } from "@/features/markdown/render-markdown";
 import { formatIngredientLine } from "@/lib/ingredients/format-ingredient-line";
+import { ownerRecipeImageUrl } from "@/lib/recipes/recipe-photos";
 import {
   createDb,
   ingredient,
@@ -36,6 +37,7 @@ if (recipeRows.length === 0) {
   return new Response("Recipe not found", { status: 404 });
 }
 const r = recipeRows[0]!;
+const imageUrl = ownerRecipeImageUrl(r);
 
 // Fire the three related queries in parallel.
 const [ingredients, instructions, tags] = await Promise.all([
@@ -116,9 +118,9 @@ if (r.servings != null) meta.push({ label: "Servings", value: String(r.servings)
           </a>
         </nav>
         <div slot="content" class="flex flex-col gap-5 md:flex-row md:items-start">
-        {r.imageUrl && (
+        {imageUrl && (
           <img
-            src={r.imageUrl}
+            src={imageUrl}
             alt=""
             class="w-full max-w-xs rounded-2xl object-cover aspect-[4/3] md:w-48 md:h-48 md:aspect-square"
             loading="lazy"

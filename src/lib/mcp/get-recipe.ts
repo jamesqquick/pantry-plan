@@ -2,6 +2,7 @@ import { and, asc, eq } from "drizzle-orm";
 import type { Db } from "@/db";
 import { recipe, recipeIngredient, recipeInstruction, recipeTag, tag } from "@/db";
 import type { McpRecipeIngredient } from "@/features/mcp/mcp.schemas";
+import { ownerRecipeImageUrl } from "@/lib/recipes/recipe-photos";
 import { RecipeNotFoundError } from "./recipe-errors";
 
 export type McpRecipe = {
@@ -23,6 +24,7 @@ export async function getMcpRecipe(
   db: Db,
   userId: string,
   recipeId: string,
+  origin?: string,
 ): Promise<McpRecipe> {
   const rows = await db
     .select({
@@ -30,6 +32,7 @@ export async function getMcpRecipe(
       title: recipe.title,
       sourceUrl: recipe.sourceUrl,
       imageUrl: recipe.imageUrl,
+      imageStorageKey: recipe.imageStorageKey,
       servings: recipe.servings,
       prepTimeMinutes: recipe.prepTimeMinutes,
       cookTimeMinutes: recipe.cookTimeMinutes,
@@ -67,8 +70,10 @@ export async function getMcpRecipe(
       .orderBy(asc(tag.name)),
   ]);
 
+  const { imageStorageKey, ...details } = row;
   return {
-    ...row,
+    ...details,
+    imageUrl: ownerRecipeImageUrl({ ...details, imageStorageKey }, origin),
     ingredients,
     instructions: instructions.map((instruction) => instruction.text),
     tags: tags.map((tag) => tag.name),

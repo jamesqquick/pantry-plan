@@ -1,6 +1,7 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { recipe, tag } from "@/db";
 import type { Db } from "@/db";
+import { ownerRecipeImageUrl } from "@/lib/recipes/recipe-photos";
 import {
   searchUserRecipes,
   type RecipeSearchMode,
@@ -46,6 +47,7 @@ export async function searchRecipes(
   deps: SearchUserRecipesDeps,
   userId: string,
   { query, limit, tag: tagName }: SearchRecipesInput,
+  origin?: string,
 ): Promise<SearchRecipesOutput> {
   const { db } = deps;
   const tagId = tagName ? await resolveTagId(db, userId, tagName) : null;
@@ -57,6 +59,7 @@ export async function searchRecipes(
       id: recipe.id,
       title: recipe.title,
       imageUrl: recipe.imageUrl,
+      imageStorageKey: recipe.imageStorageKey,
       sourceUrl: recipe.sourceUrl,
       servings: recipe.servings,
       prepTimeMinutes: recipe.prepTimeMinutes,
@@ -65,7 +68,9 @@ export async function searchRecipes(
     })
     .from(recipe)
     .where(and(eq(recipe.userId, userId), inArray(recipe.id, ids)));
-  const byId = new Map(rows.map((row) => [row.id, row]));
+  const byId = new Map(rows.map(({ imageStorageKey, ...row }) => [
+    row.id, { ...row, imageUrl: ownerRecipeImageUrl({ ...row, imageStorageKey }, origin) },
+  ]));
 
   return {
     recipes: ids

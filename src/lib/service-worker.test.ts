@@ -147,8 +147,12 @@ describe("service worker", () => {
     workerRequest("https://pantry-plan.test/api/recipes"),
     workerRequest("https://pantry-plan.test/_actions/recipes.delete"),
     workerRequest("https://pantry-plan.test/mcp"),
+    workerRequest("https://pantry-plan.test/r/abcdefghijklmnopqrstuvwx"),
+    workerRequest("https://pantry-plan.test/r/abcdefghijklmnopqrstuvwx/photo"),
+    workerRequest("https://pantry-plan.test/r/abcdefghijklmnopqrstuvwx/photo", "GET", "no-cors"),
+    workerRequest("https://pantry-plan.test/recipe-photos/recipe-1?v=1"),
     workerRequest("https://other.test/recipes"),
-  ])("bypasses non-navigation and private requests", (request) => {
+  ])("bypasses requests outside offline navigation handling", (request) => {
     const runtime = createWorkerRuntime();
 
     const response = dispatchFetch(runtime.listeners.get("fetch")!, request);

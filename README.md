@@ -184,10 +184,12 @@ up to 4 MB. The `RECIPE_PHOTOS` R2 binding uses `quickpantry-recipe-photos` in
 production and `quickpantry-recipe-photos-preview` for Worker Previews. Create
 both buckets in the account from `wrangler.jsonc` before deploying and apply
 the committed D1 migration with the appropriate `db:migrate:*` command.
-Uploaded photos use `/recipe-photos/{recipeId}` by default. To serve them
-directly from R2, configure an R2 custom domain for each bucket and set
-`RECIPE_PHOTO_PUBLIC_URL` to its origin in that environment. The photo-read
-route works without a custom domain.
+Keep both buckets private: do not enable `r2.dev` access or attach a public
+custom domain. Uploaded photos use the owner-only `/recipe-photos/{recipeId}`
+route. Shared recipes serve photos through `/r/{slug}/photo` with a fresh
+visibility check. Keep `/r/*` and `/recipe-photos/*` out of any Cloudflare
+cache rules that override the application's `Cache-Control: no-store` header.
+Photo URLs from MCP require the owner's browser session when hosted by Quick Pantry.
 
 ### ChatGPT OAuth
 

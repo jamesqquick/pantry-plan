@@ -1,6 +1,6 @@
 const CACHE_NAME = "pantry-plan-offline-v2";
 const OFFLINE_URL = "/offline.html";
-const BYPASS_PATHS = ["/_actions/", "/api/", "/mcp"];
+const BYPASS_PATHS = ["/_actions/", "/api/", "/mcp", "/r/", "/recipe-photos/"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

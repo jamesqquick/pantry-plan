@@ -1,0 +1,84 @@
+---
+import { env } from "cloudflare:workers";
+import { createDb } from "@/db";
+import { formatIngredientLine } from "@/lib/ingredients/format-ingredient-line";
+import { canReadPublicRecipe, getPublicRecipe } from "@/lib/recipes/public-recipe";
+import { recipeReadNotFound } from "@/lib/recipes/recipe-photo-read";
+
+export const prerender = false;
+
+const slug = ["GET", "HEAD"].includes(Astro.request.method)
+  ? await canReadPublicRecipe(Astro.params.slug, env.FLAGS)
+  : null;
+// Keep a body on the 404 so Astro does not substitute the app's error page.
+if (!slug) return recipeReadNotFound({ page: true });
+const recipe = await getPublicRecipe(createDb(env.DB), env.RECIPE_PHOTOS, slug, [Astro.url, new URL(env.AUTH_URL)]);
+if (!recipe) return recipeReadNotFound({ page: true });
+
+Astro.response.headers.set("Cache-Control", "no-store");
+Astro.response.headers.set("X-Robots-Tag", "noindex");
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+
+const details = [
+  { label: "Servings", value: recipe.servings, suffix: "" },
+  { label: "Prep", value: recipe.prepTimeMinutes, suffix: " min" },
+  { label: "Cook", value: recipe.cookTimeMinutes, suffix: " min" },
+  { label: "Total", value: recipe.totalTimeMinutes, suffix: " min" },
+].filter(({ value }) => value !== null);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{recipe.title} | Quick Pantry</title>
+  </head>
+  <body>
+    <main>
+      <article>
+        <header>
+          <a href="/">Quick Pantry</a>
+          <h1>{recipe.title}</h1>
+          {recipe.photoPath
+            ? <img src={recipe.photoPath} alt="" />
+            : <div class="photo-fallback" aria-hidden="true">Quick Pantry</div>}
+          {details.length > 0 && (
+            <dl>
+              {details.map(({ label, value, suffix }) => <div><dt>{label}</dt><dd>{value}{suffix}</dd></div>)}
+            </dl>
+          )}
+          {recipe.sourceUrl && <p>Recipe source: <a href={recipe.sourceUrl} rel="noreferrer">{new URL(recipe.sourceUrl).hostname}</a></p>}
+        </header>
+        {recipe.ingredients.length > 0 && (
+          <section>
+            <h2>Ingredients</h2>
+            <ul>{recipe.ingredients.map((line) => <li>{formatIngredientLine(line)}</li>)}</ul>
+          </section>
+        )}
+        {recipe.instructions.length > 0 && (
+          <section>
+            <h2>Instructions</h2>
+            <ol>{recipe.instructions.map((step) => <li>{step}</li>)}</ol>
+          </section>
+        )}
+      </article>
+    </main>
+  </body>
+</html>
+
+<style>
+  body { background: #faf7f0; color: #292d25; font: 1.125rem/1.6 system-ui, sans-serif; }
+  main { max-width: 42rem; margin: 3rem auto; padding: 0 1rem; overflow-wrap: anywhere; }
+  h1, h2 { font-family: Georgia, serif; line-height: 1.2; }
+  h1 { font-size: clamp(2rem, 6vw, 3.5rem); }
+  a { color: #384e36; }
+  img, .photo-fallback { display: block; width: 100%; border-radius: 1rem; }
+  img { height: auto; }
+  .photo-fallback { padding: 2rem 0; background: #e5eada; color: #384e36; text-align: center; font-family: Georgia, serif; }
+  dl { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; }
+  dt { font-weight: bold; }
+  dd { margin: 0; }
+  section { margin-top: 2rem; }
+  li + li { margin-top: 0.5rem; }
+</style>

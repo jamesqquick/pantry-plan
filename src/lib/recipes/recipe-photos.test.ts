@@ -1,9 +1,16 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { fetchRecipePhoto, RecipePhotoValidationError } from "./recipe-photos";
+import { fetchRecipePhoto, ownerRecipeImageUrl, RecipePhotoValidationError } from "./recipe-photos";
 
 const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1]);
 
 afterEach(() => vi.restoreAllMocks());
+
+it("renders a managed legacy photo through the app and preserves external owner photos", () => {
+  const imageUrl = "https://old-r2.example.com/recipe-photos/recipe-1?v=legacy-version&signature=private";
+  expect(ownerRecipeImageUrl({ id: "recipe-1", imageStorageKey: "recipe-photos/recipe-1", imageUrl }))
+    .toBe("/recipe-photos/recipe-1?v=legacy-version");
+  expect(ownerRecipeImageUrl({ id: "recipe-1", imageStorageKey: null, imageUrl })).toBe(imageUrl);
+});
 
 it("downloads a bounded public HTTPS image and checks its signature", async () => {
   const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(png, {

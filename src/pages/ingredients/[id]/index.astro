@@ -7,6 +7,7 @@ import { DeleteIngredientButton } from "@/components/ingredients/DeleteIngredien
 import { renderMarkdownToHtml } from "@/features/markdown/render-markdown";
 import { buildIngredientDetails } from "@/features/ingredients/ingredients.details";
 import { createDb, ingredient, recipeIngredient, recipe } from "@/db";
+import { ownerRecipeImageUrl } from "@/lib/recipes/recipe-photos";
 
 
 export const prerender = false;
@@ -56,6 +57,7 @@ const recipesUsing = await db
     id: recipe.id,
     title: recipe.title,
     imageUrl: recipe.imageUrl,
+    imageStorageKey: recipe.imageStorageKey,
   })
   .from(recipeIngredient)
   .innerJoin(recipe, eq(recipeIngredient.recipeId, recipe.id))
@@ -66,6 +68,10 @@ const recipesUsing = await db
     )
   )
   .orderBy(asc(recipe.title));
+const recipesWithPhotos = recipesUsing.map(({ imageStorageKey, ...r }) => ({
+  ...r,
+  imageUrl: ownerRecipeImageUrl({ ...r, imageStorageKey }),
+}));
 
 // Render markdown notes server-side.
 const notesHtml = ing.notes?.trim()
@@ -197,7 +203,7 @@ const details = buildIngredientDetails(ing);
         </p>
       ) : (
         <ul class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {recipesUsing.map((r) => (
+          {recipesWithPhotos.map((r) => (
             <li>
               <a
                 href={`/recipes/${r.id}`}

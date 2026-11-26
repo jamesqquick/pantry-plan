@@ -82,7 +82,7 @@ describe("editMcpRecipe", () => {
     const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1]);
     vi.spyOn(globalThis, "fetch").mockImplementation(async () => new Response(png, { headers: { "content-type": "image/png" } }));
     const bucket = { put: vi.fn(), get: vi.fn().mockResolvedValue(null), delete: vi.fn() };
-    const storage = { bucket: bucket as unknown as R2Bucket, publicUrl: "https://photos.example.test" };
+    const storage = { bucket: bucket as unknown as R2Bucket };
 
     await editMcpRecipe(db, "cook", { recipeId: "recipe-1", photoSourceUrl: "https://example.test/photo.png" }, storage);
     expect(bucket.put).toHaveBeenCalledWith("recipe-photos/recipe-1", png, expect.any(Object));
